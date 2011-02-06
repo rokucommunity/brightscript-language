@@ -204,7 +204,7 @@ export class ProgramBuilder {
             let fileExtension = path.extname(file.src).toLowerCase();
 
             //only process brightscript files
-            if (['.bs', '.brs'].indexOf(fileExtension) > -1) {
+            if (['.bs', '.brs', '.xml'].indexOf(fileExtension) > -1) {
                 await this.program.loadOrReloadFile(file.src);
             }
         }));
