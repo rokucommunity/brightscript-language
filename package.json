@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@types/sinon": "^7.0.4",
-    "brs": "github:twitchbronbron/brs#d5433b3",
+    "brs": "github:twitchbronbron/brs#c6d3552",
     "chokidar": "^2.0.4",
     "clear": "^0.1.0",
     "command-line-args": "^5.0.2",
