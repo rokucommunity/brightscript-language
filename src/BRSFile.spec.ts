@@ -89,6 +89,20 @@ describe('BRSFile', () => {
             expect(file.errors[0].lineIndex).to.equal(1);
             expect(file.errors[0].filePath).to.equal('absolute_path/file.brs');
         });
+
+        //test is not working yet, but will be enabled when brs supports this syntax
+        it.skip('supports assigning functions to objects', async () => {
+            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                function main()
+                    o = CreateObject("roAssociativeArray")
+                    o.sayHello = sub()
+                        print "hello"
+                    end sub
+                end function
+            `);
+            expect(file.errors.length).to.equal(0);
+        });
     });
 
 });
