@@ -1,0 +1,73 @@
+{
+  "name": "brightscript",
+  "version": "0.1.0",
+  "description": "Scan a BrightScript project for errors and generate a zip archive of the project. Also provides a language server",
+  "main": "dist/index.js",
+  "scripts": {
+    "compile": "rimraf out && tsc",
+    "prepublishOnly": "npm run compile",
+    "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
+    "test": "nyc mocha src/**/*.spec.ts --full-trace",
+    "coverage": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "typings": "dist/index.d.ts",
+  "bin": {
+    "brsc": "dist/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TwitchBronBron/brightscript.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "nyc": {
+    "include": [
+      "src/index.ts"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "require": [
+      "ts-node/register",
+      "source-map-support/register"
+    ],
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "sourceMap": true,
+    "instrument": true,
+    "check-coverage": true,
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.2",
+    "@types/chokidar": "^1.7.5",
+    "@types/fs-extra": "^5.0.1",
+    "@types/mocha": "^2.2.48",
+    "@types/node": "^9.4.7",
+    "@types/request": "^2.47.0",
+    "chai": "^4.2.0",
+    "chai-files": "^1.4.0",
+    "coveralls": "^3.0.0",
+    "mocha": "^5.2.0",
+    "node-run-cmd": "^1.0.1",
+    "nyc": "^13.1.0",
+    "rimraf": "^2.6.2",
+    "source-map-support": "^0.5.3",
+    "testdouble": "^3.5.2",
+    "ts-node": "^7.0.1",
+    "tslint": "^5.9.1",
+    "tslint-eslint-rules": "^5.4.0",
+    "tslint-origin-ordered-imports-rule": "^1.1.2",
+    "typescript": "^2.7.2"
+  },
+  "dependencies": {
+    "chokidar": "^2.0.4",
+    "roku-deploy": "^2.0.0-beta5",
+    "vscode-languageclient": "^5.2.1"
+  }
+}
