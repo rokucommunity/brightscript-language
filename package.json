@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "compile": "rimraf out && tsc",
+    "watch": "rimraf out && tsc --watch",
     "prepublishOnly": "npm run compile",
     "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
     "test": "nyc mocha src/**/*.spec.ts --full-trace",
@@ -22,7 +23,8 @@
   "license": "ISC",
   "nyc": {
     "include": [
-      "src/index.ts"
+      "src/**/*.ts",
+      "!src/**/*.spec.ts"
     ],
     "extension": [
       ".ts"
@@ -46,27 +48,37 @@
   "devDependencies": {
     "@types/chai": "^4.1.2",
     "@types/chokidar": "^1.7.5",
+    "@types/command-line-args": "^5.0.0",
     "@types/fs-extra": "^5.0.1",
     "@types/mocha": "^2.2.48",
     "@types/node": "^9.4.7",
     "@types/request": "^2.47.0",
     "chai": "^4.2.0",
     "chai-files": "^1.4.0",
+    "command-line-usage": "^5.0.5",
     "coveralls": "^3.0.0",
     "mocha": "^5.2.0",
     "node-run-cmd": "^1.0.1",
     "nyc": "^13.1.0",
     "rimraf": "^2.6.2",
-    "source-map-support": "^0.5.3",
+    "sinon": "^7.2.2",
+    "source-map-support": "^0.5.10",
     "testdouble": "^3.5.2",
     "ts-node": "^7.0.1",
-    "tslint": "^5.9.1",
+    "tslint": "^5.12.1",
     "tslint-eslint-rules": "^5.4.0",
     "tslint-origin-ordered-imports-rule": "^1.1.2",
-    "typescript": "^2.7.2"
+    "typescript": "^3.2.4"
   },
   "dependencies": {
+    "@types/sinon": "^7.0.4",
     "chokidar": "^2.0.4",
+    "clear": "^0.1.0",
+    "command-line-args": "^5.0.2",
+    "cross-platform-clear-console": "^2.3.0",
+    "debounce": "^1.2.0",
+    "fs-extra": "^7.0.1",
+    "moment": "^2.23.0",
     "roku-deploy": "^2.0.0-beta5",
     "vscode-languageclient": "^5.2.1"
   }

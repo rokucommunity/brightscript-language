@@ -2,12 +2,19 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "npm",
+            "label": "test",
+            "type": "shell",
             "group": {
                 "kind": "test",
                 "isDefault": true
             },
-            "script": "test",
+            "command": "npm",
+            "args": [
+                "run",
+                "test",
+                "--silent"
+            ],
+            "options": {},
             "problemMatcher": []
         },
         {
@@ -22,6 +29,11 @@
                 "$tslint5",
                 "$tsc"
             ]
+        },
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": []
         }
     ]
 }
