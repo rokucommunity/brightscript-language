@@ -14,10 +14,32 @@ afterEach(() => {
 });
 
 
-describe('BRSProgram', () => {
-    it.only('constructs', async () => {
+describe.only('BRSProgram', () => {
+    it('catches duplicate SUB declarations', async () => {
         let program = new BRSProgram();
-        await program.addFile('source/main.brs', `sub DoSomething()\n end sub\n sub DoSomething()\n end sub`)
+        await program.addFile('source/main.brs', `
+            sub DoSomething()
+            end sub
+            
+            sub DoSomething()
+            end sub
+        `);
+        await program.validate();
+        expect(program.errors.length).to.equal(1);
+    });
+
+    it('catches duplicate FUNCTION declarations', async () => {
+        let program = new BRSProgram();
+        await program.addFile('source/main.brs', `
+            function DoSomething()
+                return 1
+            end function
+            
+            function DoSomething()
+                return 1
+            end function
+        `);
+    
         await program.validate();
         expect(program.errors.length).to.equal(1);
     });

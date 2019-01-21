@@ -1,6 +1,6 @@
 import { BRSError, BRSCallable } from './interfaces';
-import { Lexer, Parser } from 'brs';
 import * as fsExtra from 'fs-extra';
+import * as bright from '@roku-road/bright';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -22,7 +22,7 @@ export class BRSFile {
     /**
      * The AST for this file
      */
-    private ast: Parser.Stmt.Statement[];
+    private ast;
 
 
     /**
@@ -37,23 +37,23 @@ export class BRSFile {
         if (!fileContents) {
             fileContents = (await fsExtra.readFile(this.filePath)).toString();
         }
-        let tokens = Lexer.scan(fileContents);
-        this.ast = Parser.parse(tokens);
+        const { value, lexErrors, tokens, parseErrors } = bright.parse(fileContents, 'Program');
+        this.ast = value;
     }
 
     public getGlobalCallables() {
         let result = [] as BRSCallable[];
-        for (let statement of this.ast as any) {
-            if (statement.func) {
-                let func = statement as ParserFunction;
+        for (let child of this.ast.children.Declaration as any) {
+            if (child.name === 'SubDeclaration' || child.name === 'FunctionDeclaration') {
+                let identifier = child.children.id[0].children.IDENTIFIER[0];
                 result.push({
-                    name: func.name.text,
-                    lineIndex: func.name.line,
-                    columnBeginIndex: 1,
+                    name: identifier.image,
+                    lineIndex: identifier.startLine - 1,
+                    columnBeginIndex: identifier.startColumn - 1,
                     columnEndIndex: Number.MAX_VALUE,
                     file: this,
                     params: [],
-                    type: 'function'
+                    type: child.name === 'SubDeclaration' ? 'sub' : 'function'
                 });
             }
         }
