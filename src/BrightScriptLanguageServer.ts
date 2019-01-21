@@ -1,10 +1,10 @@
 import * as chokidar from 'chokidar';
-import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
 
 import { clear, log } from './util';
 import { Watcher } from './Watcher';
+import * as util from './util';
 
 /**
  * A language server that can be used to parse BrightScript files and generate a zip folder
@@ -23,45 +23,22 @@ export class BrightScriptLanguageServer {
             throw new Error('Server is already running');
         }
         options = await this.setOptions(options);
-
-        this.watcher = new Watcher(options);
-
-        //wire up watch mode
         if (this.options.watch) {
-            //keep the process alive indefinitely by setting an interval that runs once every 12 days
-            setInterval(() => { }, 1 << 30);
-            clear();
-
-            log('Starting compilation in watch mode...');
-            let fileObjects = rokuDeploy.normalizeFilesOption(options.files ? options.files : []);
-
-            let fileObjectPromises = fileObjects.map(async (fileObject) => {
-                await this.watcher.watch(fileObject.src);
-            });
-
-            //wait for all watchers to be ready
-            await Promise.all(fileObjectPromises);
-
-            this.watcher.on('all', (event: string, path: string) => {
-                this.fileChanged(path, <any>event);
-            });
-
-            let errorCount = await this._run();
-            log(`Found ${errorCount} errors. Watching for file changes.`);
-
+            await this.runInWatchMode();
         } else {
-            await this._run();
+            await this.runOnce();
         }
     }
 
-    private async _run() {
+    private async runOnce(cancellationToken?: { cancel: boolean }) {
         //parse every file in the entire project
         let errorCount = await this.loadAllFilesAST();
 
         if (errorCount > 0) {
             return errorCount;
         }
-        //validate program s
+
+        //validate program
         errorCount = await this.validateProject();
         if (errorCount > 0) {
             return errorCount;
@@ -71,6 +48,35 @@ export class BrightScriptLanguageServer {
         await this.deployPackage();
 
         return 0;
+    }
+
+    public async runInWatchMode() {
+        throw new Error('Not implemented');
+        this.watcher = new Watcher(this.options);
+        //keep the process alive indefinitely by setting an interval that runs once every 12 days
+        setInterval(() => { }, 1 << 30);
+        clear();
+
+        log('Starting compilation in watch mode...');
+        let fileObjects = rokuDeploy.normalizeFilesOption(this.options.files ? this.options.files : []);
+
+        let fileObjectPromises = fileObjects.map(async (fileObject) => {
+            await this.watcher.watch(fileObject.src);
+        });
+
+        //wait for all watchers to be ready
+        await Promise.all(fileObjectPromises);
+
+        this.watcher.on('all', (event: string, path: string) => {
+            this.fileChanged(path, <any>event);
+        });
+
+        let errorCount = await this._run();
+        log(`Found ${errorCount} errors. Watching for file changes.`);
+    }
+
+    private async _run() {
+
     }
 
     private async createPackage() {
@@ -118,24 +124,6 @@ export class BrightScriptLanguageServer {
     }
 
     /**
-     * Load a file from disc into a string
-     * @param filePath 
-     */
-    public async getFileContents(filePath: string) {
-        return (await fsExtra.readFile(filePath)).toString();
-    }
-
-    /**
-     * Determine if the file exists
-     * @param filePath
-     */
-    public fileExists(filePath: string) {
-        return new Promise((resolve, reject) => {
-            fsExtra.exists(filePath, resolve);
-        });
-    }
-
-    /**
      * Given a BRSConfig object, normalize all values and resolve all "extends" and "project" settings
      * @param options 
      * @param parentProjectPaths an array of parent project paths. Used to detect and prevent circular dependencies
@@ -159,7 +147,7 @@ export class BrightScriptLanguageServer {
                     throw new Error('Circular dependency detected: "' + parentProjectPaths.join('" => ') + '"')
                 }
                 //load the project file
-                let projectFileContents = await this.getFileContents(projectPath);
+                let projectFileContents = await util.getFileContents(projectPath);
                 let projectConfig = JSON.parse(projectFileContents);
 
                 //set working directory to the location of the project file
@@ -222,7 +210,7 @@ export class BrightScriptLanguageServer {
     public async loadDefaultOptionsIfMissing() {
         //if we don't have options, look for the default brsconfig.json file
         if (!this.options) {
-            if (await this.fileExists('brsconfig.json')) {
+            if (await util.fileExists('brsconfig.json')) {
                 this.options = await this.normalizeConfig({ project: 'brsconfig.json' });
             } else {
                 //use defaults
@@ -244,7 +232,7 @@ export class BrightScriptLanguageServer {
 
             //only process brightscript files
             if (['bs', 'brs'].indexOf(fileExtension) > -1) {
-                errorCount += await this.loadAST(file);
+                // errorCount += await this.loadAST(file);
             }
         }));
         return errorCount;
@@ -256,17 +244,6 @@ export class BrightScriptLanguageServer {
      */
     private async validateProject() {
         log('Validating project');
-        let errorCount = 0;
-        return errorCount;
-    }
-
-
-    /**
-     * Load the AST for a given file
-     */
-    private async loadAST(file: { src: string; dest: string; }) {
-        //load file contents
-        let fileContents = (await fsExtra.readFile(file.src)).toString();
         let errorCount = 0;
         return errorCount;
     }

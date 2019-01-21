@@ -3,6 +3,7 @@ import * as sinonImport from 'sinon';
 
 import { BrightScriptLanguageServer } from './BrightScriptLanguageServer';
 import { expect, assert } from 'chai';
+import * as util from './util';
 
 let sinon = sinonImport.createSandbox();
 
@@ -23,7 +24,7 @@ describe('BrightScriptLanguageServer', () => {
         server = new BrightScriptLanguageServer();
         s = server;
         vfs = {};
-        vfsStub = sinon.stub(server, 'getFileContents').callsFake((filePath) => {
+        vfsStub = sinon.stub(util, 'getFileContents').callsFake((filePath) => {
             if (vfs[filePath]) {
                 return vfs[filePath];
             } else {
