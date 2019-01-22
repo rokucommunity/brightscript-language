@@ -1,28 +1,34 @@
 import * as chokidar from 'chokidar';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
+import * as fsExtra from 'fs-extra';
 
 import { clear, log } from './util';
 import { Watcher } from './Watcher';
 import * as util from './util';
+import { BRSProgram } from '.';
+import { fstat } from 'fs-extra';
 
 /**
- * A language server that can be used to parse BrightScript files and generate a zip folder
+ * A runner class that handles 
  */
-export class BrightScriptLanguageServer {
+export class BRSLanguageServer {
     constructor(
     ) {
     }
 
     private options: BRSConfig;
     private isRunning = false;
-    private watcher: Watcher
+    private watcher: Watcher;
+    public program: BRSProgram;
 
     public async run(options: BRSConfig) {
         if (this.isRunning) {
             throw new Error('Server is already running');
         }
-        options = await this.setOptions(options);
+        this.options = await util.normalizeConfig(options);
+
+        this.program = new BRSProgram(options);
         if (this.options.watch) {
             await this.runInWatchMode();
         } else {
@@ -81,7 +87,7 @@ export class BrightScriptLanguageServer {
 
     private async createPackage() {
         //create the zip file if configured to do so
-        if (this.options.noPackage === false || this.options.deploy) {
+        if (this.options.skipPackage === false || this.options.deploy) {
             log(`Creating package at ${this.options.outFile}`);
             await rokuDeploy.createPackage({
                 ...this.options,
@@ -101,123 +107,6 @@ export class BrightScriptLanguageServer {
                 outFile: path.basename(this.options.outFile)
             });
         }
-    }
-
-    public async setOptions(options: BRSConfig) {
-        this.options = await this.normalizeConfig(options);
-        this.options = await this.loadDefaultOptionsIfMissing();
-
-        // //if a watcher is already running, change the files it is waching
-        if (this.watcher) {
-            throw new Error('Not implemented');
-
-            // //get the original source paths
-            // let oldSrcGlobs = this.getSourcePaths(this.options);
-            // //unwatch all original sources
-            // this.fsWatcher.unwatch(oldSrcGlobs);
-
-            // let newSrcGlobs = this.getSourcePaths(options);
-            // //watch all of the new sources
-            // this.fsWatcher.add(newSrcGlobs);
-        }
-        return this.options;
-    }
-
-    /**
-     * Given a BRSConfig object, normalize all values and resolve all "extends" and "project" settings
-     * @param options 
-     * @param parentProjectPaths an array of parent project paths. Used to detect and prevent circular dependencies
-     */
-    public async normalizeConfig(originalConfig: BRSConfig, parentProjectPaths?: string[]) {
-        let result = <BRSConfig>{};
-
-        if (!originalConfig) {
-            originalConfig = <any>{};
-        }
-        let cwd = process.cwd();
-
-        //load 'project' and 'extends' files (should only be one or the other in any given call, but logic is identical)
-        for (let projectPath of [originalConfig.project, originalConfig.extends]) {
-            parentProjectPaths = parentProjectPaths ? parentProjectPaths : [];
-            if (projectPath) {
-                projectPath = path.resolve(projectPath);
-                if (parentProjectPaths && parentProjectPaths.indexOf(projectPath) > -1) {
-                    parentProjectPaths.push(projectPath);
-                    parentProjectPaths.reverse();
-                    throw new Error('Circular dependency detected: "' + parentProjectPaths.join('" => ') + '"')
-                }
-                //load the project file
-                let projectFileContents = await util.getFileContents(projectPath);
-                let projectConfig = JSON.parse(projectFileContents);
-
-                //set working directory to the location of the project file
-                process.chdir(path.dirname(projectPath));
-
-                //normalize config (and resolve any inheritance)
-                projectConfig = await this.normalizeConfig(projectConfig, [...parentProjectPaths, projectPath]);
-
-                result = Object.assign(result, projectConfig);
-
-                //restore working directory
-                process.chdir(cwd);
-            }
-        }
-
-        //extend the base with the provided config values
-        result = Object.assign(result, originalConfig);
-
-        //use default files glob if not specified (all roku-like files at root of current directory)
-        if (!result.files) {
-            let opts = rokuDeploy.getOptions();
-            result.files = opts.files;
-        }
-
-        //default to out/package.zip
-        if (!result.outFile) {
-            result.outFile = path.join(process.cwd(), 'out', 'package.zip');
-        }
-        result.outFile = path.resolve(result.outFile);
-
-        //default to current working directory
-        if (!result.rootDir) {
-            result.rootDir = process.cwd();
-        }
-        result.rootDir = path.resolve(result.rootDir);
-
-        //default to NOT watching
-        if (result.watch !== true) {
-            result.watch = false;
-        }
-
-        //use the default roku username. This can't currently be changed, but maybe it will be eventually, so build it in now.
-        if (!result.username) {
-            result.username = 'rokudev';
-        }
-
-        //coerce deploy into a boolean, default to false
-        if (result.deploy !== true) {
-            result.deploy = false;
-        }
-
-        //should always create zip unless told NOT to do so
-        if (result.noPackage !== true) {
-            result.noPackage = false;
-        }
-
-        return result;
-    }
-
-    public async loadDefaultOptionsIfMissing() {
-        //if we don't have options, look for the default brsconfig.json file
-        if (!this.options) {
-            if (await util.fileExists('brsconfig.json')) {
-                this.options = await this.normalizeConfig({ project: 'brsconfig.json' });
-            } else {
-                //use defaults
-                this.options = await this.normalizeConfig({});
-            }
-        }
-        return this.options;
     }
 
     /**
@@ -302,6 +191,10 @@ export interface BRSConfig {
      */
     extends?: string;
     /**
+     * Override the current working directory.
+     */
+    cwd?: string;
+    /**
      * The root directory of your roku project. Defaults to current directory.
      */
     rootDir?: string;
@@ -319,7 +212,7 @@ export interface BRSConfig {
     /**
      * Prevents the zip file from being created. This has no effect if deploy is true.
      */
-    noPackage?: boolean;
+    skipPackage?: boolean;
     /**
      * If true, the server will keep running and will watch and recompile on every file change
      * @default false

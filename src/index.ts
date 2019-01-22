@@ -1,3 +1,7 @@
-import { BrightScriptLanguageServer } from './BrightScriptLanguageServer';
+import { BRSLanguageServer } from './BRSLanguageServer';
+import { BRSProgram } from './BRSProgram';
 
-export { BrightScriptLanguageServer };
+export {
+    BRSLanguageServer,
+    BRSProgram
+};

@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
-import { BrightScriptLanguageServer } from './BrightScriptLanguageServer';
 import { expect, assert } from 'chai';
 import { BRSProgram } from './BRSProgram';
 
@@ -9,14 +8,14 @@ let sinon = sinonImport.createSandbox();
 let rootDir = 'C:/projects/RokuApp';
 let program: BRSProgram;
 beforeEach(() => {
-    program = new BRSProgram(rootDir);
+    program = new BRSProgram({ rootDir });
 });
 afterEach(() => {
     sinon.restore();
 });
 
 
-describe.only('BRSProgram', () => {
+describe('BRSProgram', () => {
     describe('addFile', () => {
         it('adds files in the source folder to the global context', async () => {
             expect(program.contexts['global']).to.exist;
@@ -57,7 +56,7 @@ describe.only('BRSProgram', () => {
                 end sub
                 sub DoSomething()
                 end sub
-            `)
+            `);
             await program.validate();
             expect(program.errors.length).to.equal(1);
             expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
@@ -83,7 +82,7 @@ describe.only('BRSProgram', () => {
                 end sub
                 sub DoSomething()
                 end sub
-            `)
+            `);
             await program.validate();
             expect(program.errors.length).to.equal(1);
             //set the file contents again (resetting the wasProcessed flag)
@@ -92,9 +91,22 @@ describe.only('BRSProgram', () => {
                 end sub
                 sub DoSomething()
                 end sub
-            `)
+            `);
             await program.validate();
             expect(program.errors.length).to.equal(1);
+        });
+
+        it('identifies invocation of unknown callable', async () => {
+            await program.addFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    name = "Hello"
+                    DoSomething(name) ' call a function that doesn't exist
+                end sub
+            `);
+
+            await program.validate();
+            expect(program.errors.length).to.equal(1);
+            expect(program.errors[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
         });
     });
 });

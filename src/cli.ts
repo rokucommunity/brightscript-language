@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
-import { BrightScriptLanguageServer } from '.';
+import { BRSLanguageServer } from '.';
 let args = [
     { name: 'out-file', type: String, description: 'Path to the zip folder containing the bundled project.' },
     { name: 'project', type: String, description: 'Path to a brsconfig.json project file.' },
@@ -27,7 +27,7 @@ if (options.help) {
     }]);
     console.log(usage);
 } else {
-    var server = new BrightScriptLanguageServer();
+    var server = new BRSLanguageServer();
     server.run(<any>options)
         .then(() => {
             var k = 2;

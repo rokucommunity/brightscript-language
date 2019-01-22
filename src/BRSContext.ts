@@ -110,14 +110,14 @@ export class BRSContext {
         })
 
         //find duplicate callables
+        let callablesByName = {} as { [name: string]: BRSCallable };
         {
-            let callableNames = [];
             for (let callable of this.callables) {
                 let name = callable.name.toLowerCase();
 
                 //new callable, add to list and continue
-                if (!callableNames[name]) {
-                    callableNames[name] = true;
+                if (!callablesByName[name]) {
+                    callablesByName[name] = callable;
                     continue;
                 }
 
@@ -126,9 +126,31 @@ export class BRSContext {
                     columnBeginIndex: callable.columnBeginIndex,
                     columnEndIndex: callable.columnEndIndex,
                     lineIndex: callable.lineIndex,
-                    filePath: callable.file.pathAbsolute
-                };
+                    filePath: callable.file.pathAbsolute,
+                    severity: 'error'
+                } as BRSError;
                 this._errors.push(error);
+            }
+        }
+
+        //validate all expression calls
+        {
+            for (let key in this.files) {
+                let contextFile = this.files[key];
+                for (let expCall of contextFile.file.expressionCalls) {
+                    let knownCallable = callablesByName[expCall.name]
+                    if (!knownCallable) {
+                        let error = {
+                            message: `Cannot find name '${expCall.name}'`,
+                            columnBeginIndex: expCall.columnBeginIndex,
+                            columnEndIndex: expCall.columnEndIndex,
+                            lineIndex: expCall.lineIndex,
+                            filePath: contextFile.file.pathAbsolute,
+                            severity: 'error'
+                        } as BRSError;
+                        this._errors.push(error);
+                    }
+                }
             }
         }
     }

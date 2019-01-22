@@ -3,16 +3,17 @@ import { BRSFile } from './BRSFile';
 import { BRSContext } from './BRSContext';
 import * as path from 'path';
 import * as util from './util';
+import { BRSConfig } from './BRSLanguageServer';
 
 export class BRSProgram {
     constructor(
         /**
          * The root directory for this program
          */
-        private rootDir: string
+        private options: BRSConfig
     ) {
         //normalize the root dir
-        this.rootDir = util.normalizeFilePath(rootDir);
+        this.rootDir = util.normalizeFilePath(options.rootDir);
 
         //create the "global" context
         this.createContext('global', (file) => {
@@ -20,17 +21,20 @@ export class BRSProgram {
             return file.pathRelative.indexOf(`source${path.sep}`) === 0;
         });
     }
+
+    private rootDir: string;
+
     /**
      * Get the list of errors for the entire program. It's calculated on the fly, so
      * call this sparingly.
      */
     public get errors() {
-        let errorLists = [this._errors];
+        let errorLists = [this._errors] as BRSError[][];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             errorLists.push(context.errors);
         }
-        let result = Array.prototype.concat.apply([], errorLists);
+        let result = Array.prototype.concat.apply([], errorLists) as BRSError[];
         return result;
     }
 
