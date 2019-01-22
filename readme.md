@@ -2,8 +2,8 @@
 
 A sort-of compiler and a language server for Roku's BrightScript language. 
 
-
-Compiler options specified on the command line override those specified in the tsconfig.json file.
+[![Build Status](https://travis-ci.org/TwitchBronBron/brightscript.svg?branch=master)](https://travis-ci.org/TwitchBronBron/brightscript)
+[![codecov](https://codecov.io/gh/TwitchBronBron/brightscript/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript)
 
 
 # brsconfig.json
