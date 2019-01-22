@@ -1,5 +1,5 @@
 import * as chokidar from 'chokidar';
-import { BRSConfig } from './BrightScriptLanguageServer';
+import { BRSConfig } from './BRSLanguageServer';
 import { watch } from 'fs';
 
 /**
