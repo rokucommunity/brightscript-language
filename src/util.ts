@@ -1,5 +1,6 @@
 import * as moment from 'moment';
 import * as fsExtra from 'fs-extra';
+import * as path from 'path';
 
 export function log(...args) {
     let timestamp = `[${moment().format('hh:mm:ss A')}]`;
@@ -25,4 +26,12 @@ export function fileExists(filePath: string) {
  */
 export async function getFileContents(filePath: string) {
     return (await fsExtra.readFile(filePath)).toString();
+}
+
+/**
+ * Make the path absolute, and replace all separators with the current OS's separators
+ * @param filePath 
+ */
+export function normalizeFilePath(filePath: string) {
+    return path.normalize(path.resolve(filePath));
 }
