@@ -1,4 +1,4 @@
-import * as util from './util';
+import util from './util';
 import * as sinonImport from 'sinon';
 import * as path from 'path';
 import { expect, assert } from 'chai';
@@ -66,7 +66,7 @@ describe.only('util', () => {
 
         it('loads project from disc and extends it', async () => {
             //the extends file
-            let extendsConfigPath = path.join(rootConfigDir, 'testProject', 'base_brsconfig.json')
+            let extendsConfigPath = path.join(rootConfigDir, 'testProjects', 'base_brsconfig.json')
             vfs[extendsConfigPath] = `{
                 "outFile": "customOutDir/pkg1.zip",
                 "rootDir": "core"
@@ -74,14 +74,14 @@ describe.only('util', () => {
 
             //the project file
             vfs[rootConfigPath] = `{
-                "extends": "testProject/base_brsconfig.json",
+                "extends": "testProjects/base_brsconfig.json",
                 "watch": true
             }`;
 
             let config = await util.normalizeConfig({ project: rootConfigPath })
 
-            expect(config.outFile).to.equal(path.join(rootConfigDir, 'testProject', 'customOutDir', 'pkg1.zip'))
-            expect(config.rootDir).to.equal(path.join(rootConfigDir, 'testProject', 'core'));
+            expect(config.outFile).to.equal(path.join(rootConfigDir, 'testProjects', 'customOutDir', 'pkg1.zip'))
+            expect(config.rootDir).to.equal(path.join(rootConfigDir, 'testProjects', 'core'));
             expect(config.watch).to.equal(true)
         });
 
@@ -93,13 +93,14 @@ describe.only('util', () => {
                 "extends": "brsconfig.json"
             }`
 
+            let threw = false;
             try {
                 await util.normalizeConfig({ project: rootConfigPath })
-                assert.fail('An exception should have occurred');
             } catch (e) {
-                expect(e.message).to.contain('Circular dependency');
-                //the test passed
+                threw = true;
             }
+            expect(threw).to.equal(true, 'Should have thrown an error');
+            //the test passed
         });
 
         it('properly handles default for watch', async () => {

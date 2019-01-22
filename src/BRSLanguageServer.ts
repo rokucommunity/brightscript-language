@@ -3,9 +3,8 @@ import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
 import * as fsExtra from 'fs-extra';
 
-import { clear, log } from './util';
+import util from './util';
 import { Watcher } from './Watcher';
-import * as util from './util';
 import { BRSProgram } from '.';
 import { fstat } from 'fs-extra';
 
@@ -61,9 +60,9 @@ export class BRSLanguageServer {
         this.watcher = new Watcher(this.options);
         //keep the process alive indefinitely by setting an interval that runs once every 12 days
         setInterval(() => { }, 1 << 30);
-        clear();
+        util.clear();
 
-        log('Starting compilation in watch mode...');
+        util.log('Starting compilation in watch mode...');
         let fileObjects = rokuDeploy.normalizeFilesOption(this.options.files ? this.options.files : []);
 
         let fileObjectPromises = fileObjects.map(async (fileObject) => {
@@ -78,7 +77,7 @@ export class BRSLanguageServer {
         });
 
         let errorCount = await this._run();
-        log(`Found ${errorCount} errors. Watching for file changes.`);
+        util.log(`Found ${errorCount} errors. Watching for file changes.`);
     }
 
     private async _run() {
@@ -88,7 +87,7 @@ export class BRSLanguageServer {
     private async createPackage() {
         //create the zip file if configured to do so
         if (this.options.skipPackage === false || this.options.deploy) {
-            log(`Creating package at ${this.options.outFile}`);
+            util.log(`Creating package at ${this.options.outFile}`);
             await rokuDeploy.createPackage({
                 ...this.options,
                 outDir: path.dirname(this.options.outFile),
@@ -100,7 +99,7 @@ export class BRSLanguageServer {
     private async deployPackage() {
         //deploy the project if configured to do so
         if (this.options.deploy) {
-            log(`Deploying package to ${this.options.host}}`);
+            util.log(`Deploying package to ${this.options.host}}`);
             await rokuDeploy.publish({
                 ...this.options,
                 outDir: path.dirname(this.options.outFile),
@@ -132,7 +131,7 @@ export class BRSLanguageServer {
      * If no errors were encountered, return true. Otherwise return false.
      */
     private async validateProject() {
-        log('Validating project');
+        util.log('Validating project');
         let errorCount = 0;
         return errorCount;
     }
@@ -161,8 +160,8 @@ export class BRSLanguageServer {
         setTimeout(() => {
             (async () => {
                 tryAbort();
-                clear();
-                log('File change detected. Starting incremental compilation...');
+                util.clear();
+                util.log('File change detected. Starting incremental compilation...');
                 //now that the ADT and files are up-to-date, revalidate the project
                 let errorCount = await this.validateProject();
 

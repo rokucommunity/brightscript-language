@@ -2,7 +2,7 @@ import { BRSError, BRSCallable } from './interfaces';
 import { BRSFile } from './BRSFile';
 import { BRSContext } from './BRSContext';
 import * as path from 'path';
-import * as util from './util';
+import util from './util';
 import { BRSConfig } from './BRSLanguageServer';
 
 export class BRSProgram {

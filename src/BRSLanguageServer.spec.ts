@@ -3,7 +3,7 @@ import * as sinonImport from 'sinon';
 
 import { BRSLanguageServer } from './BRSLanguageServer';
 import { expect, assert } from 'chai';
-import * as util from './util';
+import util from './util';
 
 let sinon = sinonImport.createSandbox();
 
