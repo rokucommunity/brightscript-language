@@ -1,9 +1,0 @@
-.vscode
-src
-testProject
-.gitignore
-.npmrc
-rokudeploy.json
-tsconfig.json
-dist/*.map
-dist/*.spec.*
