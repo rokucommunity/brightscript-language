@@ -469,76 +469,74 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
             type: 'string'
         }]
     }, {
-        name: '',
-        description: '',
+        name: 'StrToI',
+        description: 'Return the integer value of the string, or 0 if nothing is parsed.',
         type: 'function',
-        returnType: '',
+        returnType: 'integer',
         file: globalFile,
         params: [{
-            name: '',
-            type: ''
+            name: 'str',
+            type: 'string'
         }]
     }, {
-        name: '',
-        description: '',
+        name: 'RunGarbageCollector',
+        description: `This function runs the garbage collector. It returns and Associative Array with some statistics regarding the garbage collection. \nSee the Garbage Collection section of the manual for more detail. You don't normally need to call this function.`,
         type: 'function',
-        returnType: '',
+        returnType: 'object',
+        file: globalFile,
+        params: []
+    }, {
+        name: 'ParseJson',
+        description:
+            `This function will parse a string formatted according to RFC4627 and return an equivalent BrightScript object (consisting of booleans, integer and floating point numbers, strings, roArray, and roAssociativeArray objects).  If the string is not syntactically correct, Invalid will be returned.  A few other things to note:
+
+Any roAssociativeArray objects in the returned objects will be case sensitive.
+An error will be returned if arrays/associative arrays are nested more than 256 levels deep.`,
+        type: 'function',
+        returnType: 'object',
         file: globalFile,
         params: [{
-            name: '',
-            type: ''
+            name: 'jsonString',
+            type: 'string'
         }]
     }, {
-        name: '',
-        description: '',
+        name: 'FormatJson',
+        description:
+            `Formats a supported data type as a JSON string.
+
+Data types supported are booleans, integer and floating point numbers, strings, roArray, and roAssociativeArray objects.
+
+An error will be returned if arrays/associative arrays are nested more than 256 levels deep.
+
+If an error occurs an empty string will be returned.
+
+Normally non-ASCII characters are escaped in the output string as "\\uXXXX" where XXXX is the hexadecimal representation of the Unicode character value.  If flags=1, non-ASCII characters are not escaped.`,
         type: 'function',
         returnType: '',
         file: globalFile,
         params: [{
-            name: '',
-            type: ''
+            name: 'object',
+            type: 'object'
+        }, {
+            name: 'flags',
+            type: 'string',
+            isOptional: true
         }]
     }, {
-        name: '',
-        description: '',
+        name: 'Tr',
+        description:
+            `Translates the source string into the language of the current locale. The function looks for a translations.xml file in the XLIFF format in the pkg:/locale subdirectory named for the current locale (see ifDeviceInfo.GetCurrentLocale for the list of currently-supported locales). If the translations.xml file exists for the current locale, and contains the source string with a translated string, the function returns the translated string. Otherwise, the function returns the original source string.
+
+In some cases you may want to include a placeholder marker in a localizable string that gets dynamically substituted with a value at runtime. 
+One way to accomplish that is to use the Replace method on the string value returned from the Tr() lookup.`,
         type: 'function',
-        returnType: '',
+        returnType: 'string',
         file: globalFile,
         params: [{
-            name: '',
-            type: ''
+            name: 'source',
+            type: 'string'
         }]
-    }, {
-        name: '',
-        description: '',
-        type: 'function',
-        returnType: '',
-        file: globalFile,
-        params: [{
-            name: '',
-            type: ''
-        }]
-    }, {
-        name: '',
-        description: '',
-        type: 'function',
-        returnType: '',
-        file: globalFile,
-        params: [{
-            name: '',
-            type: ''
-        }]
-    }, {
-        name: '',
-        description: '',
-        type: 'function',
-        returnType: '',
-        file: globalFile,
-        params: [{
-            name: '',
-            type: ''
-        }]
-    },
+    }
 ];
 // , {
 //     name: '',
@@ -552,4 +550,4 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
 //     }]
 // }
 
-export default [...mathFunctions, ...runtimeFunctions];
+export default [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions];
