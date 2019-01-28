@@ -13,7 +13,7 @@ export class BRSProgram {
         private options: BRSConfig
     ) {
         //normalize the root dir
-        this.rootDir = util.normalizeFilePath(options.rootDir);
+        this.rootDir = util.getRootDir(options);
 
         //create the "global" context
         this.createContext('global', (file) => {
@@ -68,24 +68,32 @@ export class BRSProgram {
      * Add and parse all of the provided files
      * @param filePaths 
      */
-    public async addFiles(filePaths: string[]) {
+    public async loadOrReloadFiles(filePaths: string[]) {
         await Promise.all(
             filePaths.map(async (filePath) => {
-                await this.addFile(filePath);
+                await this.loadOrReloadFile(filePath);
             })
         );
     }
 
     /**
-     * Add a file to the program.
+     * Load a file into the program, or replace it of it's already loaded
      * @param filePath 
      * @param fileContents 
      */
-    public async addFile(filePath: string, fileContents?: string) {
+    public async loadOrReloadFile(filePath: string, fileContents?: string) {
         filePath = util.normalizeFilePath(filePath);
+        //if the file is already loaded, remove it first
         if (this.files[filePath]) {
-            throw new Error(`File "${filePath}" is already loaded in the program. Perhaps you meant to call reloadFile`);
+            await this.reloadFile(filePath, fileContents);
+        } else {
+            await this.loadFile(filePath, fileContents);
         }
+
+    }
+
+    private async loadFile(filePath: string, fileContents?: string) {
+        filePath = util.normalizeFilePath(filePath);
 
         let relativeFilePath = filePath.replace(this.rootDir + path.sep, '');
         let file = new BRSFile(filePath, relativeFilePath);
@@ -99,7 +107,13 @@ export class BRSProgram {
                 context.addFile(file);
             }
         }
-        var k = 2;
+    }
+
+    private async reloadFile(filePath: string, fileContents?: string) {
+        filePath = util.normalizeFilePath(filePath);
+        let file = this.files[filePath];
+        await file.reset();
+        await file.parse(fileContents);
     }
 
     /**
@@ -131,16 +145,6 @@ export class BRSProgram {
         }
         //remove the file from the program
         delete this.files[filePath];
-    }
-
-    /**
-     * Reloads the file. 
-     * This is normally called from a watcher when a file's contents changed on disk or in memory
-     * @param filePath 
-     */
-    public async reloadFile(filePath: string, fileContents?: string) {
-        await this.removeFiles([filePath]);
-        await this.addFile(filePath, fileContents);
     }
 
     /**

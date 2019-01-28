@@ -27,7 +27,7 @@ afterEach(() => {
     process.chdir(cwd);
 });
 
-describe.only('util', () => {
+describe('util', () => {
     describe('getConfigFilePath', async () => {
         it('returns undefined when it does not find the file', async () => {
             let configFilePath = await util.getConfigFilePath(path.join(process.cwd(), 'testProjects', 'project1'));

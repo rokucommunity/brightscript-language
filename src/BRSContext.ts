@@ -123,8 +123,8 @@ export class BRSContext {
 
                 let error = {
                     message: `Duplicate ${callable.type} declaration "${callable.name}"`,
-                    columnBeginIndex: callable.columnBeginIndex,
-                    columnEndIndex: callable.columnEndIndex,
+                    columnBeginIndex: callable.columnIndexBegin,
+                    columnEndIndex: callable.columnIndexEnd,
                     lineIndex: callable.lineIndex,
                     filePath: callable.file.pathAbsolute,
                     severity: 'error'

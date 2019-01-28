@@ -1,10 +1,7 @@
 import { BRSError, BRSCallable, BRSExpressionCall } from './interfaces';
 import * as fsExtra from 'fs-extra';
-import { makeFilesAbsolute } from 'roku-deploy';
 
 import * as brs from 'brs';
-import { BRSContext } from './BRSContext';
-import { EventEmitter } from 'events';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -33,6 +30,13 @@ export class BRSFile {
      */
     private ast: brs.parser.Stmt.Statement[];
 
+    public reset() {
+        this.wasProcessed = false;
+        this.errors = [];
+        this.callables = [];
+        this.expressionCalls = [];
+    }
+
     /**
      * Calculate the AST for this file
      * @param fileContents 
@@ -56,7 +60,7 @@ export class BRSFile {
         this.ast = <any>parseResult.statements;
 
         //extract all callables from this file
-        this.findCallables();
+        this.findCallables(fileContents);
 
         //find all places where a sub/function is being called
         this.findCallableInvocations();
@@ -64,18 +68,42 @@ export class BRSFile {
         this.wasProcessed = true;
     }
 
-    private findCallables() {
+    private findCallables(fileContents: string) {
+        //split the text into lines
+        let lines = fileContents.split(/\r?\n/);
+
         this.callables = [];
         for (let statement of this.ast as any) {
             if (!statement.func) {
                 continue;
             }
             let func = statement as any;
+            let functionName = func.name.text;
+
+            let lineIndex = func.name.line - 1;
+
+            //find the column index for this statement
+            let line = lines[lineIndex];
+
+            //default to the beginning of the line
+            let columnBeginIndex = 0;
+            //default to the end of the line
+            let columnEndIndex = line.length - 1;
+
+            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)/i.exec(line);
+            if (match) {
+                let preceedingText = match[1];
+                let lineFunctionName = match[2];
+                if (lineFunctionName === functionName) {
+                    columnBeginIndex = preceedingText.length
+                    columnEndIndex = columnBeginIndex + functionName.length;
+                }
+            }
             this.callables.push({
-                name: func.name.text,
-                lineIndex: func.name.line - 1,
-                columnBeginIndex: 0,
-                columnEndIndex: Number.MAX_VALUE,
+                name: functionName,
+                lineIndex: lineIndex,
+                columnIndexBegin: columnBeginIndex,
+                columnIndexEnd: columnEndIndex,
                 file: this,
                 params: [],
                 type: 'function'

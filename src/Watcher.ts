@@ -22,6 +22,10 @@ export class Watcher {
         let watcher = chokidar.watch(paths, {
             cwd: this.options.rootDir,
             ignoreInitial: false,
+            awaitWriteFinish: {
+                stabilityThreshold: 200,
+                pollInterval: 100
+            }
         });
         this.watchers.push(watcher);
 

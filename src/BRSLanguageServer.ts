@@ -1,12 +1,12 @@
 import * as chokidar from 'chokidar';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
-import * as fsExtra from 'fs-extra';
+import * as debounce from 'debounce-promise';
 
 import util from './util';
 import { Watcher } from './Watcher';
-import { BRSProgram } from '.';
-import { fstat } from 'fs-extra';
+import { BRSProgram } from './BRSProgram';
+
 
 /**
  * A runner class that handles 
@@ -21,6 +21,13 @@ export class BRSLanguageServer {
     private watcher: Watcher;
     public program: BRSProgram;
 
+    /**
+     * The list of errors found in the program.
+     */
+    private get errors() {
+        return this.program.errors;
+    }
+
     public async run(options: BRSConfig) {
         if (this.isRunning) {
             throw new Error('Server is already running');
@@ -28,43 +35,29 @@ export class BRSLanguageServer {
         this.options = await util.normalizeConfig(options);
 
         this.program = new BRSProgram(options);
+        //parse every file in the entire project
+        await this.loadAllFilesAST();
+
         if (this.options.watch) {
-            await this.runInWatchMode();
+            util.log('Starting compilation in watch mode...');
+            await this.runOnce();
+            await this.enableWatchMode();
         } else {
             await this.runOnce();
         }
     }
 
-    private async runOnce(cancellationToken?: { cancel: boolean }) {
-        //parse every file in the entire project
-        let errorCount = await this.loadAllFilesAST();
-
-        if (errorCount > 0) {
-            return errorCount;
-        }
-
-        //validate program
-        errorCount = await this.validateProject();
-        if (errorCount > 0) {
-            return errorCount;
-        }
-
-        await this.createPackage();
-        await this.deployPackage();
-
-        return 0;
-    }
-
-    public async runInWatchMode() {
-        throw new Error('Not implemented');
+    public async enableWatchMode() {
         this.watcher = new Watcher(this.options);
         //keep the process alive indefinitely by setting an interval that runs once every 12 days
         setInterval(() => { }, 1 << 30);
-        util.clear();
 
-        util.log('Starting compilation in watch mode...');
+        //clear the console
+        util.clearConsole();
+
         let fileObjects = rokuDeploy.normalizeFilesOption(this.options.files ? this.options.files : []);
 
+        //add each set of files to the file watcher
         let fileObjectPromises = fileObjects.map(async (fileObject) => {
             await this.watcher.watch(fileObject.src);
         });
@@ -72,19 +65,101 @@ export class BRSLanguageServer {
         //wait for all watchers to be ready
         await Promise.all(fileObjectPromises);
 
+        util.log('Watching for file changes...');
+
+        let debouncedRunOnce = debounce(async () => {
+            await this.runOnce();
+            let errorCount = this.errors.length;
+            util.log(`Found ${errorCount} errors. Watching for file changes.`);
+        }, 50);
+        //on any file watcher event
         this.watcher.on('all', (event: string, path: string) => {
-            this.fileChanged(path, <any>event);
+            console.log(event, path);
+            if (event === 'add' || event === 'change') {
+                this.program.loadOrReloadFile(path);
+            } else if (event === 'unlink') {
+                this.program.removeFile(path);
+            }
+            //wait for change events to settle, and then execute `run`
+            debouncedRunOnce();
+        });
+    }
+
+    /**
+     * A method that is used to cancel a previous run task.
+     * Does nothing if previous run has completed or was already canceled
+     */
+    private cancelLastRun = () => { return Promise.resolve(0); };
+
+    /**
+     * Run the entire process exactly one time. 
+     */
+    private runOnce() {
+        let cancellationToken = { isCanceled: false };
+        let isCompleted = false;
+        //wait for the previous run to complete
+        let runPromise = this.cancelLastRun().then(() => {
+            //start the new run
+            return this._runOnce(cancellationToken);
+        }).then((result) => {
+            this.logErrors();
+            //track if the run completed
+            isCompleted = true;
+            return result;
+        }, (err) => {
+            this.logErrors();
+            //track if the run completed
+            isCompleted = true;
+            return Promise.reject(err);
         });
 
-        let errorCount = await this._run();
-        util.log(`Found ${errorCount} errors. Watching for file changes.`);
+        //a function used to cancel this run
+        this.cancelLastRun = () => {
+            cancellationToken.isCanceled = true;
+            return runPromise;
+        };
+        return runPromise;
     }
 
-    private async _run() {
-
+    private logErrors() {
+        let errors = this.errors;
+        for (let error of this.errors) {
+            console.log(error.message);
+        }
     }
 
-    private async createPackage() {
+    /**
+     * Run the process once, allowing cancelability. 
+     * NOTE: This should only be called by `runOnce`. 
+     * @param cancellationToken 
+     */
+    private async _runOnce(cancellationToken: { isCanceled: any }) {
+        //maybe cancel?
+        if (cancellationToken.isCanceled === true) { return -1; }
+
+        //validate program
+        let errorCount = await this.validateProject();
+
+        //maybe cancel?
+        if (cancellationToken.isCanceled === true) { return -1; }
+
+        if (errorCount > 0) {
+            return errorCount;
+        }
+
+        //create the deployment package
+        await this.createPackageIfEnabled();
+
+        //maybe cancel?
+        if (cancellationToken.isCanceled === true) { return -1; }
+
+        //deploy the package
+        await this.deployPackageIfEnabled();
+
+        return 0;
+    }
+
+    private async createPackageIfEnabled() {
         //create the zip file if configured to do so
         if (this.options.skipPackage === false || this.options.deploy) {
             util.log(`Creating package at ${this.options.outFile}`);
@@ -96,7 +171,7 @@ export class BRSLanguageServer {
         }
     }
 
-    private async deployPackage() {
+    private async deployPackageIfEnabled() {
         //deploy the project if configured to do so
         if (this.options.deploy) {
             util.log(`Deploying package to ${this.options.host}}`);
@@ -120,7 +195,7 @@ export class BRSLanguageServer {
 
             //only process brightscript files
             if (['bs', 'brs'].indexOf(fileExtension) > -1) {
-                // errorCount += await this.loadAST(file);
+                this.program.loadOrReloadFile(file.src);
             }
         }));
         return errorCount;
@@ -134,49 +209,6 @@ export class BRSLanguageServer {
         util.log('Validating project');
         let errorCount = 0;
         return errorCount;
-    }
-
-    private pendingChanges = [];
-    private fileChangedCallIdx = 0;
-
-
-    private async fileChanged(filePath: string, mode: 'add' | 'change' | 'unlink') {
-        this.pendingChanges.push({ file: filePath, mode: mode });
-
-        //the parsing happens synchronously, so we should do that work immediately
-        if (mode === 'add' || mode === 'change') {
-            // this.loadAST(newFilePath);
-        } else if (mode === 'unlink') {
-            //delete the ADT and file data, then rerun 
-        }
-        this.fileChangedCallIdx++
-        let callIdx = this.fileChangedCallIdx;
-        let tryAbort = () => {
-            if (callIdx !== this.fileChangedCallIdx) {
-                throw new Error('Killing current compilation')
-            }
-        };
-
-        setTimeout(() => {
-            (async () => {
-                tryAbort();
-                util.clear();
-                util.log('File change detected. Starting incremental compilation...');
-                //now that the ADT and files are up-to-date, revalidate the project
-                let errorCount = await this.validateProject();
-
-                tryAbort();
-
-                if (errorCount === 0) {
-                    await this.createPackage();
-
-                    //abort if changed
-                    tryAbort();
-
-                    await this.deployPackage();
-                }
-            })().catch((err) => { });
-        }, 50);
     }
 }
 

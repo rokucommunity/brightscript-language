@@ -31,6 +31,7 @@
                 "--root-dir",
                 "C:/projects/PlumMediaCenter.RokuOld",
                 "--watch",
+                "--noZip",
                 "--files",
                 "manifest",
                 "source/**/*.*"

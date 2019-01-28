@@ -15,8 +15,8 @@ export interface BRSCallable {
     type: 'function' | 'sub';
     params: BRSParam[];
     lineIndex: number;
-    columnBeginIndex: number;
-    columnEndIndex: number;
+    columnIndexBegin: number;
+    columnIndexEnd: number;
 }
 
 export interface BRSExpressionCall {

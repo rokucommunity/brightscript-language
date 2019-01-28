@@ -9,8 +9,9 @@ class Util {
         let timestamp = `[${moment().format('hh:mm:ss A')}]`;
         console.log.apply(console.log, [timestamp, ...args]);
     }
-    public clear() {
-        process.stdout.write('\x1B[2J\x1B[0f');
+    public clearConsole() {
+        //TODO
+        // process.stdout.write('\x1B[2J\x1B[0f');
     }
 
     /**
@@ -25,7 +26,7 @@ class Util {
 
     /**
      * Load a file from disc into a string
-     * @param filePath 
+     * @param filePath
      */
     public async  getFileContents(filePath: string) {
         return (await fsExtra.readFile(filePath)).toString();
@@ -33,16 +34,16 @@ class Util {
 
     /**
      * Make the path absolute, and replace all separators with the current OS's separators
-     * @param filePath 
+     * @param filePath
      */
     public normalizeFilePath(filePath: string) {
         return path.normalize(path.resolve(filePath));
     }
 
     /**
-     * Find the path to the config file. 
+     * Find the path to the config file.
      * If the config file path doesn't exist
-     * @param configFilePath 
+     * @param configFilePath
      */
     public async  getConfigFilePath(cwd?: string) {
         cwd = cwd ? cwd : process.cwd();
@@ -59,10 +60,10 @@ class Util {
     }
 
     /**
-     * Load the contents of a config file. 
-     * If the file extends another config, this will load the base config as well. 
-     * @param configFilePath 
-     * @param parentProjectPaths 
+     * Load the contents of a config file.
+     * If the file extends another config, this will load the base config as well.
+     * @param configFilePath
+     * @param parentProjectPaths
      */
     public async loadConfigFile(configFilePath: string, parentProjectPaths?: string[]) {
         let cwd = process.cwd();
@@ -126,9 +127,9 @@ class Util {
     /**
      * Given a BRSConfig object, start with defaults,
      * merge with brsconfig.json and the provided options.
-     * @param config 
+     * @param config
      */
-    public async  normalizeConfig(config: BRSConfig) {
+    public async normalizeConfig(config: BRSConfig) {
         let result = this.getDefaultConfig();
 
         //if no options were provided, try to find a brsconfig.json file
@@ -146,12 +147,29 @@ class Util {
         //override the defaults with the specified options
         result = Object.assign(result, config);
 
-        //sanitize the options
-        if (result.cwd && !result.rootDir) {
-            result.rootDir = result.cwd;
-        }
-
         return result;
+    }
+
+    /**
+     * Get the root directory from options.
+     * Falls back to options.cwd.
+     * Falls back to process.cwd
+     * @param options
+     */
+    public getRootDir(options: BRSConfig) {
+        let originalProcessCwd = process.cwd();
+
+        let cwd = options.cwd;
+        cwd = cwd ? cwd : process.cwd();
+        let rootDir = options.rootDir ? options.rootDir : cwd;
+
+        process.chdir(cwd);
+
+        rootDir = path.resolve(rootDir);
+
+        process.chdir(originalProcessCwd);
+
+        return rootDir;
     }
 }
 
