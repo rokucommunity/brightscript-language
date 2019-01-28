@@ -9,7 +9,7 @@ import { BRSProgram } from './BRSProgram';
 
 
 /**
- * A runner class that handles 
+ * A runner class that handles
  */
 export class BRSLanguageServer {
     constructor(
@@ -92,7 +92,7 @@ export class BRSLanguageServer {
     private cancelLastRun = () => { return Promise.resolve(0); };
 
     /**
-     * Run the entire process exactly one time. 
+     * Run the entire process exactly one time.
      */
     private runOnce() {
         let cancellationToken = { isCanceled: false };
@@ -129,9 +129,9 @@ export class BRSLanguageServer {
     }
 
     /**
-     * Run the process once, allowing cancelability. 
-     * NOTE: This should only be called by `runOnce`. 
-     * @param cancellationToken 
+     * Run the process once, allowing cancelability.
+     * NOTE: This should only be called by `runOnce`.
+     * @param cancellationToken
      */
     private async _runOnce(cancellationToken: { isCanceled: any }) {
         //maybe cancel?
@@ -194,7 +194,7 @@ export class BRSLanguageServer {
             let fileExtension = path.extname(file.src).toLowerCase();
 
             //only process brightscript files
-            if (['bs', 'brs'].indexOf(fileExtension) > -1) {
+            if (['.bs', '.brs'].indexOf(fileExtension) > -1) {
                 this.program.loadOrReloadFile(file.src);
             }
         }));
@@ -202,7 +202,7 @@ export class BRSLanguageServer {
     }
 
     /**
-     * Scan every file and resolve all variable references. 
+     * Scan every file and resolve all variable references.
      * If no errors were encountered, return true. Otherwise return false.
      */
     private async validateProject() {

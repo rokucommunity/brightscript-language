@@ -2,6 +2,7 @@ import { BRSError, BRSCallable, BRSExpressionCall } from './interfaces';
 import * as fsExtra from 'fs-extra';
 
 import * as brs from 'brs';
+import { FILE } from 'dns';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -50,17 +51,20 @@ export class BRSFile {
         if (typeof fileContents !== 'string') {
             fileContents = (await fsExtra.readFile(this.pathAbsolute)).toString();
         }
+        //split the text into lines
+        let lines = fileContents.split(/\r?\n/);
+
         let lexResult = brs.lexer.Lexer.scan(fileContents);
 
         let parser = new brs.parser.Parser();
         let parseResult = parser.parse(lexResult.tokens);
 
-        this.errors = [...lexResult.errors, ...<any>parseResult.errors];
+        let errors = [...lexResult.errors, ...<any>parseResult.errors];
+
+        //convert the brs library's errors into our format
+        this.errors = this.standardizeLexParseErrors(errors, lines);
 
         this.ast = <any>parseResult.statements;
-
-        //split the text into lines
-        let lines = fileContents.split(/\r?\n/);
 
         //extract all callables from this file
         this.findCallables(lines);
@@ -69,6 +73,30 @@ export class BRSFile {
         this.findCallableInvocations(lines);
 
         this.wasProcessed = true;
+    }
+
+    private standardizeLexParseErrors(errors: { message: string, stack: string }[], lines: string[]) {
+        let standardizedErrors = [] as BRSError[];
+        for (let error of errors) {
+            //"[Line 267] Expected statement or function call, but received an expression"
+            let match = /\[Line (\d+)\]\s*(.*)/.exec(error.message);
+            if (match) {
+                let lineIndex = parseInt(match[1]) - 1;
+                let message = match[2];
+                let line = lines[lineIndex];
+                standardizedErrors.push({
+                    lineIndex: lineIndex,
+                    columnIndexBegin: 0,
+                    columnIndexEnd: line.length,
+                    file: this,
+                    filePath: this.pathAbsolute,
+                    message: message,
+                    severity: 'error'
+                });
+            }
+        }
+
+        return standardizedErrors;
     }
 
     private findCallables(lines: string[]) {
