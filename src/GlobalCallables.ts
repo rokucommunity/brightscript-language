@@ -537,17 +537,228 @@ One way to accomplish that is to use the Replace method on the string value retu
             type: 'string'
         }]
     }
-];
-// , {
-//     name: '',
-//     description: '',
-//     type: 'function',
-//     returnType: '',
-//     file: globalFile,
-//     params: [{
-//         name: '',
-//         type: ''
-//     }]
-// }
+] as BRSCallable[];
 
-export default [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions];
+let globalStringFunctions = [
+    {
+        name: 'UCase',
+        description: 'Converts the string to all upper case.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }]
+    }, {
+        name: 'LCase',
+        description: 'Converts the string to all lower case.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }]
+    }, {
+        name: 'Asc',
+        description: 'Returns the Unicode ("ASCII") value for the first character of the specified string\n An empty string argument will return 0.',
+        type: 'function',
+        returnType: 'integer',
+        file: globalFile,
+        params: [{
+            name: 'letter',
+            type: 'string'
+        }]
+    }, {
+        name: 'Chr',
+        description:
+            `Performs the inverse of the Asc function: returns a one-character string whose character has the specified Unicode value. Returns empty string if the specified value is 0 or an invalid Unicode value.
+ 
+ print Chr(67) ' prints: C
+
+By using Chr, you can create strings containing characters which cannot be contained in quotes, such as newline or the quote character itself.
+
+ print (Chr(34) + "hello" + Chr(34))  ' prints: "hello"`,
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'ch',
+            type: 'integer'
+        }]
+    }, {
+        name: 'Instr',
+        description: 'Returns the position of the first instances of substring within text, starting at the specified start position.\nReturns 0 if the substring is not found. Unlike the ifString.Instr() method, the first position is 1.',
+        type: 'function',
+        returnType: 'integer',
+        file: globalFile,
+        params: [{
+            name: 'start',
+            type: 'integer'
+        }, {
+            name: 'text',
+            type: 'string'
+        }, {
+            name: 'substring',
+            type: 'string'
+        }]
+    }, {
+        name: 'Left',
+        description: 'Returns the first n characters of s. ',
+        type: 'function',
+        returnType: 'integer',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }]
+    }, {
+        name: 'Len',
+        description: 'Returns the number of characters in the specified string.',
+        type: 'function',
+        returnType: 'integer',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }]
+    }, {
+        name: 'Mid',
+        description: 'Returns a substring of s with length n and starting at position p.\nn may be omitted, in which case the string starting at p and ending at the end of the string is returned.\nUnlike the ifString.Mid() method, the first character in the string is position 1.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }, {
+            name: 'p',
+            description: '1-based position',
+            type: 'integer'
+        }, {
+            name: 'n',
+            type: 'integer',
+            isOptional: true
+        }]
+    }, {
+        name: 'Right',
+        description: 'Returns the last n characters of s.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: ''
+        }, {
+            name: 'n',
+            type: 'integer'
+        }]
+    }, {
+        name: 'Str',
+        description: 'Converts a value to a string. Str(A), for example, returns a string equal to the decimal representation of the numeric value of A.\nNote: for non-negative numbers, a leading blank is inserted before the value string as a sign placeholder.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'value',
+            type: 'float'
+        }]
+    }, {
+        name: 'StrI',
+        description: 'Converts a value to a string. Str(A), for example, returns a string equal to the decimal representation of the numeric value of A.\nNote: for non-negative numbers, a leading blank is inserted before the value string as a sign placeholder.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'value',
+            type: 'integer'
+        }]
+    }, {
+        name: 'StrI',
+        description: 'Converts the integer value into a string representation using the given radix.\nIf radix is not 2 .. 36 then an empty string is returned.\nNote that the returned string does not include a base prefix and uses lowercase letters to represent those digits in bases greater than 10.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'value',
+            type: 'integer'
+        }, {
+            name: 'radix',
+            type: 'integer'
+        }]
+    }, {
+        name: 'String',
+        description: 'Returns a string composed of n copies of the second argument concatenated together.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'n',
+            type: 'integer'
+        }, {
+            name: 'str',
+            type: 'string'
+        }]
+    }, {
+        name: 'StringI',
+        description: 'Returns a string composed of n copies of the character whose Unicode value is the second argument.',
+        type: 'function',
+        returnType: '',
+        file: globalFile,
+        params: [{
+            name: 'n',
+            type: 'integer'
+        }, {
+            name: 'ch',
+            type: 'integer'
+        }]
+    }, {
+        name: 'Val',
+        description: 'Performs the inverse of the STR function: returns the number represented by the characters in a string argument.\nFor example, if A$="12" and B$="34" then VAL(A$+ "."+B$) returns the number 12.34.',
+        type: 'function',
+        returnType: 'float',
+        file: globalFile,
+        params: [{
+            name: 's',
+            type: 'string'
+        }]
+    }, {
+        name: 'Val',
+        description: 'Returns the integer value from parsing the string with the specified radix.\nRadix should be 2 .. 36 or the special value 0 (which automatically identified hexadecimal or octal numbers based on 0x or 0 prefixes respectively).\nLeading whitespace is ignored then as much of the rest of the string will be parsed as valid.',
+        type: 'function',
+        returnType: 'integer',
+        file: globalFile,
+        params: [{
+            name: 'str',
+            type: 'string'
+        }, {
+            name: 'radix',
+            type: 'integer'
+        }]
+    }, {
+        name: 'Substitute',
+        description: 'Replaces all instances of {0} or ^0 in str with arg0.  Similarly, replaces all instances of {1} or ^1 with arg1, {2} or ^2 with arg2, and {3} or ^3 with arg3.',
+        type: 'function',
+        returnType: 'string',
+        file: globalFile,
+        params: [{
+            name: 'str',
+            type: 'string'
+        }, {
+            name: 'arg0',
+            type: 'string'
+        }, {
+            name: 'arg1',
+            type: 'string'
+        }, {
+            name: 'arg2',
+            type: 'string'
+        }, {
+            name: 'arg3',
+            type: 'string'
+        }]
+    }
+] as BRSCallable[];
+
+export default [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions, ...globalStringFunctions];
