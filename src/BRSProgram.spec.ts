@@ -67,7 +67,7 @@ describe('BRSProgram', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(1);
+            expect(program.errors.length).to.equal(2);
             expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
         });
 
@@ -81,7 +81,7 @@ describe('BRSProgram', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(1);
+            expect(program.errors.length).to.equal(2);
             expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
         });
 
@@ -93,7 +93,7 @@ describe('BRSProgram', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(1);
+            expect(program.errors.length).to.equal(2);
             //set the file contents again (resetting the wasProcessed flag)
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -102,7 +102,7 @@ describe('BRSProgram', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(1);
+            expect(program.errors.length).to.equal(2);
         });
 
         it('identifies invocation of unknown callable', async () => {

@@ -6,22 +6,18 @@ import { BRSFile } from './BRSFile';
 import { expect } from 'chai';
 
 describe('BRSFile', () => {
-    let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
     let sinon = sinonImport.createSandbox();
-    let rootDir = 'C:/projects/RokuApp';
-    let program: BRSProgram;
     beforeEach(() => {
-        program = new BRSProgram({ rootDir });
     });
     afterEach(() => {
         sinon.restore();
     });
 
     describe('parse', () => {
-        it('finds line and column numbers for functions', () => {
+        it('finds line and column numbers for functions', async () => {
             let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
-            file.parse(`
+            await file.parse(`
                 function DoA()
                     print "A"
                 end function
@@ -39,6 +35,25 @@ describe('BRSFile', () => {
             expect(file.callables[1].lineIndex).to.equal(5);
             expect(file.callables[1].columnIndexBegin).to.equal(26)
             expect(file.callables[1].columnIndexEnd).to.equal(29)
+        });
+
+        it('finds and registers duplicate callables', async () => {
+            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                function DoA()
+                    print "A"
+                end function
+
+                 function DoA()
+                     print "A"
+                 end function
+            `);
+            expect(file.callables.length).to.equal(2);
+            expect(file.callables[0].name).to.equal('DoA');
+            expect(file.callables[0].lineIndex).to.equal(1);
+
+            expect(file.callables[1].name).to.equal('DoA');
+            expect(file.callables[1].lineIndex).to.equal(5);
         });
     });
 

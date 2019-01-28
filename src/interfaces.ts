@@ -5,8 +5,8 @@ export interface BRSError {
     message: string;
     filePath: string;
     lineIndex: number;
-    columnBeginIndex: number;
-    columnEndIndex: number;
+    columnIndexBegin: number;
+    columnIndexEnd: number;
 }
 
 export interface BRSCallable {
@@ -24,8 +24,8 @@ export interface BRSExpressionCall {
     name: string;
     params: BRSParam[];
     lineIndex: number;
-    columnBeginIndex: number;
-    columnEndIndex: number;
+    columnIndexBegin: number;
+    columnIndexEnd: number;
 }
 
 export interface BRSParam {

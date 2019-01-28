@@ -111,25 +111,37 @@ export class BRSContext {
 
         //find duplicate callables
         let callablesByName = {} as { [name: string]: BRSCallable };
+        let markedFirstCallableAsDupe = {} as { [name: string]: boolean };
         {
             for (let callable of this.callables) {
                 let name = callable.name.toLowerCase();
 
                 //new callable, add to list and continue
-                if (!callablesByName[name]) {
+                if (callablesByName[name] === undefined) {
                     callablesByName[name] = callable;
                     continue;
-                }
+                } else {
+                    //we have encountered a duplicate callable declaration
 
-                let error = {
-                    message: `Duplicate ${callable.type} declaration "${callable.name}"`,
-                    columnBeginIndex: callable.columnIndexBegin,
-                    columnEndIndex: callable.columnIndexEnd,
-                    lineIndex: callable.lineIndex,
-                    filePath: callable.file.pathAbsolute,
-                    severity: 'error'
-                } as BRSError;
-                this._errors.push(error);
+                    let dupeCallables = [callable];
+                    //mark the first callable with this name as a dupe also, if we haven't done so already
+                    if (markedFirstCallableAsDupe[name] !== true) {
+                        dupeCallables.push(callablesByName[name]);
+                        markedFirstCallableAsDupe[name] = true;
+                    }
+                    for (let dupeCallable of dupeCallables) {
+                        let error = {
+                            message: `Duplicate ${dupeCallable.type} implementation`,
+                            columnIndexBegin: dupeCallable.columnIndexBegin,
+                            columnIndexEnd: dupeCallable.columnIndexEnd,
+                            lineIndex: dupeCallable.lineIndex,
+                            filePath: dupeCallable.file.pathAbsolute,
+                            severity: 'error'
+                        } as BRSError;
+                        this._errors.push(error);
+                    }
+
+                }
             }
         }
 
@@ -142,8 +154,8 @@ export class BRSContext {
                     if (!knownCallable) {
                         let error = {
                             message: `Cannot find name '${expCall.name}'`,
-                            columnBeginIndex: expCall.columnBeginIndex,
-                            columnEndIndex: expCall.columnEndIndex,
+                            columnIndexBegin: expCall.columnIndexBegin,
+                            columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
                             filePath: contextFile.file.pathAbsolute,
                             severity: 'error'

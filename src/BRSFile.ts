@@ -59,18 +59,20 @@ export class BRSFile {
 
         this.ast = <any>parseResult.statements;
 
+        //split the text into lines
+        let lines = fileContents.split(/\r?\n/);
+
         //extract all callables from this file
-        this.findCallables(fileContents);
+        this.findCallables(lines);
 
         //find all places where a sub/function is being called
-        this.findCallableInvocations();
+        this.findCallableInvocations(lines);
 
         this.wasProcessed = true;
     }
 
-    private findCallables(fileContents: string) {
-        //split the text into lines
-        let lines = fileContents.split(/\r?\n/);
+    private findCallables(lines: string[]) {
+
 
         this.callables = [];
         for (let statement of this.ast as any) {
@@ -111,7 +113,7 @@ export class BRSFile {
         }
     }
 
-    private findCallableInvocations() {
+    private findCallableInvocations(lines: string[]) {
         this.expressionCalls = [];
 
         //for now, just dig into top-level function declarations.
@@ -127,8 +129,8 @@ export class BRSFile {
                     let expCall: BRSExpressionCall = {
                         file: this,
                         name: functionName,
-                        columnBeginIndex: 0,
-                        columnEndIndex: Number.MAX_VALUE,
+                        columnIndexBegin: 0,
+                        columnIndexEnd: Number.MAX_VALUE,
                         lineIndex: 0,
                         params: []
                     };
