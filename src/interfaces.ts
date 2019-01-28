@@ -14,10 +14,13 @@ export interface BRSCallable {
     file: BRSFile;
     name: string;
     type: 'function' | 'sub';
+    description?: string;
+    returnType: BRSType;
     params: BRSParam[];
-    lineIndex: number;
-    columnIndexBegin: number;
-    columnIndexEnd: number;
+    lineIndex?: number;
+    columnIndexBegin?: number;
+    columnIndexEnd?: number;
+    isDepricated?: boolean;
 }
 
 export interface BRSExpressionCall {
@@ -31,5 +34,11 @@ export interface BRSExpressionCall {
 
 export interface BRSParam {
     name: string;
-    type: 'string';
+    type: BRSType;
+    isOptional: boolean;
+    /**
+     * Indicates that an unlimited number of arguments can be passed in
+     */
+    isRestArgument: boolean;
 }
+export type BRSType = 'boolean' | 'integer' | 'longinteger' | 'float' | 'double' | 'string' | 'string[]' | 'object' | 'function' | 'interface' | 'invalid' | 'dynamic';

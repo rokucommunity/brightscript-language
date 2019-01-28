@@ -1,6 +1,7 @@
 import { BRSFile } from './BRSFile';
 import { BRSError, BRSCallable } from './interfaces';
 import { EventEmitter } from 'events';
+import * as globalCallables from './GlobalCallables';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -10,8 +11,9 @@ export class BRSContext {
         public name: string,
         private matcher: (file: BRSFile) => boolean | void
     ) {
-
+        //add the global brightscript functions
     }
+    private static globalCallables = GlobalCallables;
 
     /**
      * Determine if this file should 
