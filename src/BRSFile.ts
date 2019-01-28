@@ -152,6 +152,11 @@ export class BRSFile {
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {
                     let functionName = bodyStatement.expression.callee.name.text;
+                    
+                    //filter out non-global function invocations (not currently supported. TODO support it)
+                    if (bodyStatement.expression.callee.obj) {
+                        continue;
+                    }
                     let lineIndex = bodyStatement.expression.callee.name.line - 1;
                     let line = lines[lineIndex];
                     let columnIndexBegin = 0;

@@ -88,7 +88,6 @@ describe('BRSFile', () => {
             expect(file.errors[0].columnIndexEnd).to.equal(36);
             expect(file.errors[0].lineIndex).to.equal(1);
             expect(file.errors[0].filePath).to.equal('absolute_path/file.brs');
-
         });
     });
 

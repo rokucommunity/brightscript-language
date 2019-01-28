@@ -112,7 +112,23 @@ describe('BRSContext', () => {
             expect(context.errors[0].message).equals(`Cannot find name 'DoC'`);
         });
 
-        
+        //We don't currently support someObj.callSomething() format, so don't throw errors on those
+        it('does not fail on object callables', async () => {
+            expect(context.errors.length).to.equal(0);
+            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                function DoB()
+                    m.doSomething()
+                end function
+            `);
+            context.addFile(file);
+            //validate the context
+            context.validate();
+            //shouldn't have any errors
+            expect(context.errors.length).to.equal(0);
+        });
+
+
     });
 
 });
