@@ -72,8 +72,6 @@ export class BRSFile {
     }
 
     private findCallables(lines: string[]) {
-
-
         this.callables = [];
         for (let statement of this.ast as any) {
             if (!statement.func) {
@@ -126,12 +124,28 @@ export class BRSFile {
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {
                     let functionName = bodyStatement.expression.callee.name.text;
+                    let lineIndex = bodyStatement.expression.callee.name.line - 1;
+                    let line = lines[lineIndex];
+                    let columnIndexBegin = 0;
+                    let columnIndexEnd = line.length;
+
+                    //find the invocation on this line
+                    let regexp = new RegExp(`^(.*)${functionName}\s*\()`);
+                    let match = regexp.exec(line);
+                    //if we found a match, fine-tune the column indexes
+                    if (match) {
+                        let junkBefore = match[1];
+                        columnIndexBegin = junkBefore.length;
+                        columnIndexEnd = columnIndexBegin + functionName.length;
+                    }
+
                     let expCall: BRSExpressionCall = {
                         file: this,
                         name: functionName,
-                        columnIndexBegin: 0,
-                        columnIndexEnd: Number.MAX_VALUE,
-                        lineIndex: 0,
+                        columnIndexBegin: columnIndexBegin,
+                        columnIndexEnd: columnIndexEnd,
+                        lineIndex: lineIndex,
+                        //TODO keep track of parameters
                         params: []
                     };
                     this.expressionCalls.push(expCall);

@@ -110,10 +110,27 @@ export class BRSProgram {
     }
 
     private async reloadFile(filePath: string, fileContents?: string) {
+
         filePath = util.normalizeFilePath(filePath);
         let file = this.files[filePath];
+        //remove the file from all contexts
+        for (let contextName in this.contexts) {
+            let context = this.contexts[contextName];
+            if (context.files[filePath]) {
+                context.removeFile(file);
+            }
+        }
+
         await file.reset();
         await file.parse(fileContents);
+
+        //add the file back to the context
+        for (let contextName in this.contexts) {
+            let context = this.contexts[contextName];
+            if (context.shouldIncludeFile(file)) {
+                context.addFile(file);
+            }
+        }
     }
 
     /**

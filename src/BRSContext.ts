@@ -27,7 +27,7 @@ export class BRSContext {
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.
      */
-    public get errors() {
+    public get errors(): BRSError[] {
         let errorLists = [this._errors];
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
@@ -92,6 +92,11 @@ export class BRSContext {
                 this.callables.splice(idx, 1);
             }
         }
+
+        //remove all errors for this file from this
+        this._errors = this._errors.filter((error) => {
+            return error.file !== file;
+        });
         //remove the reference to this file
         delete this.files[file.pathAbsolute];
     }
@@ -126,7 +131,7 @@ export class BRSContext {
                     let dupeCallables = [callable];
                     //mark the first callable with this name as a dupe also, if we haven't done so already
                     if (markedFirstCallableAsDupe[name] !== true) {
-                        dupeCallables.push(callablesByName[name]);
+                        dupeCallables = [callablesByName[name], ...dupeCallables];
                         markedFirstCallableAsDupe[name] = true;
                     }
                     for (let dupeCallable of dupeCallables) {
@@ -136,6 +141,7 @@ export class BRSContext {
                             columnIndexEnd: dupeCallable.columnIndexEnd,
                             lineIndex: dupeCallable.lineIndex,
                             filePath: dupeCallable.file.pathAbsolute,
+                            file: callable.file,
                             severity: 'error'
                         } as BRSError;
                         this._errors.push(error);
@@ -150,7 +156,7 @@ export class BRSContext {
             for (let key in this.files) {
                 let contextFile = this.files[key];
                 for (let expCall of contextFile.file.expressionCalls) {
-                    let knownCallable = callablesByName[expCall.name]
+                    let knownCallable = callablesByName[expCall.name.toLowerCase()]
                     if (!knownCallable) {
                         let error = {
                             message: `Cannot find name '${expCall.name}'`,

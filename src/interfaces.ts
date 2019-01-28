@@ -7,6 +7,7 @@ export interface BRSError {
     lineIndex: number;
     columnIndexBegin: number;
     columnIndexEnd: number;
+    file: BRSFile
 }
 
 export interface BRSCallable {

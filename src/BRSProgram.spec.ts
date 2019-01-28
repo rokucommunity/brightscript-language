@@ -85,6 +85,27 @@ describe('BRSProgram', () => {
             expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
         });
 
+        it('maintains correct callables list', async () => {
+            expect(program.contexts['global'].callables.length).equals(0);
+            await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething()
+                end sub
+                sub DoSomething()
+                end sub
+            `);
+            expect(program.contexts['global'].callables.length).equals(2);
+            //set the file contents again (resetting the wasProcessed flag)
+            await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething()
+                end sub
+                sub DoSomething()
+                end sub
+                `);
+            expect(program.contexts['global'].callables.length).equals(2);
+            program.removeFile(`${rootDir}/source/main.brs`);
+            expect(program.contexts['global'].callables.length).equals(0);
+        });
+
         it('resets errors on revalidate', async () => {
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -103,6 +124,14 @@ describe('BRSProgram', () => {
             `);
             await program.validate();
             expect(program.errors.length).to.equal(2);
+
+            //load in a valid file, the errors should go to zero
+            await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething()
+                end sub
+            `);
+            await program.validate();
+            expect(program.errors.length).to.equal(0);
         });
 
         it('identifies invocation of unknown callable', async () => {

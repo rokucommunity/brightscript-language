@@ -55,6 +55,27 @@ describe('BRSFile', () => {
             expect(file.callables[1].name).to.equal('DoA');
             expect(file.callables[1].lineIndex).to.equal(5);
         });
+
+        it.only('finds function call line and column numbers', async () => {
+            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                function DoA()
+                    DoB()
+                end function
+                function DoB()
+                     DoC()
+                end function
+            `);
+            expect(file.expressionCalls.length).to.equal(2);
+
+            expect(file.expressionCalls[0].lineIndex).to.equal(2);
+            expect(file.expressionCalls[0].columnIndexBegin).to.equal(20);
+            expect(file.expressionCalls[0].columnIndexEnd).to.equal(23);
+
+            expect(file.expressionCalls[1].lineIndex).to.equal(5);
+            expect(file.expressionCalls[1].columnIndexBegin).to.equal(21);
+            expect(file.expressionCalls[1].columnIndexEnd).to.equal(24);
+        });
     });
 
 });
