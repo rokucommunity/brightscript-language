@@ -1,9 +1,9 @@
 {
   "name": "brightscript",
   "version": "0.1.0",
-  "description": "Scan a BrightScript project for errors and generate a zip archive of the project. Also provides a language server",
-  "main": "dist/index.js",
+  "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
+    "prepare": "rimraf out && tsc",
     "compile": "rimraf out && tsc",
     "watch": "rimraf out && tsc --watch",
     "prepublishOnly": "npm run compile",
@@ -11,6 +11,10 @@
     "test": "nyc mocha src/**/*.spec.ts --full-trace",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
+  "files": [
+    "dist/**/*"
+  ],
+  "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "bin": {
     "brsc": "dist/cli.js"
