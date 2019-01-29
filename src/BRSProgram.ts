@@ -32,7 +32,7 @@ export class BRSProgram {
         let errorLists = [this._errors] as BRSError[][];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
-            errorLists.push(context.errors);
+            errorLists.push(context.diagnostics);
         }
         let result = Array.prototype.concat.apply([], errorLists) as BRSError[];
         return result;

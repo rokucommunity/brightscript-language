@@ -83,11 +83,11 @@ describe('BRSFile', () => {
                 function DoSomething
                 end function            
             `);
-            expect(file.errors.length).to.be.greaterThan(0);
-            expect(file.errors[0].columnIndexBegin).to.equal(0);
-            expect(file.errors[0].columnIndexEnd).to.equal(36);
-            expect(file.errors[0].lineIndex).to.equal(1);
-            expect(file.errors[0].filePath).to.equal('absolute_path/file.brs');
+            expect(file.diagnostics.length).to.be.greaterThan(0);
+            expect(file.diagnostics[0].columnIndexBegin).to.equal(0);
+            expect(file.diagnostics[0].columnIndexEnd).to.equal(36);
+            expect(file.diagnostics[0].lineIndex).to.equal(1);
+            expect(file.diagnostics[0].filePath).to.equal('absolute_path/file.brs');
         });
 
         //test is not working yet, but will be enabled when brs supports this syntax
@@ -101,7 +101,7 @@ describe('BRSFile', () => {
                     end sub
                 end function
             `);
-            expect(file.errors.length).to.equal(0);
+            expect(file.diagnostics.length).to.equal(0);
         });
     });
 

@@ -1,13 +1,13 @@
 import { BRSFile } from './BRSFile';
 
 export interface BRSError {
-    severity: string | 'warning' | 'error';
+    type: string | 'warning' | 'error';
     message: string;
     filePath: string;
     lineIndex: number;
     columnIndexBegin: number;
     columnIndexEnd: number;
-    file: BRSFile
+    file: BRSFile;
 }
 
 export interface BRSCallable {

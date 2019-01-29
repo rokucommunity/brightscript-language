@@ -1,4 +1,4 @@
-import { BRSError, BRSCallable, BRSExpressionCall } from './interfaces';
+import { BRSError, BRSCallable, BRSExpressionCall, BRSType } from './interfaces';
 import * as fsExtra from 'fs-extra';
 
 import * as brs from 'brs';
@@ -20,7 +20,7 @@ export class BRSFile {
      */
     public wasProcessed = false;
 
-    public errors = [] as BRSError[];
+    public diagnostics = [] as BRSError[];
 
     public callables = [] as BRSCallable[]
 
@@ -33,7 +33,7 @@ export class BRSFile {
 
     public reset() {
         this.wasProcessed = false;
-        this.errors = [];
+        this.diagnostics = [];
         this.callables = [];
         this.expressionCalls = [];
     }
@@ -62,7 +62,7 @@ export class BRSFile {
         let errors = [...lexResult.errors, ...<any>parseResult.errors];
 
         //convert the brs library's errors into our format
-        this.errors = this.standardizeLexParseErrors(errors, lines);
+        this.diagnostics = this.standardizeLexParseErrors(errors, lines);
 
         this.ast = <any>parseResult.statements;
 
@@ -91,7 +91,7 @@ export class BRSFile {
                     file: this,
                     filePath: this.pathAbsolute,
                     message: message,
-                    severity: 'error'
+                    type: 'error'
                 });
             }
         }
@@ -118,10 +118,13 @@ export class BRSFile {
             //default to the end of the line
             let columnEndIndex = line.length - 1;
 
-            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)/i.exec(line);
+            let returnType = 'object';
+
+            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)(?:.*)(as\s+.*)*/i.exec(line);
             if (match) {
                 let preceedingText = match[1];
                 let lineFunctionName = match[2];
+                returnType = match[3] ? match[3] : returnType;
                 if (lineFunctionName === functionName) {
                     columnBeginIndex = preceedingText.length
                     columnEndIndex = columnBeginIndex + functionName.length;
@@ -129,6 +132,7 @@ export class BRSFile {
             }
             this.callables.push({
                 name: functionName,
+                returnType: <BRSType>returnType,
                 lineIndex: lineIndex,
                 columnIndexBegin: columnBeginIndex,
                 columnIndexEnd: columnEndIndex,
@@ -152,7 +156,7 @@ export class BRSFile {
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {
                     let functionName = bodyStatement.expression.callee.name.text;
-                    
+
                     //filter out non-global function invocations (not currently supported. TODO support it)
                     if (bodyStatement.expression.callee.obj) {
                         continue;

@@ -1,7 +1,7 @@
 import { BRSFile } from './BRSFile';
-import { BRSError, BRSCallable } from './interfaces';
+import { BRSError as BRSDiagnostic, BRSCallable } from './interfaces';
 import { EventEmitter } from 'events';
-import * as globalCallables from './GlobalCallables';
+import { globalCallables, globalFile } from './GlobalCallables';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -11,9 +11,8 @@ export class BRSContext {
         public name: string,
         private matcher: (file: BRSFile) => boolean | void
     ) {
-        //add the global brightscript functions
+        this.callables = [...this.callables, ...globalCallables];
     }
-    private static globalCallables = GlobalCallables;
 
     /**
      * Determine if this file should 
@@ -29,17 +28,17 @@ export class BRSContext {
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.
      */
-    public get errors(): BRSError[] {
-        let errorLists = [this._errors];
+    public get diagnostics(): BRSDiagnostic[] {
+        let diagnosticList = [this._diagnostics];
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
-            errorLists.push(ctxFile.file.errors);
+            diagnosticList.push(ctxFile.file.diagnostics);
         }
-        let result = Array.prototype.concat.apply([], errorLists);
+        let result = Array.prototype.concat.apply([], diagnosticList);
         return result;
     }
 
-    private _errors = [] as BRSError[];
+    private _diagnostics = [] as BRSDiagnostic[];
 
     /**
      * A list of context-global subs/functions found in all files in this context. 
@@ -48,8 +47,8 @@ export class BRSContext {
 
     public emitter = new EventEmitter();
 
-    public on(eventName: 'add-error', callback: (error: BRSError) => void);
-    public on(eventName: 'remove-error', callback: (error: BRSError) => void);
+    public on(eventName: 'add-error', callback: (error: BRSDiagnostic) => void);
+    public on(eventName: 'remove-error', callback: (error: BRSDiagnostic) => void);
     public on(eventName: string, callback: (data: any) => void) {
         this.emitter.on(eventName, callback);
         return () => {
@@ -96,7 +95,7 @@ export class BRSContext {
         }
 
         //remove all errors for this file from this
-        this._errors = this._errors.filter((error) => {
+        this._diagnostics = this._diagnostics.filter((error) => {
             return error.file !== file;
         });
         //remove the reference to this file
@@ -105,7 +104,7 @@ export class BRSContext {
 
     public validate() {
         //clear the context's errors list (we will populate them from this method)
-        this._errors = [];
+        this._diagnostics = [];
         //sort the callables by filepath and then method name
         this.callables = this.callables.sort((a, b) => {
             return (
@@ -121,6 +120,10 @@ export class BRSContext {
         let markedFirstCallableAsDupe = {} as { [name: string]: boolean };
         {
             for (let callable of this.callables) {
+                //skip global callables, because they can be overridden
+                if (callable.file === globalFile) {
+                    continue;
+                }
                 let name = callable.name.toLowerCase();
 
                 //new callable, add to list and continue
@@ -144,12 +147,35 @@ export class BRSContext {
                             lineIndex: dupeCallable.lineIndex,
                             filePath: dupeCallable.file.pathAbsolute,
                             file: callable.file,
-                            severity: 'error'
-                        } as BRSError;
-                        this._errors.push(error);
+                            type: 'error'
+                        } as BRSDiagnostic;
+                        this._diagnostics.push(error);
                     }
 
                 }
+            }
+        }
+
+        //add the global callables to the callables lookup
+        for (let globalCallable of globalCallables) {
+            let name = globalCallable.name.toLowerCase();
+
+            let callable = callablesByName[name];
+            //don't emit errors for overloaded global functions
+            if (callable && !globalCallables.indexOf(callable)) {
+                //emit warning that this callable shadows a global function
+                this._diagnostics.push({
+                    message: `Duplicate ${callable.type} implementation`,
+                    columnIndexBegin: callable.columnIndexBegin,
+                    columnIndexEnd: callable.columnIndexEnd,
+                    lineIndex: callable.lineIndex,
+                    filePath: callable.file.pathAbsolute,
+                    file: callable.file,
+                    type: 'warning'
+                });
+            } else {
+                //add global callable to available list
+                callablesByName[name] = globalCallable;
             }
         }
 
@@ -166,9 +192,9 @@ export class BRSContext {
                             columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
                             filePath: contextFile.file.pathAbsolute,
-                            severity: 'error'
-                        } as BRSError;
-                        this._errors.push(error);
+                            type: 'error'
+                        } as BRSDiagnostic;
+                        this._diagnostics.push(error);
                     }
                 }
             }

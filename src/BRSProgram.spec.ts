@@ -86,14 +86,14 @@ describe('BRSProgram', () => {
         });
 
         it('maintains correct callables list', async () => {
-            expect(program.contexts['global'].callables.length).equals(0);
+            let initialCallableCount = program.contexts['global'].callables.length;
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
                 end sub
                 sub DoSomething()
                 end sub
             `);
-            expect(program.contexts['global'].callables.length).equals(2);
+            expect(program.contexts['global'].callables.length).equals(initialCallableCount + 2);
             //set the file contents again (resetting the wasProcessed flag)
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -101,9 +101,9 @@ describe('BRSProgram', () => {
                 sub DoSomething()
                 end sub
                 `);
-            expect(program.contexts['global'].callables.length).equals(2);
+            expect(program.contexts['global'].callables.length).equals(initialCallableCount + 2);
             program.removeFile(`${rootDir}/source/main.brs`);
-            expect(program.contexts['global'].callables.length).equals(0);
+            expect(program.contexts['global'].callables.length).equals(initialCallableCount);
         });
 
         it('resets errors on revalidate', async () => {

@@ -1,7 +1,7 @@
 import { BRSCallable } from './interfaces';
 import { BRSFile } from './BRSFile';
 
-let globalFile = new BRSFile('global', 'global');
+export let globalFile = new BRSFile('global', 'global');
 
 let mathFunctions = [{
     name: 'Abs',
@@ -761,4 +761,4 @@ By using Chr, you can create strings containing characters which cannot be conta
     }
 ] as BRSCallable[];
 
-export default [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions, ...globalStringFunctions];
+export var globalCallables = [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions, ...globalStringFunctions];
