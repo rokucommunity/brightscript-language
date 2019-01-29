@@ -147,4 +147,12 @@ describe('Program', () => {
             expect(program.errors[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
         });
     });
+
+    describe('hasFile', ()=>{
+        it('recognizes when it has a file loaded', async ()=>{
+            expect(program.hasFile('file1.brs')).to.be.false;
+            await program.loadOrReloadFile('file1.brs', `'comment`);
+            expect(program.hasFile('file1.brs')).to.be.true;
+        });
+    });
 });

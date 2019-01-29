@@ -48,6 +48,15 @@ export class Program {
     public contexts = {} as { [name: string]: Context };
 
     /**
+     * Determine if the specified file is loaded in this program right now.
+     * @param filePath 
+     */
+    public hasFile(filePath: string) {
+        filePath = util.normalizeFilePath(filePath);
+        return this.files[filePath] !== undefined;
+    }
+
+    /**
      * Create a new context. 
      * @param name 
      * @param matcher called on every file operation to deteremine if that file should be included in the context.
