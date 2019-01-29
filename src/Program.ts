@@ -146,12 +146,10 @@ export class Program {
      * Remove a set of files from the program
      * @param filePaths 
      */
-    public async removeFiles(filePaths: string[]) {
-        await Promise.all(
-            filePaths.map(async (filePath) => {
-                await this.removeFile(filePath);
-            })
-        );
+    public removeFiles(filePaths: string[]) {
+        for (let filePath of filePaths) {
+            this.removeFile(filePath);
+        }
     }
 
     /**

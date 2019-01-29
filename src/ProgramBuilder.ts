@@ -8,6 +8,7 @@ import { Watcher } from './Watcher';
 import { Program } from './Program';
 
 import * as ts from 'typescript';
+import { FileObj } from './interfaces';
 
 /**
  * A runner class that handles
@@ -185,21 +186,93 @@ export class ProgramBuilder {
     }
 
     /**
+     * Get paths to all files on disc that match this project's source list
+     */
+    public async getFilePaths() {
+        let files = await rokuDeploy.getFilePaths(this.options.files, path.dirname(this.options.outFile), this.options.rootDir);
+        return files;
+    }
+
+    /**
      * Parse and load the AST for every file in the project
      */
     private async loadAllFilesAST() {
-        let files = await rokuDeploy.getFilePaths(this.options.files, path.dirname(this.options.outFile), this.options.rootDir);
         let errorCount = 0;
+        let files = await this.getFilePaths();
         //parse every file
         await Promise.all(files.map(async (file) => {
             let fileExtension = path.extname(file.src).toLowerCase();
 
             //only process brightscript files
             if (['.bs', '.brs'].indexOf(fileExtension) > -1) {
-                this.program.loadOrReloadFile(file.src);
+                await this.program.loadOrReloadFile(file.src);
             }
         }));
         return errorCount;
+    }
+
+    /**
+     * Find all added, deleted, and existing files
+     * relative to the current program
+     */
+    private async getFileSyncStatus() {
+        let expectedProjectFiles = await this.getFilePaths();
+        let result = {
+            added: [] as FileObj[],
+            deleted: [] as FileObj[],
+            existing: [] as FileObj[]
+        };
+
+        //find all added files
+        let remainingFilesByPath = new Map<string, FileObj>();
+        for (let fileObj of expectedProjectFiles) {
+            if (this.program.hasFile(fileObj.src) === false) {
+                result.added.push(fileObj);
+            } else {
+                remainingFilesByPath.set(fileObj.src, fileObj);
+            }
+        }
+
+        //find all deleted files
+        for (let filePath in this.program.files) {
+            //the file exists in the program, but does NOT exist in the expected files list
+            if (remainingFilesByPath.has(filePath) === false) {
+                result.deleted.push(remainingFilesByPath.get(filePath));
+                remainingFilesByPath.delete(filePath);
+            }
+        }
+
+        //the remaining files are existing files
+        result.existing = [...remainingFilesByPath.values()];
+        return result;
+    }
+
+    /**
+     * Given a list of file paths:
+     *  - remove any files that are no longer on disc,
+     *  - add any files that are on disc but weren't in the project,
+     *  - update any files that are in the project (assume they have changed on disc)
+     * @param filePaths 
+     */
+    public async syncFiles(filePaths: string[]) {
+        let syncStatus = await this.getFileSyncStatus();
+
+        let addedOrExistingPaths = [...syncStatus.added, ...syncStatus.existing].filter((fileObj) => {
+            return filePaths.indexOf(fileObj.src) > -1;
+        }).map((fileObj) => {
+            return fileObj.src;
+        });
+
+        let reloadPromise = this.program.loadOrReloadFiles(addedOrExistingPaths)
+
+        for (let fileObj of syncStatus.deleted) {
+            //only remove the files in the whitelist parameter
+            if (filePaths.indexOf(fileObj.src) > -1) {
+                this.program.removeFile(fileObj.src);
+            }
+        }
+        //wait for the files to reload
+        await reloadPromise;
     }
 
     /**

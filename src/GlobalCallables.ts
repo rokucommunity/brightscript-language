@@ -761,4 +761,4 @@ By using Chr, you can create strings containing characters which cannot be conta
     }
 ] as Callable[];
 
-export var globalCallables = [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions, ...globalStringFunctions];
+export var globalCallables = [...mathFunctions, ...runtimeFunctions, ...globalUtilityFunctions, ...globalStringFunctions];

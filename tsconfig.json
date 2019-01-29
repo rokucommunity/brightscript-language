@@ -9,6 +9,7 @@
         "declaration": true,
         "strict": true,
         "strictNullChecks": false,
+        "downlevelIteration": true,
         "lib": [
             "es2015"
         ]

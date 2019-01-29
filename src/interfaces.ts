@@ -42,3 +42,8 @@ export interface CallableParam {
     isRestArgument: boolean;
 }
 export type BRSType = 'boolean' | 'integer' | 'longinteger' | 'float' | 'double' | 'string' | 'string[]' | 'object' | 'function' | 'interface' | 'invalid' | 'dynamic';
+
+export interface FileObj {
+    src: string;
+    dest: string;
+}

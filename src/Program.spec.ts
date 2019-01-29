@@ -3,6 +3,7 @@ import * as sinonImport from 'sinon';
 
 import { expect, assert } from 'chai';
 import { Program } from './Program';
+import { O_NOATIME } from 'constants';
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
@@ -146,10 +147,25 @@ describe('Program', () => {
             expect(program.errors.length).to.equal(1);
             expect(program.errors[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
         });
+
+        it('detects methods from another file in a subdirectory', async () => {
+            await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    DoSomething()
+                end sub
+            `);
+            await program.loadOrReloadFile(`${rootDir}/source/ui/lib.brs`, `
+                function DoSomething()
+                    print "hello world"
+                end function
+            `);
+            await program.validate();
+            expect(program.errors.length).to.equal(0);
+        });
     });
 
-    describe('hasFile', ()=>{
-        it('recognizes when it has a file loaded', async ()=>{
+    describe('hasFile', () => {
+        it('recognizes when it has a file loaded', async () => {
             expect(program.hasFile('file1.brs')).to.be.false;
             await program.loadOrReloadFile('file1.brs', `'comment`);
             expect(program.hasFile('file1.brs')).to.be.true;
