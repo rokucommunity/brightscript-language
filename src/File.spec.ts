@@ -1,11 +1,11 @@
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
-import { BRSProgram } from './BRSProgram';
-import { BRSFile } from './BRSFile';
+import { Program } from './Program';
+import { File } from './File';
 import { expect } from 'chai';
 
-describe('BRSFile', () => {
+describe('File', () => {
 
     let sinon = sinonImport.createSandbox();
     beforeEach(() => {
@@ -16,7 +16,7 @@ describe('BRSFile', () => {
 
     describe('parse', () => {
         it('finds line and column numbers for functions', async () => {
-            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     print "A"
@@ -38,7 +38,7 @@ describe('BRSFile', () => {
         });
 
         it('finds and registers duplicate callables', async () => {
-            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     print "A"
@@ -57,7 +57,7 @@ describe('BRSFile', () => {
         });
 
         it('finds function call line and column numbers', async () => {
-            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     DoB()
@@ -78,7 +78,7 @@ describe('BRSFile', () => {
         });
 
         it('sanitizes brs errors', async () => {
-            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoSomething
                 end function            
@@ -92,7 +92,7 @@ describe('BRSFile', () => {
 
         //test is not working yet, but will be enabled when brs supports this syntax
         it.skip('supports assigning functions to objects', async () => {
-            let file = new BRSFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function main()
                     o = CreateObject("roAssociativeArray")

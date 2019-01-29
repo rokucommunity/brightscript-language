@@ -1,7 +1,7 @@
-import { BRSCallable } from './interfaces';
-import { BRSFile } from './BRSFile';
+import { Callable } from './interfaces';
+import { File } from './File';
 
-export let globalFile = new BRSFile('global', 'global');
+export let globalFile = new File('global', 'global');
 
 let mathFunctions = [{
     name: 'Abs',
@@ -173,7 +173,7 @@ let mathFunctions = [{
         name: 'x',
         type: 'float'
     }]
-}] as BRSCallable[];
+}] as Callable[];
 
 let runtimeFunctions = [{
     name: 'CreateObject',
@@ -273,7 +273,7 @@ let runtimeFunctions = [{
     returnType: 'integer',
     file: globalFile,
     params: []
-}] as BRSCallable[];
+}] as Callable[];
 
 let globalUtilityFunctions = [
     {
@@ -537,7 +537,7 @@ One way to accomplish that is to use the Replace method on the string value retu
             type: 'string'
         }]
     }
-] as BRSCallable[];
+] as Callable[];
 
 let globalStringFunctions = [
     {
@@ -759,6 +759,6 @@ By using Chr, you can create strings containing characters which cannot be conta
             type: 'string'
         }]
     }
-] as BRSCallable[];
+] as Callable[];
 
 export var globalCallables = [...mathFunctions, ...runtimeFunctions, ...runtimeFunctions, ...globalStringFunctions];

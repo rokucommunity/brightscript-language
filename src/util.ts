@@ -1,7 +1,7 @@
 import * as moment from 'moment';
 import * as fsExtra from 'fs-extra';
 import * as path from 'path';
-import { BRSConfig } from './BRSLanguageServer';
+import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
 
 class Util {

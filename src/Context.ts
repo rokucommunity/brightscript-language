@@ -1,15 +1,15 @@
-import { BRSFile } from './BRSFile';
-import { BRSError as BRSDiagnostic, BRSCallable } from './interfaces';
+import { File } from './File';
+import { Diagnostic, Callable } from './interfaces';
 import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
  */
-export class BRSContext {
+export class Context {
     constructor(
         public name: string,
-        private matcher: (file: BRSFile) => boolean | void
+        private matcher: (file: File) => boolean | void
     ) {
         this.callables = [...this.callables, ...globalCallables];
     }
@@ -18,7 +18,7 @@ export class BRSContext {
      * Determine if this file should 
      * @param filePath 
      */
-    public shouldIncludeFile(file: BRSFile) {
+    public shouldIncludeFile(file: File) {
         return this.matcher(file) === true ? true : false;
     }
 
@@ -28,7 +28,7 @@ export class BRSContext {
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.
      */
-    public get diagnostics(): BRSDiagnostic[] {
+    public get diagnostics(): Diagnostic[] {
         let diagnosticList = [this._diagnostics];
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
@@ -38,17 +38,17 @@ export class BRSContext {
         return result;
     }
 
-    private _diagnostics = [] as BRSDiagnostic[];
+    private _diagnostics = [] as Diagnostic[];
 
     /**
      * A list of context-global subs/functions found in all files in this context. 
      */
-    public callables = [] as BRSCallable[];
+    public callables = [] as Callable[];
 
     public emitter = new EventEmitter();
 
-    public on(eventName: 'add-error', callback: (error: BRSDiagnostic) => void);
-    public on(eventName: 'remove-error', callback: (error: BRSDiagnostic) => void);
+    public on(eventName: 'add-error', callback: (error: Diagnostic) => void);
+    public on(eventName: 'remove-error', callback: (error: Diagnostic) => void);
     public on(eventName: string, callback: (data: any) => void) {
         this.emitter.on(eventName, callback);
         return () => {
@@ -61,7 +61,7 @@ export class BRSContext {
      * @param filePath 
      * @param fileContents 
      */
-    public addFile(file: BRSFile) {
+    public addFile(file: File) {
         if (this.files[file.pathAbsolute]) {
             throw new Error(`File is already loaded in this context. Perhaps you meant to call reloadFile: ${file.pathAbsolute} `);
         }
@@ -80,7 +80,7 @@ export class BRSContext {
      * If the file doesn't exist, the method exits immediately, but does not throw an error.
      * @param file
      */
-    public removeFile(file: BRSFile) {
+    public removeFile(file: File) {
         let ctxFile = this.files[file.pathAbsolute];
         if (!ctxFile) {
             return;
@@ -116,7 +116,7 @@ export class BRSContext {
         })
 
         //find duplicate callables
-        let callablesByName = {} as { [name: string]: BRSCallable };
+        let callablesByName = {} as { [name: string]: Callable };
         let markedFirstCallableAsDupe = {} as { [name: string]: boolean };
         {
             for (let callable of this.callables) {
@@ -147,8 +147,8 @@ export class BRSContext {
                             lineIndex: dupeCallable.lineIndex,
                             filePath: dupeCallable.file.pathAbsolute,
                             file: callable.file,
-                            type: 'error'
-                        } as BRSDiagnostic;
+                            severity: 'error'
+                        } as Diagnostic;
                         this._diagnostics.push(error);
                     }
 
@@ -171,7 +171,7 @@ export class BRSContext {
                     lineIndex: callable.lineIndex,
                     filePath: callable.file.pathAbsolute,
                     file: callable.file,
-                    type: 'warning'
+                    severity: 'warning'
                 });
             } else {
                 //add global callable to available list
@@ -192,8 +192,8 @@ export class BRSContext {
                             columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
                             filePath: contextFile.file.pathAbsolute,
-                            type: 'error'
-                        } as BRSDiagnostic;
+                            severity: 'error'
+                        } as Diagnostic;
                         this._diagnostics.push(error);
                     }
                 }
@@ -204,6 +204,6 @@ export class BRSContext {
 
 class ContextFile {
     constructor(
-        public file: BRSFile) {
+        public file: File) {
     }
 }

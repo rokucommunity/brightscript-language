@@ -1,15 +1,16 @@
-import { BRSLanguageServer } from './BRSLanguageServer';
-import { BRSProgram } from './BRSProgram';
-import { BRSContext } from './BRSContext';
-import { BRSFile } from './BRSFile';
+import { ProgramBuilder } from './ProgramBuilder';
+import { Program } from './Program';
+import { Context } from './Context';
+import { File } from './File';
 import util from './util';
 import { Watcher } from './Watcher';
 
 export {
-    BRSContext,
-    BRSFile,
-    BRSLanguageServer,
-    BRSProgram,
+    Context as BRSContext,
+    File as BRSFile,
+    ProgramBuilder as BRSLanguageServer,
+    Program as BRSProgram,
     util,
     Watcher
 };
+export * from './interfaces';

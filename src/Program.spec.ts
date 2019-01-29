@@ -2,25 +2,25 @@ import * as path from 'path';
 import * as sinonImport from 'sinon';
 
 import { expect, assert } from 'chai';
-import { BRSProgram } from './BRSProgram';
+import { Program } from './Program';
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
 let sinon = sinonImport.createSandbox();
 let rootDir = 'C:/projects/RokuApp';
-let program: BRSProgram;
+let program: Program;
 beforeEach(() => {
-    program = new BRSProgram({ rootDir });
+    program = new Program({ rootDir });
 });
 afterEach(() => {
     sinon.restore();
 });
 
-describe('BRSProgram', () => {
+describe('Program', () => {
     describe('addFile', () => {
         it('works with different cwd', async () => {
             let projectDir = path.join(testProjectsPath, 'project2');
-            let program = new BRSProgram({ cwd: projectDir });
+            let program = new Program({ cwd: projectDir });
             await program.loadOrReloadFile('source/lib.brs', 'function main()\n    print "hello world"\nend function');
             // await program.reloadFile('source/lib.brs', `'this is a comment`);
             //if we made it to here, nothing exploded, so the test passes

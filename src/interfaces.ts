@@ -1,38 +1,38 @@
-import { BRSFile } from './BRSFile';
+import { File } from './File';
 
-export interface BRSError {
-    type: string | 'warning' | 'error';
+export interface Diagnostic {
+    severity: string | 'warning' | 'error';
     message: string;
     filePath: string;
     lineIndex: number;
     columnIndexBegin: number;
     columnIndexEnd: number;
-    file: BRSFile;
+    file: File;
 }
 
-export interface BRSCallable {
-    file: BRSFile;
+export interface Callable {
+    file: File;
     name: string;
     type: 'function' | 'sub';
     description?: string;
     returnType: BRSType;
-    params: BRSParam[];
+    params: CallableParam[];
     lineIndex?: number;
     columnIndexBegin?: number;
     columnIndexEnd?: number;
     isDepricated?: boolean;
 }
 
-export interface BRSExpressionCall {
-    file: BRSFile;
+export interface ExpressionCall {
+    file: File;
     name: string;
-    params: BRSParam[];
+    params: CallableParam[];
     lineIndex: number;
     columnIndexBegin: number;
     columnIndexEnd: number;
 }
 
-export interface BRSParam {
+export interface CallableParam {
     name: string;
     type: BRSType;
     isOptional: boolean;

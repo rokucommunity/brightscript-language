@@ -1,5 +1,5 @@
 import * as chokidar from 'chokidar';
-import { BRSConfig } from './BRSLanguageServer';
+import { BRSConfig } from './ProgramBuilder';
 import { watch } from 'fs';
 
 /**

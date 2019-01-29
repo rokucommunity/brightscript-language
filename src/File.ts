@@ -1,4 +1,4 @@
-import { BRSError, BRSCallable, BRSExpressionCall, BRSType } from './interfaces';
+import { Callable, ExpressionCall, BRSType, Diagnostic } from './interfaces';
 import * as fsExtra from 'fs-extra';
 
 import * as brs from 'brs';
@@ -7,7 +7,7 @@ import { FILE } from 'dns';
 /**
  * Holds all details about this file within the context of the whole program
  */
-export class BRSFile {
+export class File {
     constructor(
         public pathAbsolute: string,
         public pathRelative: string
@@ -20,11 +20,11 @@ export class BRSFile {
      */
     public wasProcessed = false;
 
-    public diagnostics = [] as BRSError[];
+    public diagnostics = [] as Diagnostic[];
 
-    public callables = [] as BRSCallable[]
+    public callables = [] as Callable[]
 
-    public expressionCalls = [] as BRSExpressionCall[];
+    public expressionCalls = [] as ExpressionCall[];
 
     /**
      * The AST for this file
@@ -76,7 +76,7 @@ export class BRSFile {
     }
 
     private standardizeLexParseErrors(errors: { message: string, stack: string }[], lines: string[]) {
-        let standardizedErrors = [] as BRSError[];
+        let standardizedErrors = [] as Diagnostic[];
         for (let error of errors) {
             //"[Line 267] Expected statement or function call, but received an expression"
             let match = /\[Line (\d+)\]\s*(.*)/.exec(error.message);
@@ -91,7 +91,7 @@ export class BRSFile {
                     file: this,
                     filePath: this.pathAbsolute,
                     message: message,
-                    type: 'error'
+                    severity: 'error'
                 });
             }
         }
@@ -176,7 +176,7 @@ export class BRSFile {
                         columnIndexEnd = columnIndexBegin + functionName.length;
                     }
 
-                    let expCall: BRSExpressionCall = {
+                    let expCall: ExpressionCall = {
                         file: this,
                         name: functionName,
                         columnIndexBegin: columnIndexBegin,

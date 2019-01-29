@@ -1,11 +1,11 @@
-import { BRSError, BRSCallable } from './interfaces';
-import { BRSFile } from './BRSFile';
-import { BRSContext } from './BRSContext';
+import { Diagnostic, Callable } from './interfaces';
+import { File } from './File';
+import { Context } from './Context';
 import * as path from 'path';
 import util from './util';
-import { BRSConfig } from './BRSLanguageServer';
+import { BRSConfig } from './ProgramBuilder';
 
-export class BRSProgram {
+export class Program {
     constructor(
         /**
          * The root directory for this program
@@ -29,31 +29,31 @@ export class BRSProgram {
      * call this sparingly.
      */
     public get errors() {
-        let errorLists = [this._errors] as BRSError[][];
+        let errorLists = [this._errors] as Diagnostic[][];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             errorLists.push(context.diagnostics);
         }
-        let result = Array.prototype.concat.apply([], errorLists) as BRSError[];
+        let result = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
         return result;
     }
 
     /**
      * List of errors found on this project
      */
-    private _errors = [] as BRSError[];
+    private _errors = [] as Diagnostic[];
 
-    public files = {} as { [filePath: string]: BRSFile };
+    public files = {} as { [filePath: string]: File };
 
-    public contexts = {} as { [name: string]: BRSContext };
+    public contexts = {} as { [name: string]: Context };
 
     /**
      * Create a new context. 
      * @param name 
      * @param matcher called on every file operation to deteremine if that file should be included in the context.
      */
-    private createContext(name, matcher: (file: BRSFile) => boolean | void) {
-        let context = new BRSContext(name, matcher);
+    private createContext(name, matcher: (file: File) => boolean | void) {
+        let context = new Context(name, matcher);
         //walk over every file to allow the context to include them
         for (let filePath in this.files) {
             let file = this.files[filePath];
@@ -96,7 +96,7 @@ export class BRSProgram {
         filePath = util.normalizeFilePath(filePath);
 
         let relativeFilePath = filePath.replace(this.rootDir + path.sep, '');
-        let file = new BRSFile(filePath, relativeFilePath);
+        let file = new File(filePath, relativeFilePath);
         await file.parse(fileContents);
         this.files[filePath] = file;
 

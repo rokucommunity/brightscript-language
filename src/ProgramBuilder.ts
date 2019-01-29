@@ -5,13 +5,14 @@ import * as debounce from 'debounce-promise';
 
 import util from './util';
 import { Watcher } from './Watcher';
-import { BRSProgram } from './BRSProgram';
+import { Program } from './Program';
 
+import * as ts from 'typescript';
 
 /**
  * A runner class that handles
  */
-export class BRSLanguageServer {
+export class ProgramBuilder {
     constructor(
     ) {
     }
@@ -19,7 +20,7 @@ export class BRSLanguageServer {
     private options: BRSConfig;
     private isRunning = false;
     private watcher: Watcher;
-    public program: BRSProgram;
+    public program: Program;
 
     /**
      * The list of errors found in the program.
@@ -34,7 +35,7 @@ export class BRSLanguageServer {
         }
         this.options = await util.normalizeConfig(options);
 
-        this.program = new BRSProgram(options);
+        this.program = new Program(options);
         //parse every file in the entire project
         await this.loadAllFilesAST();
 
