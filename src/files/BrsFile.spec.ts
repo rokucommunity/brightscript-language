@@ -1,12 +1,12 @@
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
-import { Program } from './Program';
-import { File } from './File';
+import { Program } from '../Program';
+import { BrsFile } from './BrsFile';
 import { expect } from 'chai';
-import { CallableArg } from './interfaces';
+import { CallableArg } from '../interfaces';
 
-describe('File', () => {
+describe('BrsFile', () => {
 
     let sinon = sinonImport.createSandbox();
     beforeEach(() => {
@@ -17,7 +17,7 @@ describe('File', () => {
 
     describe('parse', () => {
         it('finds line and column numbers for functions', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     print "A"
@@ -39,7 +39,7 @@ describe('File', () => {
         });
 
         it('finds and registers duplicate callables', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     print "A"
@@ -58,7 +58,7 @@ describe('File', () => {
         });
 
         it('finds function call line and column numbers', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     DoB()
@@ -79,7 +79,7 @@ describe('File', () => {
         });
 
         it('sanitizes brs errors', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoSomething
                 end function            
@@ -93,7 +93,7 @@ describe('File', () => {
 
         //test is not working yet, but will be enabled when brs supports this syntax
         it.skip('supports assigning functions to objects', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function main()
                     o = CreateObject("roAssociativeArray")
@@ -108,7 +108,7 @@ describe('File', () => {
 
     describe('findCallables', () => {
         it('finds callable parameters', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function Sum(a, b, c)
                     
@@ -136,7 +136,7 @@ describe('File', () => {
         });
 
         it('finds optional parameters', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function Sum(a=2)
                     
@@ -152,7 +152,7 @@ describe('File', () => {
         });
 
         it('finds parameter types', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function Sum(a, b as integer, c as string)
                     
@@ -182,7 +182,7 @@ describe('File', () => {
 
     describe('findCallableInvocations', () => {
         it('finds arguments with literal values', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function Sum()
                     DoSomething("name", 12, true)
@@ -206,7 +206,7 @@ describe('File', () => {
         });
 
         it('finds arguments with variable values', async () => {
-            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function Sum()
                     count = 1

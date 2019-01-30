@@ -1,4 +1,4 @@
-import { File } from './File';
+import { XmlFile } from './files/XmlFile';
 
 export interface Diagnostic {
     severity: string | 'warning' | 'error';
@@ -42,17 +42,49 @@ export interface CallableArg {
 export interface CallableParam {
     name: string;
     type: BRSType;
-    isOptional: boolean;
+    isOptional?: boolean;
     /**
      * Indicates that an unlimited number of arguments can be passed in
      */
-    isRestArgument: boolean;
+    isRestArgument?: boolean;
 }
 export type BRSType = 'boolean' | 'integer' | 'longinteger' | 'float' | 'double' | 'string' | 'string[]' | 'object' | 'function' | 'interface' | 'invalid' | 'dynamic' | 'uninitialized' | 'void';
 
 export interface FileObj {
     src: string;
     dest: string;
+}
+
+/**
+ * Represents a file import in a component <script> tag
+ */
+export interface FileReference {
+    pkgPath: string;
+    text: string;
+    sourceFile: XmlFile;
+    lineIndex?: number;
+    /**
+     * The start column index of the file reference
+     */
+    columnIndexBegin?: number;
+    /**
+     * The end column index of the file reference
+     */
+    columnIndexEnd?: number;
+    /**
+     * The start column index of the script tag for this reference
+     */
+    scriptColumnIndexBegin?: number;
+    /**
+     * The end column index of the script tag for this reference
+     */
+    scriptColumnIndexEnd?: number;
+}
+
+export interface File {
+    pathRelative: string;
+    pathAbsolute: string;
+    diagnostics: Diagnostic[];
 }
 
 //copied from brs (since it's not exported from there)

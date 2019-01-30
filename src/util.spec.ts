@@ -2,6 +2,7 @@ import util from './util';
 import * as sinonImport from 'sinon';
 import * as path from 'path';
 import { expect, assert } from 'chai';
+import { O_NOATIME } from 'constants';
 
 let sinon = sinonImport.createSandbox();
 let cwd = process.cwd();
@@ -118,6 +119,12 @@ describe('util', () => {
             expect(util.stringFormat('{0}{1}', 'a')).to.equal('a{1}');
         });
 
-        
+
+    });
+
+    describe('getPkgPath', () => {
+        it('works', () => {
+            expect(util.getPkgPath('pkg:/components/component1.xml', '../lib.brs')).to.equal('pkg:/lib.brs')
+        });
     });
 });

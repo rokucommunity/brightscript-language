@@ -1,14 +1,14 @@
-import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from './interfaces';
+import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from '../interfaces';
 import * as fsExtra from 'fs-extra';
 
 import * as brs from 'brs';
 import { FILE } from 'dns';
-import util from './util';
+import util from '../util';
 
 /**
  * Holds all details about this file within the context of the whole program
  */
-export class File {
+export class BrsFile {
     constructor(
         public pathAbsolute: string,
         public pathRelative: string
@@ -53,7 +53,7 @@ export class File {
             fileContents = (await fsExtra.readFile(this.pathAbsolute)).toString();
         }
         //split the text into lines
-        let lines = fileContents.split(/\r?\n/);
+        let lines = util.getLines(fileContents);
 
         let lexResult = brs.lexer.Lexer.scan(fileContents);
 

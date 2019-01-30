@@ -1,9 +1,10 @@
-import { Diagnostic, Callable } from './interfaces';
-import { File } from './File';
+import { Diagnostic, Callable, File } from './interfaces';
+import { BrsFile } from './files/BrsFile';
 import { Context } from './Context';
 import * as path from 'path';
 import util from './util';
 import { BRSConfig } from './ProgramBuilder';
+import { XmlFile } from './files/XmlFile';
 
 export class Program {
     constructor(
@@ -43,7 +44,7 @@ export class Program {
      */
     private _errors = [] as Diagnostic[];
 
-    public files = {} as { [filePath: string]: File };
+    public files = {} as { [filePath: string]: BrsFile | XmlFile };
 
     public contexts = {} as { [name: string]: Context };
 
@@ -101,13 +102,28 @@ export class Program {
 
     }
 
-    private async loadFile(filePath: string, fileContents?: string) {
-        filePath = util.normalizeFilePath(filePath);
+    private async loadFile(pathAbsolute: string, fileContents?: string) {
+        pathAbsolute = util.normalizeFilePath(pathAbsolute);
+        let pathRelative = pathAbsolute.replace(this.rootDir + path.sep, '');
+        let fileExtension = path.extname(pathAbsolute).toLowerCase();
+        let file: any;
 
-        let relativeFilePath = filePath.replace(this.rootDir + path.sep, '');
-        let file = new File(filePath, relativeFilePath);
-        await file.parse(fileContents);
-        this.files[filePath] = file;
+        //get the extension of the file
+        if (fileExtension === '.brs' || fileExtension === '.bs') {
+            let brsFile = new BrsFile(pathAbsolute, pathRelative);
+            await brsFile.parse(fileContents);
+            this.files[pathAbsolute] = brsFile;
+            file = brsFile;
+        } else if (fileExtension === '.xml') {
+            let xmlFile = new XmlFile(pathAbsolute, pathRelative);
+            file = xmlFile;
+        } else {
+            file = {
+                pathAbsolute: pathAbsolute,
+                pathRelative: pathRelative,
+                wasProcessed: true
+            }
+        }
 
         //notify all contexts of this new file
         for (let contextName in this.contexts) {

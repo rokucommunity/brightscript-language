@@ -200,6 +200,54 @@ class Util {
             case ValueKind.Void: return 'void';
         }
     }
+
+    /**
+     * Split a file by newline characters (LF or CRLF)
+     * @param text
+     */
+    public getLines(text: string) {
+        return text.split(/\r?\n/);
+    }
+
+    /**
+     * Given an absollute path to a source file, and a target path,
+     * compute the pkg path for the target relative to the source file's location
+     * @param containingFilePathAbsolute 
+     * @param targetPath 
+     */
+    public getPkgPath(containingFilePathAbsolute: string, targetPath: string) {
+        //if the target starts with 'pkg:', it's an absolute path. Return as is
+        if (targetPath.indexOf('pkg:') === 0) {
+            return targetPath;
+        }
+
+        //remove leading 'pkg:' 
+        if (containingFilePathAbsolute.indexOf('pkg:/') === 0) {
+            containingFilePathAbsolute = containingFilePathAbsolute.substring(5);
+        }
+
+        //remove the filename
+        let containingFolder = path.dirname(containingFilePathAbsolute);
+        //start with the containing folder, split by slash
+        let result = containingFolder.split('/');
+
+        //split on slash
+        let targetParts = targetPath.split('/');
+
+        for (let part of targetParts) {
+            if (part === '' || part === '.') {
+                //do nothing, it means current directory
+                continue;
+            }
+            if (part === '..') {
+                //go up one directory
+                result.pop();
+            } else {
+                result.push(part);
+            }
+        }
+        return 'pkg:/' + result.join('/');
+    }
 }
 
 export default new Util();

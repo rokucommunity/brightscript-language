@@ -1,5 +1,6 @@
-import { File } from './File';
-import { Diagnostic, Callable } from './interfaces';
+import { BrsFile } from './files/BrsFile';
+import { XmlFile } from './files/XmlFile';
+import { Diagnostic, Callable, File } from './interfaces';
 import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
@@ -63,7 +64,7 @@ export class Context {
      * @param filePath 
      * @param fileContents 
      */
-    public addFile(file: File) {
+    public addFile(file: BrsFile | XmlFile) {
         if (this.files[file.pathAbsolute]) {
             throw new Error(`File is already loaded in this context. Perhaps you meant to call reloadFile: ${file.pathAbsolute} `);
         }
@@ -235,6 +236,6 @@ export class Context {
 
 class ContextFile {
     constructor(
-        public file: File) {
+        public file: BrsFile | XmlFile) {
     }
 }

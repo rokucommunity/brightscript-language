@@ -1,7 +1,7 @@
 import { Callable } from './interfaces';
-import { File } from './File';
+import { BrsFile } from './files/BrsFile';
 
-export let globalFile = new File('global', 'global');
+export let globalFile = new BrsFile('global', 'global');
 
 let mathFunctions = [{
     name: 'Abs',

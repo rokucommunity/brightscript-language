@@ -58,6 +58,11 @@ describe('Program', () => {
                 assert.fail(null, null, 'Should not have thrown exception');
             }
         });
+
+        it('creates a context for every component xml file', () => {
+            // let componentPath = path.resolve(`${rootDir}/components/component1.xml`);
+            // await program.loadOrReloadFile('components', '')
+        });
     });
     describe('validate', () => {
         it('catches duplicate methods in single file', async () => {
