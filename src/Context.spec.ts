@@ -210,5 +210,38 @@ describe('Context', () => {
             expect(context.diagnostics.length).to.equal(1);
             expect(context.diagnostics[0].message).to.equal('Expected 1-2 arguments, but got 0. [1002]');
         });
+
+        it('handles expressions as arguments to a function', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a(age, name="Bob")
+                end sub
+                sub b()
+                    a("cat" + "dog" + "mouse")
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(0);
+        });
+
+        it.only('Catches extra arguments for expressions as arguments to a function', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a(age)
+                end sub
+                sub b()
+                    a(m.lib.movies[0], 1)
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(1);
+            expect(context.diagnostics[0].message).to.equal('Expected 1 arguments, but got 2. [1002]');
+        });
     });
 });

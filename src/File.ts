@@ -90,7 +90,6 @@ export class File {
                     columnIndexBegin: 0,
                     columnIndexEnd: line.length,
                     file: this,
-                    filePath: this.pathAbsolute,
                     message: message,
                     severity: 'error'
                 });
@@ -199,15 +198,21 @@ export class File {
                         } else if (arg.value) {
                             let callableArg = {
                                 type: util.valueKindToString(arg.value.kind),
-                                text: arg.value.value.toString()
+                                //TODO figure out why value is undefined sometimes
+                                text: arg.value.value ? arg.value.value.toString() : ''
                             };
                             //wrap the value in quotes because that's how it appears in the code
                             if (callableArg.type === "string") {
                                 callableArg.text = '"' + callableArg.text + '"';
                             }
                             args.push(callableArg);
+                        } else {
+                            args.push({
+                                type: 'dynamic',
+                                //TODO get text from other types of args
+                                text: ''
+                            });
                         }
-
                     }
 
                     let expCall: ExpressionCall = {
