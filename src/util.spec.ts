@@ -109,7 +109,7 @@ describe('util', () => {
         });
     });
 
-    describe.only('stringFormat', () => {
+    describe('stringFormat', () => {
         it('handles out-of-order replacements', () => {
             expect(util.stringFormat('{1}{0}', 'b', 'a')).to.equal('ab');
         });

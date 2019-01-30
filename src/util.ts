@@ -3,6 +3,7 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
+import { ValueKind, BRSType } from './interfaces';
 
 class Util {
     public log(...args) {
@@ -181,6 +182,23 @@ class Util {
         return subject.replace(/{(\d+)}/g, function (match, number) {
             return typeof args[number] != 'undefined' ? args[number] : match;
         });
+    }
+
+    public valueKindToString(kind: ValueKind): BRSType {
+        switch (kind) {
+            case ValueKind.Boolean: return 'boolean';
+            case ValueKind.Callable: return 'function';
+            case ValueKind.Double: return 'double';
+            case ValueKind.Dynamic: return 'dynamic';
+            case ValueKind.Float: return 'float';
+            case ValueKind.Int32: return 'integer';
+            case ValueKind.Int64: return 'longinteger';
+            case ValueKind.Invalid: return 'invalid';
+            case ValueKind.Object: return 'object';
+            case ValueKind.String: return 'string';
+            case ValueKind.Uninitialized: return 'uninitialized';
+            case ValueKind.Void: return 'void';
+        }
     }
 }
 

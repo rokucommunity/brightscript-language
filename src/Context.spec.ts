@@ -90,7 +90,7 @@ describe('Context', () => {
             context.validate();
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoB'`);
+            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoB'. [1001]`);
         });
 
         it('recognizes known callables', async () => {
@@ -110,7 +110,7 @@ describe('Context', () => {
             context.validate();
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoC'`);
+            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoC'. [1001]`);
         });
 
         //We don't currently support someObj.callSomething() format, so don't throw errors on those
@@ -142,6 +142,73 @@ describe('Context', () => {
             context.validate();
             //shouldn't have any errors
             expect(context.diagnostics.length).to.equal(0);
+        });
+
+        it('detects calling functions with too many parameters', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a()
+                end sub
+                sub b()
+                    a(1)
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(1);
+            expect(context.diagnostics[0].message).to.equal('Expected 0 arguments, but got 1. [1002]');
+        });
+
+        it('detects calling functions with too many parameters', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a(name)
+                end sub
+                sub b()
+                    a()
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(1);
+            expect(context.diagnostics[0].message).to.equal('Expected 1 arguments, but got 0. [1002]');
+        });
+
+        it('allows skipping optional parameter', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a(name="Bob")
+                end sub
+                sub b()
+                    a()
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(0);
+        });
+
+        it('shows expected parameter range in error message', async () => {
+            //sanity check
+            let file = new File('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub a(age, name="Bob")
+                end sub
+                sub b()
+                    a()
+                end sub
+            `);
+            context.addFile(file);
+            context.validate();
+            //should have an error
+            expect(context.diagnostics.length).to.equal(1);
+            expect(context.diagnostics[0].message).to.equal('Expected 1-2 arguments, but got 0. [1002]');
         });
     });
 });

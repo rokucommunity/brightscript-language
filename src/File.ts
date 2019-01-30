@@ -1,8 +1,9 @@
-import { Callable, ExpressionCall, BRSType, Diagnostic } from './interfaces';
+import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from './interfaces';
 import * as fsExtra from 'fs-extra';
 
 import * as brs from 'brs';
 import { FILE } from 'dns';
+import util from './util';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -105,10 +106,9 @@ export class File {
             if (!statement.func) {
                 continue;
             }
-            let func = statement as any;
-            let functionName = func.name.text;
+            let functionName = statement.name.text;
 
-            let lineIndex = func.name.line - 1;
+            let lineIndex = statement.name.line - 1;
 
             //find the column index for this statement
             let line = lines[lineIndex];
@@ -130,6 +130,17 @@ export class File {
                     columnEndIndex = columnBeginIndex + functionName.length;
                 }
             }
+
+            //extract the parameters
+            let params = [] as CallableParam[];
+            for (let param of statement.func.parameters) {
+                params.push({
+                    name: param.name,
+                    type: util.valueKindToString(param.type),
+                    isOptional: !!param.defaultValue,
+                    isRestArgument: false
+                });
+            }
             this.callables.push({
                 name: functionName,
                 returnType: <BRSType>returnType,
@@ -137,7 +148,7 @@ export class File {
                 columnIndexBegin: columnBeginIndex,
                 columnIndexEnd: columnEndIndex,
                 file: this,
-                params: [],
+                params: params,
                 type: 'function'
             });
         }
@@ -176,6 +187,29 @@ export class File {
                         columnIndexEnd = columnIndexBegin + functionName.length;
                     }
 
+                    let args = [] as CallableArg[];
+                    for (let arg of bodyStatement.expression.args) {
+                        //is variable being passed into argument
+                        if (arg.name) {
+                            args.push({
+                                //TODO - look up the data type of the actual variable
+                                type: 'dynamic',
+                                text: arg.name.text
+                            });
+                        } else if (arg.value) {
+                            let callableArg = {
+                                type: util.valueKindToString(arg.value.kind),
+                                text: arg.value.value.toString()
+                            };
+                            //wrap the value in quotes because that's how it appears in the code
+                            if (callableArg.type === "string") {
+                                callableArg.text = '"' + callableArg.text + '"';
+                            }
+                            args.push(callableArg);
+                        }
+
+                    }
+
                     let expCall: ExpressionCall = {
                         file: this,
                         name: functionName,
@@ -183,7 +217,7 @@ export class File {
                         columnIndexEnd: columnIndexEnd,
                         lineIndex: lineIndex,
                         //TODO keep track of parameters
-                        params: []
+                        args: args
                     };
                     this.expressionCalls.push(expCall);
                 }

@@ -3,7 +3,7 @@ import { Diagnostic, Callable } from './interfaces';
 import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
-import { diagnosticMessages } from './ErrorMessages';
+import { diagnosticMessages } from './DiagnosticMessages';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -171,7 +171,6 @@ export class Context {
                     columnIndexBegin: callable.columnIndexBegin,
                     columnIndexEnd: callable.columnIndexEnd,
                     lineIndex: callable.lineIndex,
-                    filePath: callable.file.pathAbsolute,
                     file: callable.file,
                     severity: 'error'
                 });
@@ -190,16 +189,43 @@ export class Context {
 
                     //detect calls to unknown functions
                     if (!knownCallable) {
-                        let error = {
+                        this._diagnostics.push({
                             message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001, expCall.name),
                             columnIndexBegin: expCall.columnIndexBegin,
                             columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
-                            filePath: contextFile.file.pathAbsolute,
+                            file: contextFile.file,
                             severity: 'error'
-                        } as Diagnostic;
-                        this._diagnostics.push(error);
+                        });
                         continue;
+                    }
+
+                    //detect incorrect number of parameters
+                    {
+                        //get min/max parameter count for callable
+                        let minParams = 0;
+                        let maxParams = 0;
+                        for (let param of knownCallable.params) {
+                            maxParams++;
+                            //optional parameters must come last, so we can assume that minParams won't increase once we hit
+                            //the first isOptional
+                            if (param.isOptional === false) {
+                                minParams++;
+                            }
+                        }
+                        let expCallArgCount = expCall.args.length;
+                        if (expCall.args.length > maxParams || expCall.args.length < minParams) {
+                            let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
+                            this._diagnostics.push({
+                                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002, minMaxParamsText, expCallArgCount),
+                                columnIndexBegin: expCall.columnIndexBegin,
+                                //TODO detect end of expression call
+                                columnIndexEnd: Number.MAX_VALUE,
+                                lineIndex: expCall.lineIndex,
+                                file: contextFile.file,
+                                severity: 'error'
+                            });
+                        }
                     }
                 }
             }
