@@ -108,4 +108,16 @@ describe('util', () => {
             expect(config.watch).to.be.true;
         });
     });
+
+    describe.only('stringFormat', () => {
+        it('handles out-of-order replacements', () => {
+            expect(util.stringFormat('{1}{0}', 'b', 'a')).to.equal('ab');
+        });
+
+        it('does not fail on arguments not provided', () => {
+            expect(util.stringFormat('{0}{1}', 'a')).to.equal('a{1}');
+        });
+
+        
+    });
 });

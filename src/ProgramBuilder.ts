@@ -280,9 +280,8 @@ export class ProgramBuilder {
      * If no errors were encountered, return true. Otherwise return false.
      */
     private async validateProject() {
-        util.log('Validating project');
-        let errorCount = 0;
-        return errorCount;
+        await this.program.validate();
+        return this.program.errors.length;
     }
 }
 

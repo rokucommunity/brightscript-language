@@ -171,6 +171,17 @@ class Util {
 
         return rootDir;
     }
+
+    /**
+     * Format a string with placeholders replaced by argument indexes
+     * @param subject 
+     * @param params 
+     */
+    public stringFormat(subject: string, ...args) {
+        return subject.replace(/{(\d+)}/g, function (match, number) {
+            return typeof args[number] != 'undefined' ? args[number] : match;
+        });
+    }
 }
 
 export default new Util();

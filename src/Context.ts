@@ -2,6 +2,8 @@ import { File } from './File';
 import { Diagnostic, Callable } from './interfaces';
 import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
+import util from './util';
+import { diagnosticMessages } from './ErrorMessages';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -163,15 +165,15 @@ export class Context {
             let callable = callablesByName[name];
             //don't emit errors for overloaded global functions
             if (callable && !globalCallables.indexOf(callable)) {
-                //emit warning that this callable shadows a global function
+                //emit error that this callable shadows a global function
                 this._diagnostics.push({
-                    message: `Duplicate ${callable.type} implementation`,
+                    message: diagnosticMessages.Duplicate_function_implementation_1003,
                     columnIndexBegin: callable.columnIndexBegin,
                     columnIndexEnd: callable.columnIndexEnd,
                     lineIndex: callable.lineIndex,
                     filePath: callable.file.pathAbsolute,
                     file: callable.file,
-                    severity: 'warning'
+                    severity: 'error'
                 });
             } else {
                 //add global callable to available list
@@ -185,9 +187,11 @@ export class Context {
                 let contextFile = this.files[key];
                 for (let expCall of contextFile.file.expressionCalls) {
                     let knownCallable = callablesByName[expCall.name.toLowerCase()]
+
+                    //detect calls to unknown functions
                     if (!knownCallable) {
                         let error = {
-                            message: `Cannot find name '${expCall.name}'`,
+                            message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001, expCall.name),
                             columnIndexBegin: expCall.columnIndexBegin,
                             columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
@@ -195,6 +199,7 @@ export class Context {
                             severity: 'error'
                         } as Diagnostic;
                         this._diagnostics.push(error);
+                        continue;
                     }
                 }
             }
