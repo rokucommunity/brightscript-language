@@ -97,18 +97,17 @@ export class Program {
         filePathAbsolute = util.normalizeFilePath(filePathAbsolute);
         //if the file is already loaded, remove it first
         if (this.files[filePathAbsolute]) {
-            await this.reloadFile(filePathAbsolute, fileContents);
+            return await this.reloadFile(filePathAbsolute, fileContents);
         } else {
-            await this.loadFile(filePathAbsolute, fileContents);
+            return await this.loadFile(filePathAbsolute, fileContents);
         }
-
     }
 
     private async loadFile(pathAbsolute: string, fileContents?: string) {
         pathAbsolute = util.normalizeFilePath(pathAbsolute);
         let pathRelative = pathAbsolute.replace(this.rootDir + path.sep, '');
         let fileExtension = path.extname(pathAbsolute).toLowerCase();
-        let file: any;
+        let file: BrsFile | XmlFile;
 
         //get the extension of the file
         if (fileExtension === '.brs' || fileExtension === '.bs') {
@@ -121,7 +120,7 @@ export class Program {
             this.createContext(xmlFile.pathRelative, xmlFile.doesReferenceFile.bind(xmlFile));
             file = xmlFile;
         } else {
-            file = {
+            file = <any>{
                 pathAbsolute: pathAbsolute,
                 pathRelative: pathRelative,
                 wasProcessed: true
@@ -131,6 +130,7 @@ export class Program {
 
         //allow all contexts to add this file if they wish
         this.notifyContexts(file);
+        return file;
     }
 
     private notifyContexts(file: BrsFile | XmlFile) {
@@ -160,6 +160,19 @@ export class Program {
 
         //add the file back to interested contexts
         this.notifyContexts(file);
+
+        //if this file is a context (i.e. xml file), clear that context and reload all files
+        let context = this.contexts[filePath];
+        if (context) {
+            context.clear();
+            for (let key in this.files) {
+                // let file = this.files[key];
+                // if (context.shouldIncludeFile(file)) {
+                //     context.addFile(file);
+                // }
+            }
+        }
+        return file;
     }
 
     /**
@@ -186,6 +199,13 @@ export class Program {
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             context.removeFile(file)
+        }
+
+        //if there is a context named the same as this file's path, remove it
+        let context = this.contexts[filePath];
+        if (context) {
+            context.clear();
+            delete this.contexts[filePath];
         }
         //remove the file from the program
         delete this.files[filePath];

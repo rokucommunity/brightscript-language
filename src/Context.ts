@@ -27,6 +27,12 @@ export class Context {
 
     public files = {} as { [filePath: string]: ContextFile };
 
+    public clear() {
+        this.files = {};
+        this.callables = [];
+        this._diagnostics = [];
+    }
+
     /**
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.

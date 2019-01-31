@@ -233,4 +233,54 @@ describe('Program', () => {
             });
         });
     });
+
+    describe('reloadFile', () => {
+        it('picks up new files in a context when an xml file is loaded', async () => {
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+            await program.validate();
+            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+            });
+
+            //add the file, the error should go away
+            let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
+            await program.loadOrReloadFile(brsPath, '');
+            program.validate();
+            expect(program.errors).to.be.empty;
+
+            //add the xml file back in, but change the component brs file name. Should have an error again
+            await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component2.brs" />
+                </component>
+            `);
+            program.validate();
+            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+            });
+        });
+
+        it('handles when the brs file is added before the component', async () => {
+            let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
+            let brsFile = await program.loadOrReloadFile(brsPath, '');
+
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            let xmlFile = await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+            await program.validate();
+            expect(program.errors).to.be.empty;
+            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).to.exist;
+        });
+    });
 });
