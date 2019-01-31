@@ -29,7 +29,7 @@ describe('XmlFile', () => {
                 columnIndexEnd: 62,
                 scriptColumnIndexBegin: 0,
                 scriptColumnIndexEnd: 66,
-                pkgPath: 'pkg:/components/cmp1.brs'
+                relativePath: `components${path.sep}cmp1.brs`
             });
         });
 
@@ -39,7 +39,7 @@ describe('XmlFile', () => {
             expect(file.scriptImports.length).to.equal(1);
             expect(file.scriptImports[0]).to.deep.include({
                 text: 'cmp1.brs',
-                pkgPath: 'pkg:/components/cmp1.brs'
+                relativePath: `components${path.sep}cmp1.brs`
             });
         });
     });

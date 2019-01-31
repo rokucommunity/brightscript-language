@@ -122,9 +122,26 @@ describe('util', () => {
 
     });
 
-    describe('getPkgPath', () => {
-        it('works', () => {
-            expect(util.getPkgPath('pkg:/components/component1.xml', '../lib.brs')).to.equal('pkg:/lib.brs')
+    describe('getRelativePath', () => {
+        it('works with both types of separators', () => {
+            expect(util.getRelativePath('components/component1.xml', '../lib.brs')).to.equal('lib.brs')
+            expect(util.getRelativePath('components\\component1.xml', '../lib.brs')).to.equal('lib.brs')
         });
+
+        it('resolves single dot directory', () => {
+            expect(util.getRelativePath('components/component1.xml', './lib.brs')).to.equal(`components${path.sep}lib.brs`)
+        });
+
+        it('resolves absolute pkg paths as relative paths', () => {
+            expect(util.getRelativePath('components/component1.xml', 'pkg:/source/lib.brs')).to.equal(`source${path.sep}lib.brs`)
+            expect(util.getRelativePath('components/component1.xml', 'pkg:/lib.brs')).to.equal(`lib.brs`)
+        });
+
+        it('resolves gracefully for invalid values', () => {
+            expect(util.getRelativePath('components/component1.xml', 'pkg:/')).to.equal(null);
+            expect(util.getRelativePath('components/component1.xml', 'pkg:')).to.equal(null);
+            expect(util.getRelativePath('components/component1.xml', 'pkg')).to.equal(`components${path.sep}pkg`);
+        });
+
     });
 });

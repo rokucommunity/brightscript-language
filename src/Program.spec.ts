@@ -176,4 +176,33 @@ describe('Program', () => {
             expect(program.hasFile('file1.brs')).to.be.true;
         });
     });
+
+    describe('loadOrReloadFile', async () => {
+        it('creates a new context for every added component xml', async () => {
+            //we have global callables, so get that initial number
+            await program.loadOrReloadFile(`${rootDir}/components/component1.xml`, '');
+            expect(program.contexts).to.have.property(`components${path.sep}component1.xml`);
+
+            await program.loadOrReloadFile(`${rootDir}/components/component2.xml`, '');
+            await program.loadOrReloadFile(`${rootDir}/components/component1.xml`, '');
+            expect(program.contexts).to.have.property(`components${path.sep}component1.xml`);
+            expect(program.contexts).to.have.property(`components${path.sep}component2.xml`);
+        });
+
+        it('includes referenced files in xml contexts', async () => {
+            let xmlPath = path.resolve(`${rootDir}/components/component1.xml`);
+            await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+            let brsPath = path.resolve(`${rootDir}/components/component1.brs`);
+            await program.loadOrReloadFile(brsPath, '');
+
+            let context = program.contexts[`components${path.sep}component1.xml`];
+            expect(context.files[xmlPath].file.pathRelative).to.equal(`components${path.sep}component1.xml`);
+            expect(context.files[brsPath].file.pathRelative).to.equal(`components${path.sep}component1.brs`);
+        });
+    });
 });

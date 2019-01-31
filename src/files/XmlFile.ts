@@ -1,4 +1,4 @@
-import { FileReference, Diagnostic, Callable, ExpressionCall } from '../interfaces';
+import { FileReference, Diagnostic, Callable, ExpressionCall, File } from '../interfaces';
 import util from '../util';
 import { timingSafeEqual } from 'crypto';
 import * as fsExtra from 'fs-extra';
@@ -64,10 +64,28 @@ export class XmlFile {
                     columnIndexEnd: columnIndexBegin + filePath.length,
                     scriptColumnIndexBegin: scriptColumnIndexBegin,
                     scriptColumnIndexEnd: scriptColumnIndexBegin + scriptTag.length,
-                    pkgPath: util.getPkgPath(this.pathRelative, filePath)
+                    relativePath: util.getRelativePath(this.pathRelative, filePath)
                 });
             }
         }
         this.wasProcessed = true;
+    }
+
+    /**
+     * Determines if this xml file has a reference to the specified file (or if it's itself)
+     * @param file 
+     */
+    public doesReferenceFile(file: File) {
+        if (file === this) {
+            return true;
+        }
+        for (let scriptImport of this.scriptImports) {
+            //if the script imports the file
+            if (scriptImport.relativePath === file.pathRelative) {
+                return true;
+            }
+        }
+        //didn't find any script imports for this file
+        return false;
     }
 }

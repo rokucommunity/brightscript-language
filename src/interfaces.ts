@@ -59,7 +59,11 @@ export interface FileObj {
  * Represents a file import in a component <script> tag
  */
 export interface FileReference {
-    pkgPath: string;
+    /**
+     * The relative path to the referenced file. This is relative to the root, and should
+     * be used to look up the file in the program
+     */
+    relativePath: string;
     text: string;
     sourceFile: XmlFile;
     lineIndex?: number;

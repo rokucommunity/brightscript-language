@@ -215,24 +215,27 @@ class Util {
      * @param containingFilePathAbsolute 
      * @param targetPath 
      */
-    public getPkgPath(containingFilePathAbsolute: string, targetPath: string) {
+    public getRelativePath(containingFilePathAbsolute: string, targetPath: string) {
         //if the target starts with 'pkg:', it's an absolute path. Return as is
-        if (targetPath.indexOf('pkg:') === 0) {
-            return targetPath;
+        if (targetPath.indexOf('pkg:/') === 0) {
+            targetPath = targetPath.substring(5);
+            if (targetPath === '') {
+                return null;
+            } else {
+                return path.normalize(targetPath);
+            }
         }
-
-        //remove leading 'pkg:' 
-        if (containingFilePathAbsolute.indexOf('pkg:/') === 0) {
-            containingFilePathAbsolute = containingFilePathAbsolute.substring(5);
+        if (targetPath === 'pkg:') {
+            return null;
         }
 
         //remove the filename
-        let containingFolder = path.dirname(containingFilePathAbsolute);
+        let containingFolder = path.normalize(path.dirname(containingFilePathAbsolute));
         //start with the containing folder, split by slash
-        let result = containingFolder.split('/');
+        let result = containingFolder.split(path.sep);
 
         //split on slash
-        let targetParts = targetPath.split('/');
+        let targetParts = path.normalize(targetPath).split(path.sep);
 
         for (let part of targetParts) {
             if (part === '' || part === '.') {
@@ -246,7 +249,7 @@ class Util {
                 result.push(part);
             }
         }
-        return 'pkg:/' + result.join('/');
+        return result.join(path.sep);
     }
 }
 

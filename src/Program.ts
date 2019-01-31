@@ -72,6 +72,7 @@ export class Program {
             }
         }
         this.contexts[name] = context;
+        return context;
     }
 
     /**
@@ -88,16 +89,16 @@ export class Program {
 
     /**
      * Load a file into the program, or replace it of it's already loaded
-     * @param filePath 
+     * @param filePathAbsolute 
      * @param fileContents 
      */
-    public async loadOrReloadFile(filePath: string, fileContents?: string) {
-        filePath = util.normalizeFilePath(filePath);
+    public async loadOrReloadFile(filePathAbsolute: string, fileContents?: string) {
+        filePathAbsolute = util.normalizeFilePath(filePathAbsolute);
         //if the file is already loaded, remove it first
-        if (this.files[filePath]) {
-            await this.reloadFile(filePath, fileContents);
+        if (this.files[filePathAbsolute]) {
+            await this.reloadFile(filePathAbsolute, fileContents);
         } else {
-            await this.loadFile(filePath, fileContents);
+            await this.loadFile(filePathAbsolute, fileContents);
         }
 
     }
@@ -116,7 +117,9 @@ export class Program {
             file = brsFile;
         } else if (fileExtension === '.xml') {
             let xmlFile = new XmlFile(pathAbsolute, pathRelative);
+            await xmlFile.parse(fileContents);
             file = xmlFile;
+            this.createContext(xmlFile.pathRelative, xmlFile.doesReferenceFile.bind(xmlFile));
         } else {
             file = {
                 pathAbsolute: pathAbsolute,
