@@ -160,6 +160,18 @@ export class Program {
 
         //add the file back to interested contexts
         this.notifyContexts(file);
+
+        //if this file is a context (i.e. xml file), clear that context and reload all referenced files
+        let context = this.contexts[file.pathRelative];
+        if (context) {
+            context.clear();
+            for (let key in this.files) {
+                let file = this.files[key];
+                if (context.shouldIncludeFile(file)) {
+                    context.addFile(file);
+                }
+            }
+        }
         return file;
     }
 
@@ -190,10 +202,10 @@ export class Program {
         }
 
         //if there is a context named the same as this file's path, remove it
-        let context = this.contexts[filePath];
+        let context = this.contexts[file.pathRelative];
         if (context) {
             context.clear();
-            delete this.contexts[filePath];
+            delete this.contexts[file.pathRelative];
         }
         //remove the file from the program
         delete this.files[filePath];

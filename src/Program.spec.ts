@@ -282,5 +282,32 @@ describe('Program', () => {
             expect(program.errors).to.be.empty;
             expect(program.contexts[xmlFile.pathRelative].files[brsPath]).to.exist;
         });
+
+        it('reloads referenced fles when xml file changes', async () => {
+            let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
+            let brsFile = await program.loadOrReloadFile(brsPath, '');
+
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            let xmlFile = await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    
+                </component>
+            `);
+            await program.validate();
+            expect(program.errors).to.be.empty;
+            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).not.to.exist;
+
+            //reload the xml file contents, adding a new script reference.
+            xmlFile = await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+
+            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).to.exist;
+
+        });
     });
 });
