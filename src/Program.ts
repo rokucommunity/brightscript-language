@@ -160,18 +160,6 @@ export class Program {
 
         //add the file back to interested contexts
         this.notifyContexts(file);
-
-        //if this file is a context (i.e. xml file), clear that context and reload all files
-        let context = this.contexts[filePath];
-        if (context) {
-            context.clear();
-            for (let key in this.files) {
-                // let file = this.files[key];
-                // if (context.shouldIncludeFile(file)) {
-                //     context.addFile(file);
-                // }
-            }
-        }
         return file;
     }
 

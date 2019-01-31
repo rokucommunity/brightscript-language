@@ -83,7 +83,7 @@ export class XmlFile {
         }
         for (let scriptImport of this.scriptImports) {
             //if the script imports the file
-            if (scriptImport.pathRelative === file.pathRelative) {
+            if (scriptImport.pathRelative.toLowerCase() === file.pathRelative.toLowerCase()) {
                 return true;
             }
         }

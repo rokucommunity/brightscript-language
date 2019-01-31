@@ -43,4 +43,15 @@ describe('XmlFile', () => {
             });
         });
     });
+
+    describe('doesReferenceFile', () => {
+        it('compares case insensitive', () => {
+            let file = new XmlFile('absolute', 'relative');
+            file.scriptImports.push(<any>{
+                pathRelative: `components${path.sep}HeroGrid.brs`,
+            });
+            let brsFile = new BrsFile('absolute', `components${path.sep}HEROGRID.brs`);
+            expect(file.doesReferenceFile(brsFile)).to.be.true;
+        });
+    });
 });
