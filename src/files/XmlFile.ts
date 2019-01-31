@@ -22,9 +22,11 @@ export class XmlFile {
     public expressionCalls = [] as ExpressionCall[];
 
     public reset() {
+        this.wasProcessed = false;
         this.scriptImports = [];
         this.diagnostics = [];
         this.callables = [];
+        this.expressionCalls = [];
     }
 
     /**
@@ -64,7 +66,7 @@ export class XmlFile {
                     columnIndexEnd: columnIndexBegin + filePath.length,
                     scriptColumnIndexBegin: scriptColumnIndexBegin,
                     scriptColumnIndexEnd: scriptColumnIndexBegin + scriptTag.length,
-                    relativePath: util.getRelativePath(this.pathRelative, filePath)
+                    pathRelative: util.getRelativePath(this.pathRelative, filePath)
                 });
             }
         }
@@ -81,7 +83,7 @@ export class XmlFile {
         }
         for (let scriptImport of this.scriptImports) {
             //if the script imports the file
-            if (scriptImport.relativePath === file.pathRelative) {
+            if (scriptImport.pathRelative === file.pathRelative) {
                 return true;
             }
         }

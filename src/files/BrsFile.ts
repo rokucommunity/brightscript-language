@@ -91,6 +91,7 @@ export class BrsFile {
                     columnIndexEnd: line.length,
                     file: this,
                     message: message,
+                    code: 1000,
                     severity: 'error'
                 });
             }

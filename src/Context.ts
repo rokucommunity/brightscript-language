@@ -180,57 +180,102 @@ export class Context {
             }
         }
 
-        //validate all expression calls
-        {
-            for (let key in this.files) {
-                let contextFile = this.files[key];
-                for (let expCall of contextFile.file.expressionCalls) {
-                    let knownCallable = callablesByName[expCall.name.toLowerCase()]
+        //do many per-file checks
+        for (let key in this.files) {
+            let contextFile = this.files[key];
 
-                    //detect calls to unknown functions
-                    if (!knownCallable) {
+            //validate all expression calls
+            for (let expCall of contextFile.file.expressionCalls) {
+                let knownCallable = callablesByName[expCall.name.toLowerCase()]
+
+                //detect calls to unknown functions
+                if (!knownCallable) {
+                    this._diagnostics.push({
+                        message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, expCall.name),
+                        code: diagnosticMessages.Cannot_find_function_name_1001.code,
+                        columnIndexBegin: expCall.columnIndexBegin,
+                        columnIndexEnd: expCall.columnIndexEnd,
+                        lineIndex: expCall.lineIndex,
+                        file: contextFile.file,
+                        severity: 'error'
+                    });
+                    continue;
+                }
+
+                //detect incorrect number of parameters
+                {
+                    //get min/max parameter count for callable
+                    let minParams = 0;
+                    let maxParams = 0;
+                    for (let param of knownCallable.params) {
+                        maxParams++;
+                        //optional parameters must come last, so we can assume that minParams won't increase once we hit
+                        //the first isOptional
+                        if (param.isOptional === false) {
+                            minParams++;
+                        }
+                    }
+                    let expCallArgCount = expCall.args.length;
+                    if (expCall.args.length > maxParams || expCall.args.length < minParams) {
+                        let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                         this._diagnostics.push({
-                            message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, expCall.name),
-                            code: diagnosticMessages.Cannot_find_function_name_1001.code,
+                            message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
+                            code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
                             columnIndexBegin: expCall.columnIndexBegin,
-                            columnIndexEnd: expCall.columnIndexEnd,
+                            //TODO detect end of expression call
+                            columnIndexEnd: Number.MAX_VALUE,
                             lineIndex: expCall.lineIndex,
                             file: contextFile.file,
                             severity: 'error'
                         });
-                        continue;
-                    }
-
-                    //detect incorrect number of parameters
-                    {
-                        //get min/max parameter count for callable
-                        let minParams = 0;
-                        let maxParams = 0;
-                        for (let param of knownCallable.params) {
-                            maxParams++;
-                            //optional parameters must come last, so we can assume that minParams won't increase once we hit
-                            //the first isOptional
-                            if (param.isOptional === false) {
-                                minParams++;
-                            }
-                        }
-                        let expCallArgCount = expCall.args.length;
-                        if (expCall.args.length > maxParams || expCall.args.length < minParams) {
-                            let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
-                            this._diagnostics.push({
-                                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
-                                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
-                                columnIndexBegin: expCall.columnIndexBegin,
-                                //TODO detect end of expression call
-                                columnIndexEnd: Number.MAX_VALUE,
-                                lineIndex: expCall.lineIndex,
-                                file: contextFile.file,
-                                severity: 'error'
-                            });
-                        }
                     }
                 }
             }
+
+            //if this is an xml file, validate its script imports
+            if (contextFile.file instanceof XmlFile) {
+                let file = contextFile.file as XmlFile;
+                //verify every script import
+                for (let scriptImport of file.scriptImports) {
+                    let referencedFile = this.getFileByRelativePath(scriptImport.pathRelative);
+                    //if we can't find the file
+                    if (!referencedFile) {
+                        this._diagnostics.push({
+                            message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
+                            code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                            lineIndex: scriptImport.lineIndex,
+                            columnIndexBegin: scriptImport.columnIndexBegin,
+                            columnIndexEnd: scriptImport.columnIndexEnd,
+                            file: file,
+                            severity: 'error',
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Find the file with the specified relative path
+     * @param relativePath 
+     */
+    private getFileByRelativePath(relativePath: string) {
+        for (let key in this.files) {
+            if (this.files[key].file.pathRelative === relativePath) {
+                return this.files[key];
+            }
+        }
+    }
+
+    /**
+     * Determine if the context already has this file in its files list
+     * @param file 
+     */
+    public hasFile(file: BrsFile | XmlFile) {
+        if (this.files[file.pathAbsolute]) {
+            return true;
+        } else {
+            return false;
         }
     }
 }

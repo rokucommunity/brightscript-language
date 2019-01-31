@@ -184,8 +184,8 @@ describe('Program', () => {
             await program.loadOrReloadFile(`${rootDir}/components/component1.xml`, '');
             expect(program.contexts).to.have.property(`components${path.sep}component1.xml`);
 
-            await program.loadOrReloadFile(`${rootDir}/components/component2.xml`, '');
             await program.loadOrReloadFile(`${rootDir}/components/component1.xml`, '');
+            await program.loadOrReloadFile(`${rootDir}/components/component2.xml`, '');
             expect(program.contexts).to.have.property(`components${path.sep}component1.xml`);
             expect(program.contexts).to.have.property(`components${path.sep}component2.xml`);
         });
@@ -206,6 +206,12 @@ describe('Program', () => {
             expect(context.files[brsPath].file.pathRelative).to.equal(`components${path.sep}component1.brs`);
         });
 
+        it('adds xml file to files map', async () => {
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            await program.loadOrReloadFile(xmlPath, '');
+            expect(program.files[xmlPath]).to.exist;
+        });
+
         it('detects missing script reference', async () => {
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
             await program.loadOrReloadFile(xmlPath, `
@@ -219,8 +225,8 @@ describe('Program', () => {
             expect(program.errors[0]).to.deep.include(<Diagnostic>{
                 file: program.files[xmlPath],
                 lineIndex: 3,
-                columnIndexBegin: 59,
-                columnIndexEnd: 89,
+                columnIndexBegin: 58,
+                columnIndexEnd: 88,
                 message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
                 code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
                 severity: 'error'

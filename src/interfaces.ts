@@ -70,7 +70,7 @@ export interface FileReference {
      * The relative path to the referenced file. This is relative to the root, and should
      * be used to look up the file in the program
      */
-    relativePath: string;
+    pathRelative: string;
     text: string;
     sourceFile: XmlFile;
     lineIndex?: number;

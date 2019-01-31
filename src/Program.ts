@@ -5,6 +5,7 @@ import * as path from 'path';
 import util from './util';
 import { BRSConfig } from './ProgramBuilder';
 import { XmlFile } from './files/XmlFile';
+import { textChangeRangeIsUnchanged } from 'typescript';
 
 export class Program {
     constructor(
@@ -113,13 +114,12 @@ export class Program {
         if (fileExtension === '.brs' || fileExtension === '.bs') {
             let brsFile = new BrsFile(pathAbsolute, pathRelative);
             await brsFile.parse(fileContents);
-            this.files[pathAbsolute] = brsFile;
             file = brsFile;
         } else if (fileExtension === '.xml') {
             let xmlFile = new XmlFile(pathAbsolute, pathRelative);
             await xmlFile.parse(fileContents);
-            file = xmlFile;
             this.createContext(xmlFile.pathRelative, xmlFile.doesReferenceFile.bind(xmlFile));
+            file = xmlFile;
         } else {
             file = {
                 pathAbsolute: pathAbsolute,
@@ -127,11 +127,17 @@ export class Program {
                 wasProcessed: true
             }
         }
+        this.files[pathAbsolute] = file;
 
+        //allow all contexts to add this file if they wish
+        this.notifyContexts(file);
+    }
+
+    private notifyContexts(file: BrsFile | XmlFile) {
         //notify all contexts of this new file
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
-            if (context.shouldIncludeFile(file)) {
+            if (context.shouldIncludeFile(file) && !context.hasFile(file)) {
                 context.addFile(file);
             }
         }
@@ -144,21 +150,16 @@ export class Program {
         //remove the file from all contexts
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
-            if (context.files[filePath]) {
+            if (context.hasFile(file)) {
                 context.removeFile(file);
             }
         }
 
-        await file.reset();
+        file.reset();
         await file.parse(fileContents);
 
-        //add the file back to the context
-        for (let contextName in this.contexts) {
-            let context = this.contexts[contextName];
-            if (context.shouldIncludeFile(file)) {
-                context.addFile(file);
-            }
-        }
+        //add the file back to interested contexts
+        this.notifyContexts(file);
     }
 
     /**
