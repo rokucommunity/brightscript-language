@@ -5,6 +5,8 @@ import { Program } from './Program';
 import { BrsFile } from './files/BrsFile';
 import { expect } from 'chai';
 import { Context as Context } from './Context';
+import { diagnosticMessages } from './DiagnosticMessages';
+import util from './util';
 
 describe('Context', () => {
     let sinon = sinonImport.createSandbox();
@@ -90,7 +92,10 @@ describe('Context', () => {
             context.validate();
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoB'. [1001]`);
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoB'),
+                code: diagnosticMessages.Cannot_find_function_name_1001.code
+            });
         });
 
         it('recognizes known callables', async () => {
@@ -108,9 +113,11 @@ describe('Context', () => {
             expect(context.diagnostics.length).to.equal(0);
             //validate the context
             context.validate();
-            //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).equals(`Cannot find name 'DoC'. [1001]`);
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoC'),
+                code: diagnosticMessages.Cannot_find_function_name_1001.code
+            });
         });
 
         //We don't currently support someObj.callSomething() format, so don't throw errors on those
@@ -158,7 +165,10 @@ describe('Context', () => {
             context.validate();
             //should have an error
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).to.equal('Expected 0 arguments, but got 1. [1002]');
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 0, 1),
+                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            });
         });
 
         it('detects calling functions with too many parameters', async () => {
@@ -175,7 +185,10 @@ describe('Context', () => {
             context.validate();
             //should have an error
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).to.equal('Expected 1 arguments, but got 0. [1002]');
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 0),
+                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            });
         });
 
         it('allows skipping optional parameter', async () => {
@@ -208,7 +221,10 @@ describe('Context', () => {
             context.validate();
             //should have an error
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).to.equal('Expected 1-2 arguments, but got 0. [1002]');
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, '1-2', 0),
+                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            });
         });
 
         it('handles expressions as arguments to a function', async () => {
@@ -241,7 +257,10 @@ describe('Context', () => {
             context.validate();
             //should have an error
             expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0].message).to.equal('Expected 1 arguments, but got 2. [1002]');
+            expect(context.diagnostics[0]).to.deep.include({
+                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 2),
+                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            });
         });
     });
 });

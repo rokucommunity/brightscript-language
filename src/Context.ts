@@ -143,18 +143,16 @@ export class Context {
                         markedFirstCallableAsDupe[name] = true;
                     }
                     for (let dupeCallable of dupeCallables) {
-                        let error = {
-                            message: `Duplicate ${dupeCallable.type} implementation`,
+                        this._diagnostics.push({
+                            message: diagnosticMessages.Duplicate_function_implementation_1003.message,
+                            code: diagnosticMessages.Duplicate_function_implementation_1003.code,
                             columnIndexBegin: dupeCallable.columnIndexBegin,
                             columnIndexEnd: dupeCallable.columnIndexEnd,
                             lineIndex: dupeCallable.lineIndex,
-                            filePath: dupeCallable.file.pathAbsolute,
                             file: callable.file,
                             severity: 'error'
-                        } as Diagnostic;
-                        this._diagnostics.push(error);
+                        });
                     }
-
                 }
             }
         }
@@ -168,7 +166,8 @@ export class Context {
             if (callable && !globalCallables.indexOf(callable)) {
                 //emit error that this callable shadows a global function
                 this._diagnostics.push({
-                    message: diagnosticMessages.Duplicate_function_implementation_1003,
+                    message: diagnosticMessages.Duplicate_function_implementation_1003.message,
+                    code: diagnosticMessages.Duplicate_function_implementation_1003.code,
                     columnIndexBegin: callable.columnIndexBegin,
                     columnIndexEnd: callable.columnIndexEnd,
                     lineIndex: callable.lineIndex,
@@ -191,7 +190,8 @@ export class Context {
                     //detect calls to unknown functions
                     if (!knownCallable) {
                         this._diagnostics.push({
-                            message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001, expCall.name),
+                            message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, expCall.name),
+                            code: diagnosticMessages.Cannot_find_function_name_1001.code,
                             columnIndexBegin: expCall.columnIndexBegin,
                             columnIndexEnd: expCall.columnIndexEnd,
                             lineIndex: expCall.lineIndex,
@@ -218,7 +218,8 @@ export class Context {
                         if (expCall.args.length > maxParams || expCall.args.length < minParams) {
                             let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                             this._diagnostics.push({
-                                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002, minMaxParamsText, expCallArgCount),
+                                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
+                                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
                                 columnIndexBegin: expCall.columnIndexBegin,
                                 //TODO detect end of expression call
                                 columnIndexEnd: Number.MAX_VALUE,

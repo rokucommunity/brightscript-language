@@ -2,7 +2,14 @@ import { XmlFile } from './files/XmlFile';
 
 export interface Diagnostic {
     severity: string | 'warning' | 'error';
+    /**
+     * The message for this diagnostic
+     */
     message: string;
+    /**
+     * The unique diagnostic code for this type of message
+     */
+    code: number;
     file: File;
     lineIndex: number;
     columnIndexBegin: number;

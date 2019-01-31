@@ -3,7 +3,8 @@ import * as sinonImport from 'sinon';
 
 import { expect, assert } from 'chai';
 import { Program } from './Program';
-import { O_NOATIME } from 'constants';
+import { Diagnostic } from './interfaces';
+import { diagnosticMessages } from './DiagnosticMessages';
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
@@ -203,6 +204,27 @@ describe('Program', () => {
             let context = program.contexts[`components${path.sep}component1.xml`];
             expect(context.files[xmlPath].file.pathRelative).to.equal(`components${path.sep}component1.xml`);
             expect(context.files[brsPath].file.pathRelative).to.equal(`components${path.sep}component1.brs`);
+        });
+
+        it('detects missing script reference', async () => {
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+            await program.validate();
+            expect(program.errors.length).to.equal(1);
+            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+                file: program.files[xmlPath],
+                lineIndex: 3,
+                columnIndexBegin: 59,
+                columnIndexEnd: 89,
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
+                code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                severity: 'error'
+            });
         });
     });
 });
