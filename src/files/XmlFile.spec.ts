@@ -88,13 +88,15 @@ describe('XmlFile', () => {
                 sourceFile: xmlFile
             });
 
-            expect(xmlFile.getCompletions(1, 1)).to.eql([<CompletionItem>{
-                label: 'pkg:/components/component1/component1.brs',
-                kind: CompletionItemKind.File
-            }, {
+            expect(xmlFile.getCompletions(1, 1)[0]).to.include({
                 label: 'components/component1/component1.brs',
                 kind: CompletionItemKind.File
-            }]);
+            });
+
+            expect(xmlFile.getCompletions(1, 1)[1]).to.include(<CompletionItem>{
+                label: 'pkg:/components/component1/component1.brs',
+                kind: CompletionItemKind.File
+            });
         });
     });
 });

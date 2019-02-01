@@ -324,13 +324,14 @@ describe('Program', () => {
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
             await program.loadOrReloadFile(brsPath, '');
             let completions = program.getCompletions(xmlPath, 3, 58);
-            expect(completions).to.eql([{
-                kind: CompletionItemKind.File,
-                label: 'pkg:/components/component1.brs'
-            }, {
+            expect(completions[0]).to.include({
                 kind: CompletionItemKind.File,
                 label: 'component1.brs'
-            }]);
+            });
+            expect(completions[1]).to.include({
+                kind: CompletionItemKind.File,
+                label: 'pkg:/components/component1.brs'
+            });
         });
     });
 });

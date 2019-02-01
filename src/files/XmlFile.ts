@@ -3,7 +3,7 @@ import util from '../util';
 import * as fsExtra from 'fs-extra';
 import { Program } from '../Program';
 import * as path from 'path';
-import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, TextEdit, Range } from 'vscode-languageserver';
 
 export class XmlFile {
     constructor(
@@ -125,17 +125,38 @@ export class XmlFile {
                     //not already referenced in this file
                     currentImports.indexOf(file.pkgPath) === -1
                 ) {
-                    //add the absolute path
-                    result.push({
-                        label: 'pkg:/' + file.pkgPath.replace(/\\/g, '/'),
-                        kind: CompletionItemKind.File
-                    });
+                    //the text range to replace if the user selects this result
+                    let range = {
+                        start: {
+                            character: scriptImport.columnIndexBegin,
+                            line: scriptImport.lineIndex
+                        },
+                        end: {
+                            character: scriptImport.columnIndexEnd,
+                            line: scriptImport.lineIndex
+                        }
+                    } as Range;
 
                     //add the relative path
-                    util.getPkgPathFromTarget
+                    let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
                     result.push({
-                        label: util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/'),
-                        kind: CompletionItemKind.File
+                        label: relativePath,
+                        kind: CompletionItemKind.File,
+                        textEdit: {
+                            newText: relativePath,
+                            range: range
+                        }
+                    });
+
+                    //add the absolute path
+                    let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
+                    result.push({
+                        label: pkgPath,
+                        kind: CompletionItemKind.File,
+                        textEdit: {
+                            newText: pkgPath,
+                            range: range
+                        }
                     });
                 }
             }
