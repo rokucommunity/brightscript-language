@@ -70,8 +70,11 @@ export interface FileReference {
      * The relative path to the referenced file. This is relative to the root, and should
      * be used to look up the file in the program
      */
-    pathRelative: string;
+    pkgPath: string;
     text: string;
+    /**
+     * The XML file that is doing the importing of this file
+     */
     sourceFile: XmlFile;
     lineIndex?: number;
     /**
@@ -85,7 +88,10 @@ export interface FileReference {
 }
 
 export interface File {
-    pathRelative: string;
+    /**
+     * The absolute path to the file, relative to the pkg
+     */
+    pkgPath: string;
     pathAbsolute: string;
     diagnostics: Diagnostic[];
 }

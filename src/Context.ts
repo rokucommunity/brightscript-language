@@ -243,7 +243,7 @@ export class Context {
                 let file = contextFile.file as XmlFile;
                 //verify every script import
                 for (let scriptImport of file.scriptImports) {
-                    let referencedFile = this.getFileByRelativePath(scriptImport.pathRelative);
+                    let referencedFile = this.getFileByRelativePath(scriptImport.pkgPath);
                     //if we can't find the file
                     if (!referencedFile) {
                         this._diagnostics.push({
@@ -267,7 +267,7 @@ export class Context {
      */
     private getFileByRelativePath(relativePath: string) {
         for (let key in this.files) {
-            if (this.files[key].file.pathRelative === relativePath) {
+            if (this.files[key].file.pkgPath === relativePath) {
                 return this.files[key];
             }
         }

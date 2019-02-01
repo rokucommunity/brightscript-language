@@ -10,6 +10,8 @@ let rootConfigPath = path.join(process.cwd(), 'brsconfig.json');
 let rootConfigDir = path.dirname(rootConfigPath);
 let vfs = {};
 let vfsStub;
+//shorthand for normalizing a path
+let n = path.normalize;
 
 beforeEach(() => {
     vfs = {};
@@ -61,7 +63,7 @@ describe('util', () => {
     describe('normalizeConfig', () => {
         it('loads project from disc', async () => {
             vfs[rootConfigPath] = `{"outFile": "customOutDir/pkg.zip"}`;
-            let config = await util.normalizeConfig({ project: rootConfigPath })
+            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath })
             expect(config.outFile).to.equal(path.join(path.dirname(rootConfigPath), 'customOutDir', 'pkg.zip'))
         });
 
@@ -79,7 +81,7 @@ describe('util', () => {
                 "watch": true
             }`;
 
-            let config = await util.normalizeConfig({ project: rootConfigPath })
+            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath })
 
             expect(config.outFile).to.equal(path.join(rootConfigDir, 'testProjects', 'customOutDir', 'pkg1.zip'))
             expect(config.rootDir).to.equal(path.join(rootConfigDir, 'testProjects', 'core'));
@@ -96,7 +98,7 @@ describe('util', () => {
 
             let threw = false;
             try {
-                await util.normalizeConfig({ project: rootConfigPath })
+                await util.normalizeAndResolveConfig({ project: rootConfigPath })
             } catch (e) {
                 threw = true;
             }
@@ -105,7 +107,7 @@ describe('util', () => {
         });
 
         it('properly handles default for watch', async () => {
-            let config = await util.normalizeConfig({ watch: true });
+            let config = await util.normalizeAndResolveConfig({ watch: true });
             expect(config.watch).to.be.true;
         });
     });
@@ -122,26 +124,43 @@ describe('util', () => {
 
     });
 
-    describe('getRelativePath', () => {
+    describe('getPkgPathFromTarget', () => {
         it('works with both types of separators', () => {
-            expect(util.getRelativePath('components/component1.xml', '../lib.brs')).to.equal('lib.brs')
-            expect(util.getRelativePath('components\\component1.xml', '../lib.brs')).to.equal('lib.brs')
+            expect(util.getPkgPathFromTarget('components/component1.xml', '../lib.brs')).to.equal('lib.brs')
+            expect(util.getPkgPathFromTarget('components\\component1.xml', '../lib.brs')).to.equal('lib.brs')
         });
 
         it('resolves single dot directory', () => {
-            expect(util.getRelativePath('components/component1.xml', './lib.brs')).to.equal(`components${path.sep}lib.brs`)
+            expect(util.getPkgPathFromTarget('components/component1.xml', './lib.brs')).to.equal(n(`components/lib.brs`));
         });
 
         it('resolves absolute pkg paths as relative paths', () => {
-            expect(util.getRelativePath('components/component1.xml', 'pkg:/source/lib.brs')).to.equal(`source${path.sep}lib.brs`)
-            expect(util.getRelativePath('components/component1.xml', 'pkg:/lib.brs')).to.equal(`lib.brs`)
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/source/lib.brs')).to.equal(n(`source/lib.brs`));
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/lib.brs')).to.equal(`lib.brs`)
         });
 
         it('resolves gracefully for invalid values', () => {
-            expect(util.getRelativePath('components/component1.xml', 'pkg:/')).to.equal(null);
-            expect(util.getRelativePath('components/component1.xml', 'pkg:')).to.equal(null);
-            expect(util.getRelativePath('components/component1.xml', 'pkg')).to.equal(`components${path.sep}pkg`);
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/')).to.equal(null);
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:')).to.equal(null);
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg')).to.equal(n(`components/pkg`));
         });
+    });
 
+    describe('getRelativePath', () => {
+        it('works when both files are at the root', () => {
+            expect(util.getRelativePath('file.xml', 'file.brs')).to.equal('file.brs');
+        });
+        it('works when both files are in subfolder', () => {
+            expect(util.getRelativePath('sub/file.xml', 'sub/file.brs')).to.equal('file.brs');
+        });
+        it('works when source in root, target in subdir', () => {
+            expect(util.getRelativePath('file.xml', 'sub/file.brs')).to.equal(n(`sub/file.brs`));
+        });
+        it('works when source in sub, target in root', () => {
+            expect(util.getRelativePath('sub/file.xml', 'file.brs')).to.equal(n(`../file.brs`));
+        });
+        it('works when source and target are in different subs', () => {
+            expect(util.getRelativePath('sub1/file.xml', 'sub2/file.brs')).to.equal(n(`../sub2/file.brs`));
+        });
     });
 });

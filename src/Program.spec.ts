@@ -5,6 +5,7 @@ import { expect, assert } from 'chai';
 import { Program } from './Program';
 import { Diagnostic } from './interfaces';
 import { diagnosticMessages } from './DiagnosticMessages';
+import { CompletionItemKind } from 'vscode-languageserver';
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
@@ -202,8 +203,8 @@ describe('Program', () => {
             await program.loadOrReloadFile(brsPath, '');
 
             let context = program.contexts[`components${path.sep}component1.xml`];
-            expect(context.files[xmlPath].file.pathRelative).to.equal(`components${path.sep}component1.xml`);
-            expect(context.files[brsPath].file.pathRelative).to.equal(`components${path.sep}component1.brs`);
+            expect(context.files[xmlPath].file.pkgPath).to.equal(`components${path.sep}component1.xml`);
+            expect(context.files[brsPath].file.pkgPath).to.equal(`components${path.sep}component1.brs`);
         });
 
         it('adds xml file to files map', async () => {
@@ -280,7 +281,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.errors).to.be.empty;
-            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).to.exist;
+            expect(program.contexts[xmlFile.pkgPath].files[brsPath]).to.exist;
         });
 
         it('reloads referenced fles when xml file changes', async () => {
@@ -296,7 +297,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.errors).to.be.empty;
-            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).not.to.exist;
+            expect(program.contexts[xmlFile.pkgPath].files[brsPath]).not.to.exist;
 
             //reload the xml file contents, adding a new script reference.
             xmlFile = await program.loadOrReloadFile(xmlPath, `
@@ -306,7 +307,7 @@ describe('Program', () => {
                 </component>
             `);
 
-            expect(program.contexts[xmlFile.pathRelative].files[brsPath]).to.exist;
+            expect(program.contexts[xmlFile.pkgPath].files[brsPath]).to.exist;
 
         });
     });
@@ -324,7 +325,11 @@ describe('Program', () => {
             await program.loadOrReloadFile(brsPath, '');
             let completions = program.getCompletions(xmlPath, 3, 58);
             expect(completions).to.eql([{
+                kind: CompletionItemKind.File,
                 label: 'pkg:/components/component1.brs'
+            }, {
+                kind: CompletionItemKind.File,
+                label: 'component1.brs'
             }]);
         });
     });

@@ -32,15 +32,10 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "script": "compile",
-            "problemMatcher": [
-                "$tslint5",
-                "$tsc"
-            ]
-        },
-        {
-            "type": "npm",
-            "script": "watch",
+            "presentation": {
+                "clear": true
+            },
+            "script": "build",
             "problemMatcher": []
         }
     ]

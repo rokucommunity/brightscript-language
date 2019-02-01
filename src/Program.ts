@@ -12,15 +12,17 @@ export class Program {
         /**
          * The root directory for this program
          */
-        private options: BRSConfig
+        public config: BRSConfig
     ) {
+        this.config = util.normalizeConfig(config);
+
         //normalize the root dir
-        this.rootDir = util.getRootDir(options);
+        this.rootDir = util.getRootDir(config);
 
         //create the "global" context
         this.createContext('global', (file) => {
             //global context includes every file under the `source` folder
-            return file.pathRelative.indexOf(`source${path.sep}`) === 0;
+            return file.pkgPath.indexOf(`source${path.sep}`) === 0;
         });
     }
 
@@ -105,26 +107,28 @@ export class Program {
 
     private async loadFile(pathAbsolute: string, fileContents?: string) {
         pathAbsolute = util.normalizeFilePath(pathAbsolute);
-        let pathRelative = pathAbsolute.replace(this.rootDir + path.sep, '');
+        let pkgPath = pathAbsolute.replace(this.rootDir + path.sep, '');
         let fileExtension = path.extname(pathAbsolute).toLowerCase();
         let file: BrsFile | XmlFile;
 
         //get the extension of the file
         if (fileExtension === '.brs' || fileExtension === '.bs') {
-            let brsFile = new BrsFile(pathAbsolute, pathRelative);
+            let brsFile = new BrsFile(pathAbsolute, pkgPath);
             await brsFile.parse(fileContents);
             file = brsFile;
         } else if (fileExtension === '.xml') {
-            let xmlFile = new XmlFile(pathAbsolute, pathRelative, this);
+            let xmlFile = new XmlFile(pathAbsolute, pkgPath, this);
             await xmlFile.parse(fileContents);
-            this.createContext(xmlFile.pathRelative, xmlFile.doesReferenceFile.bind(xmlFile));
+            this.createContext(xmlFile.pkgPath, xmlFile.doesReferenceFile.bind(xmlFile));
             file = xmlFile;
         } else {
-            file = <any>{
+            let genericFile = {
                 pathAbsolute: pathAbsolute,
-                pathRelative: pathRelative,
-                wasProcessed: true
-            }
+                pkgPath: pkgPath,
+                wasProcessed: true,
+                diagnostics: []
+            } as File;
+            file = <any>genericFile;
         }
         this.files[pathAbsolute] = file;
 
@@ -162,7 +166,7 @@ export class Program {
         this.notifyContexts(file);
 
         //if this file is a context (i.e. xml file), clear that context and reload all referenced files
-        let context = this.contexts[file.pathRelative];
+        let context = this.contexts[file.pkgPath];
         if (context) {
             context.clear();
             for (let key in this.files) {
@@ -202,10 +206,10 @@ export class Program {
         }
 
         //if there is a context named the same as this file's path, remove it
-        let context = this.contexts[file.pathRelative];
+        let context = this.contexts[file.pkgPath];
         if (context) {
             context.clear();
-            delete this.contexts[file.pathRelative];
+            delete this.contexts[file.pkgPath];
         }
         //remove the file from the program
         delete this.files[filePath];

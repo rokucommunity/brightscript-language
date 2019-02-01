@@ -34,7 +34,7 @@ export class ProgramBuilder {
         if (this.isRunning) {
             throw new Error('Server is already running');
         }
-        this.options = await util.normalizeConfig(options);
+        this.options = await util.normalizeAndResolveConfig(options);
 
         this.program = new Program(options);
         //parse every file in the entire project

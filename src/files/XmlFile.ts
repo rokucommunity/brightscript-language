@@ -3,12 +3,15 @@ import util from '../util';
 import * as fsExtra from 'fs-extra';
 import { Program } from '../Program';
 import * as path from 'path';
-import { CompletionItem } from '../vscode-languageserver-interfaces';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 
 export class XmlFile {
     constructor(
         public pathAbsolute: string,
-        public pathRelative: string,
+        /**
+         * The absolute path to the file, relative to the pkg
+         */
+        public pkgPath: string,
         public program: Program
     ) {
         this.extension = path.extname(pathAbsolute).toLowerCase();
@@ -70,7 +73,7 @@ export class XmlFile {
                     lineIndex: lineIndex,
                     columnIndexBegin: columnIndexBegin,
                     columnIndexEnd: columnIndexBegin + filePath.length,
-                    pathRelative: util.getRelativePath(this.pathRelative, filePath)
+                    pkgPath: util.getPkgPathFromTarget(this.pkgPath, filePath)
                 });
             }
         }
@@ -87,7 +90,7 @@ export class XmlFile {
         }
         for (let scriptImport of this.scriptImports) {
             //if the script imports the file
-            if (scriptImport.pathRelative.toLowerCase() === file.pathRelative.toLowerCase()) {
+            if (scriptImport.pkgPath.toLowerCase() === file.pkgPath.toLowerCase()) {
                 return true;
             }
         }
@@ -105,13 +108,13 @@ export class XmlFile {
         let scriptImport = this.scriptImports.find((x) => {
             return x.lineIndex === lineIndex &&
                 //column between start and end
-                x.columnIndexBegin >= columnIndex &&
-                x.columnIndexEnd >= columnIndex
+                columnIndex >= x.columnIndexBegin &&
+                columnIndex <= x.columnIndexEnd
         });
         //the position is within a script import. Provide path completions
         if (scriptImport) {
             //get a list of all scripts currently being imported
-            let currentImports = this.scriptImports.map(x => x.pathRelative);
+            let currentImports = this.scriptImports.map(x => x.pkgPath);
 
             //restrict to only .brs files
             for (let key in this.program.files) {
@@ -120,10 +123,19 @@ export class XmlFile {
                     //is a brightscript file
                     (file.extension === '.bs' || file.extension === '.brs') &&
                     //not already referenced in this file
-                    currentImports.indexOf(file.pathRelative) === -1
+                    currentImports.indexOf(file.pkgPath) === -1
                 ) {
+                    //add the absolute path
                     result.push({
-                        label: 'pkg:/' + file.pathRelative.replace('\\', '/')
+                        label: 'pkg:/' + file.pkgPath.replace('\\', '/'),
+                        kind: CompletionItemKind.File
+                    });
+
+                    //add the relative path
+                    util.getPkgPathFromTarget
+                    result.push({
+                        label: util.getRelativePath(this.pkgPath, file.pkgPath),
+                        kind: CompletionItemKind.File
                     });
                 }
             }

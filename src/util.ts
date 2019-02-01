@@ -4,6 +4,7 @@ import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
 import { ValueKind, BRSType } from './interfaces';
+import { getConfigFileParsingDiagnostics } from 'typescript';
 
 class Util {
     public log(...args) {
@@ -112,26 +113,13 @@ class Util {
         }
     }
 
-    getDefaultConfig() {
-        let options = {
-            deploy: false,
-            //use default options from rokuDeploy
-            files: rokuDeploy.getOptions().files,
-            skipPackage: false,
-            outFile: 'out/package.zip',
-            username: 'rokudev',
-            watch: false
-        } as BRSConfig;
-        return options;
-    }
-
     /**
      * Given a BRSConfig object, start with defaults,
      * merge with brsconfig.json and the provided options.
      * @param config
      */
-    public async normalizeConfig(config: BRSConfig) {
-        let result = this.getDefaultConfig();
+    public async normalizeAndResolveConfig(config: BRSConfig) {
+        let result = this.normalizeConfig({});
 
         //if no options were provided, try to find a brsconfig.json file
         if (!config || !config.project) {
@@ -149,6 +137,22 @@ class Util {
         result = Object.assign(result, config);
 
         return result;
+    }
+
+    /**
+     * Set defaults for any missing items
+     * @param config 
+     */
+    public normalizeConfig(config: BRSConfig) {
+        config = config ? config : {} as BRSConfig;
+        config.deploy = config.deploy === true ? true : false;
+        //use default options from rokuDeploy
+        config.files = config.files ? config.files : rokuDeploy.getOptions().files;
+        config.skipPackage = config.skipPackage === true ? true : false;
+        config.outFile = config.outFile ? config.outFile : 'out/package.zip';
+        config.username = config.username ? config.username : 'rokudev';
+        config.watch = config.watch === true ? true : false;
+        return config;
     }
 
     /**
@@ -215,7 +219,7 @@ class Util {
      * @param containingFilePathAbsolute 
      * @param targetPath 
      */
-    public getRelativePath(containingFilePathAbsolute: string, targetPath: string) {
+    public getPkgPathFromTarget(containingFilePathAbsolute: string, targetPath: string) {
         //if the target starts with 'pkg:', it's an absolute path. Return as is
         if (targetPath.indexOf('pkg:/') === 0) {
             targetPath = targetPath.substring(5);
@@ -250,6 +254,44 @@ class Util {
             }
         }
         return result.join(path.sep);
+    }
+
+    /**
+     * Compute the relative path from the source file to the target file
+     * @param pkgSourcePathAbsolute  - the absolute path to the source relative to the package location
+     * @param pkgTargetPathAbsolute  - the absolute path ro the target relative to the package location
+     */
+    public getRelativePath(pkgSourcePathAbsolute: string, pkgTargetPathAbsolute: string) {
+        pkgSourcePathAbsolute = path.normalize(pkgSourcePathAbsolute);
+        pkgTargetPathAbsolute = path.normalize(pkgTargetPathAbsolute);
+
+        //break by path separator
+        let sourceParts = pkgSourcePathAbsolute.split(path.sep);
+        let targetParts = pkgTargetPathAbsolute.split(path.sep);
+
+        let commonParts = [] as string[];
+        //find their common root
+        for (let i = 0; i < targetParts.length; i++) {
+            if (targetParts[i].toLowerCase() === sourceParts[i].toLowerCase()) {
+                commonParts.push(targetParts[i]);
+            } else {
+                //we found a non-matching part...so no more commonalities past this point
+                break;
+            }
+        }
+
+        //throw out the common parts from both sets
+        sourceParts.splice(0, commonParts.length);
+        targetParts.splice(0, commonParts.length);
+
+        //throw out the filename part of source
+        sourceParts.splice(sourceParts.length - 1, 1);
+        //start out by adding updir paths for each remaining source part
+        let resultParts = sourceParts.map(x => '..');
+
+        //now add every target part
+        resultParts = [...resultParts, ...targetParts];
+        return path.join.apply(path, resultParts);
     }
 }
 

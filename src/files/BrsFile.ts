@@ -12,7 +12,10 @@ import * as path from 'path';
 export class BrsFile {
     constructor(
         public pathAbsolute: string,
-        public pathRelative: string
+        /**
+         * The absolute path to the file, relative to the pkg
+         */
+        public pkgPath: string
     ) {
         this.extension = path.extname(pathAbsolute).toLowerCase();
     }
