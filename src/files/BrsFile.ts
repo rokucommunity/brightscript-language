@@ -59,7 +59,7 @@ export class BrsFile {
 
         //load from disk if file contents are not provided
         if (typeof fileContents !== 'string') {
-            fileContents = (await fsExtra.readFile(this.pathAbsolute)).toString();
+            fileContents = await util.getFileContents(this.pathAbsolute);
         }
         //split the text into lines
         let lines = util.getLines(fileContents);
@@ -85,28 +85,28 @@ export class BrsFile {
         this.wasProcessed = true;
     }
 
-    private standardizeLexParseErrors(errors: { message: string, stack: string }[], lines: string[]) {
-        let standardizedErrors = [] as Diagnostic[];
+    public standardizeLexParseErrors(errors: { message: string, stack: string }[], lines: string[]) {
+        let standardizedDiagnostics = [] as Diagnostic[];
         for (let error of errors) {
-            //"[Line 267] Expected statement or function call, but received an expression"
-            let match = /\[Line (\d+)\]\s*(.*)/.exec(error.message);
+            let diagnostic = <Diagnostic>{
+                code: 1000,
+                lineIndex: 0,
+                columnIndexBegin: 0,
+                columnIndexEnd: Number.MAX_VALUE,
+                file: this,
+                severity: 'error',
+                message: error.message
+            };
+            //extract the line number from the message
+            let match = /\[Line (\d+)\]\s*(.*)/i.exec(error.message);
             if (match) {
-                let lineIndex = parseInt(match[1]) - 1;
-                let message = match[2];
-                let line = lines[lineIndex];
-                standardizedErrors.push({
-                    lineIndex: lineIndex,
-                    columnIndexBegin: 0,
-                    columnIndexEnd: line.length,
-                    file: this,
-                    message: message,
-                    code: 1000,
-                    severity: 'error'
-                });
+                diagnostic.lineIndex = parseInt(match[1]) - 1;
+                diagnostic.message = match[2];
             }
+            standardizedDiagnostics.push(diagnostic);
         }
 
-        return standardizedErrors;
+        return standardizedDiagnostics;
     }
 
     private findCallables(lines: string[]) {
@@ -127,17 +127,15 @@ export class BrsFile {
             //default to the end of the line
             let columnEndIndex = line.length - 1;
 
-            let returnType = 'object';
+            let returnType = 'dynamic';
 
-            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)(?:.*)(as\s+.*)*/i.exec(line);
+            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)\s*\(.*\)(?:\s*as\s*(.*))?/i.exec(line);
             if (match) {
                 let preceedingText = match[1];
                 let lineFunctionName = match[2];
                 returnType = match[3] ? match[3] : returnType;
-                if (lineFunctionName === functionName) {
-                    columnBeginIndex = preceedingText.length
-                    columnEndIndex = columnBeginIndex + functionName.length;
-                }
+                columnBeginIndex = preceedingText.length
+                columnEndIndex = columnBeginIndex + functionName.length;
             }
 
             //extract the parameters
@@ -184,10 +182,10 @@ export class BrsFile {
                     let lineIndex = bodyStatement.expression.callee.name.line - 1;
                     let line = lines[lineIndex];
                     let columnIndexBegin = 0;
-                    let columnIndexEnd = line.length;
+                    let columnIndexEnd = Number.MAX_VALUE;
 
                     //find the invocation on this line
-                    let regexp = new RegExp(`^(.*)${functionName}\s*\()`);
+                    let regexp = new RegExp(`^(.*)${functionName}\s*\()`, 'i');
                     let match = regexp.exec(line);
                     //if we found a match, fine-tune the column indexes
                     if (match) {
@@ -206,10 +204,14 @@ export class BrsFile {
                                 text: arg.name.text
                             });
                         } else if (arg.value) {
+                            let text = '';
+                            /* istanbul ignore next: TODO figure out why value is undefined sometimes */
+                            if (arg.value.value) {
+                                text = arg.value.value.toString();
+                            }
                             let callableArg = {
                                 type: util.valueKindToString(arg.value.kind),
-                                //TODO figure out why value is undefined sometimes
-                                text: arg.value.value ? arg.value.value.toString() : ''
+                                text: text
                             };
                             //wrap the value in quotes because that's how it appears in the code
                             if (callableArg.type === "string") {

@@ -13,24 +13,24 @@ let vfsStub;
 //shorthand for normalizing a path
 let n = path.normalize;
 
-beforeEach(() => {
-    vfs = {};
-    vfsStub = sinon.stub(util, 'getFileContents').callsFake((filePath) => {
-        if (vfs[filePath]) {
-            return vfs[filePath];
-        } else {
-            throw new Error('Cannot find file ' + filePath);
-        }
-    });
-});
-
-afterEach(() => {
-    sinon.restore();
-    //restore current working directory
-    process.chdir(cwd);
-});
-
 describe('util', () => {
+    beforeEach(() => {
+        vfs = {};
+        vfsStub = sinon.stub(util, 'getFileContents').callsFake((filePath) => {
+            if (vfs[filePath]) {
+                return vfs[filePath];
+            } else {
+                throw new Error('Cannot find file ' + filePath);
+            }
+        });
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        //restore current working directory
+        process.chdir(cwd);
+    });
+
     describe('getConfigFilePath', async () => {
         it('returns undefined when it does not find the file', async () => {
             let configFilePath = await util.getConfigFilePath(path.join(process.cwd(), 'testProjects', 'project1'));

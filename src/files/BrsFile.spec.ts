@@ -1,16 +1,14 @@
 import * as path from 'path';
 import * as sinonImport from 'sinon';
+let sinon = sinonImport.createSandbox();
 
 import { Program } from '../Program';
 import { BrsFile } from './BrsFile';
-import { expect } from 'chai';
-import { CallableArg } from '../interfaces';
+import { expect, assert } from 'chai';
+import { CallableArg, Diagnostic, Callable, ExpressionCall } from '../interfaces';
+import util from '../util';
 
 describe('BrsFile', () => {
-
-    let sinon = sinonImport.createSandbox();
-    beforeEach(() => {
-    });
     afterEach(() => {
         sinon.restore();
     });
@@ -36,6 +34,27 @@ describe('BrsFile', () => {
             expect(file.callables[1].lineIndex).to.equal(5);
             expect(file.callables[1].columnIndexBegin).to.equal(26)
             expect(file.callables[1].columnIndexEnd).to.equal(29)
+        });
+
+        it('throws an error if the file has already been parsed', async () => {
+            let file = new BrsFile('abspath', 'relpath');
+            file.parse(`'a comment`);
+            try {
+                await file.parse(`'a new comment`);
+                assert.fail(null, null, 'Should have thrown an exception, but did not');
+            } catch (e) {
+                //test passes
+            }
+        });
+
+        it('loads file contents from disk when necessary', async () => {
+            let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
+            expect(stub.called).to.be.false;
+
+            let file = new BrsFile('abspath', 'relpath');
+            file.parse();
+            expect(stub.called).to.be.true;
+
         });
 
         it('finds and registers duplicate callables', async () => {
@@ -85,10 +104,12 @@ describe('BrsFile', () => {
                 end function            
             `);
             expect(file.diagnostics.length).to.be.greaterThan(0);
-            expect(file.diagnostics[0].columnIndexBegin).to.equal(0);
-            expect(file.diagnostics[0].columnIndexEnd).to.equal(36);
-            expect(file.diagnostics[0].lineIndex).to.equal(1);
-            expect(file.diagnostics[0].file.pathAbsolute).to.equal('absolute_path/file.brs');
+            expect(file.diagnostics[0]).to.deep.include({
+                lineIndex: 1,
+                columnIndexBegin: 0,
+                columnIndexEnd: Number.MAX_VALUE,
+                file: file
+            });
         });
 
         //test is not working yet, but will be enabled when brs supports this syntax
@@ -227,6 +248,128 @@ describe('BrsFile', () => {
             expect(file.expressionCalls[0].args[2]).deep.include(<CallableArg>{
                 type: 'dynamic',
                 text: 'isAlive'
+            });
+        });
+    });
+
+    describe('standardizeLexParserErrors', () => {
+        it('still works if no line number was detected in the message', () => {
+            let file = new BrsFile('', '');
+            expect(file.standardizeLexParseErrors([{
+                message: 'some lex error',
+                stack: ''
+            }], [])).to.eql([<Diagnostic>{
+                code: 1000,
+                message: 'some lex error',
+                lineIndex: 0,
+                columnIndexBegin: 0,
+                columnIndexEnd: Number.MAX_VALUE,
+                file: file,
+                severity: 'error'
+            }]);
+        });
+    });
+
+    describe('findCallables', () => {
+        //this test is to help with code coverage
+        it('skips top-level statements', async () => {
+            let file = new BrsFile('absolute', 'relative');
+            await file.parse('name = "Bob"');
+            expect(file.callables.length).to.equal(0);
+        });
+
+        it(`falls back to defaults when the regex doesn't find a match on the line`, async () => {
+            let file = new BrsFile('absolute', 'relative');
+            await file.parse('function DoSomething()\nend function');
+            (file as any).findCallables(['asdf']);
+            expect(file.callables[0]).to.deep.include(<Callable>{
+                file: file,
+                lineIndex: 0,
+                columnIndexBegin: 0,
+                columnIndexEnd: 3,
+                returnType: 'dynamic',
+                type: 'function',
+                name: 'DoSomething',
+                params: []
+            });
+        });
+
+        it(`finds return type from regex`, async () => {
+            let file = new BrsFile('absolute', 'relative');
+            await file.parse('function DoSomething() as string\nend function');
+            (file as any).findCallables(['function DoSomething() as string\nend function']);
+            expect(file.callables[0]).to.deep.include(<Callable>{
+                file: file,
+                lineIndex: 0,
+                columnIndexBegin: 9,
+                columnIndexEnd: 20,
+                returnType: 'string',
+                type: 'function',
+                name: 'DoSomething',
+                params: []
+            });
+        });
+    });
+
+    describe('getCompletions', () => {
+        it('returns empty set when out of range', async () => {
+            let file = new BrsFile('abs', 'rel');
+            await file.parse('');
+            expect(file.getCompletions(99, 99)).to.be.empty;
+        });
+    });
+
+    describe('findCallableInvocations', () => {
+        /**
+         * There's always a chance the regex is incorrect. 
+         * So ensure the code falls back to full line if regex does not find a match
+         */
+        it('handles not finding a regex match from the line', async () => {
+            let file = new BrsFile('abs', 'rel');
+            await file.parse(`
+                function Main()
+                    Wait(10)
+                end function
+            `);
+            file.expressionCalls = [];
+            //send an unknown line (not sure how this would happen.)
+            (file as any).findCallableInvocations([
+                '',
+                'function Main()',
+                '   Nada(10)',
+                'end function'
+            ]);
+            expect(file.expressionCalls[0]).to.deep.include(<ExpressionCall>{
+                args: [{
+                    type: 'integer',
+                    text: '10'
+                }],
+                columnIndexBegin: 0,
+                columnIndexEnd: Number.MAX_VALUE,
+                lineIndex: 2,
+                name: 'Wait'
+            });
+        });
+
+        it('prevents false positives on multiple functions on a line', async () => {
+            let file = new BrsFile('abs', 'rel');
+            await file.parse(`
+                function Main()
+                    Wait(10)
+                end function
+            `);
+            file.expressionCalls = [];
+            //send an unknown line (not sure how this would happen.)
+            (file as any).findCallableInvocations(util.getLines(`
+                function Main()
+                    SomeCall(DontWait(10), Wait(10))
+                end function
+            `));
+            expect(file.expressionCalls[0]).to.deep.include(<ExpressionCall>{
+                columnIndexBegin: 43,
+                columnIndexEnd: 47,
+                lineIndex: 2,
+                name: 'Wait'
             });
         });
     });
