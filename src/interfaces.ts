@@ -76,7 +76,10 @@ export interface FileReference {
      * The XML file that is doing the importing of this file
      */
     sourceFile: XmlFile;
-    lineIndex?: number;
+    /**
+     * The index of the line this reference is located at
+     */
+    lineIndex: number;
     /**
      * The start column index of the file reference
      */
