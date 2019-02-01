@@ -127,14 +127,14 @@ export class XmlFile {
                 ) {
                     //add the absolute path
                     result.push({
-                        label: 'pkg:/' + file.pkgPath.replace('\\', '/'),
+                        label: 'pkg:/' + file.pkgPath.replace(/\\/g, '/'),
                         kind: CompletionItemKind.File
                     });
 
                     //add the relative path
                     util.getPkgPathFromTarget
                     result.push({
-                        label: util.getRelativePath(this.pkgPath, file.pkgPath),
+                        label: util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/'),
                         kind: CompletionItemKind.File
                     });
                 }

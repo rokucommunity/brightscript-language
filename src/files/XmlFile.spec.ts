@@ -6,6 +6,8 @@ import { BrsFile } from './BrsFile';
 import { expect } from 'chai';
 import { CallableArg, FileReference } from '../interfaces';
 import { XmlFile } from './XmlFile';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+let n = path.normalize;
 
 describe('XmlFile', () => {
 
@@ -59,10 +61,40 @@ describe('XmlFile', () => {
             xmlFile.scriptImports.push({
                 pkgPath: `components${path.sep}HeroGrid.brs`,
                 text: '',
+                lineIndex: 1,
                 sourceFile: xmlFile
             });
             let brsFile = new BrsFile('absolute', `components${path.sep}HEROGRID.brs`);
             expect(xmlFile.doesReferenceFile(brsFile)).to.be.true;
+        });
+    });
+
+    describe('getCompletions', () => {
+        it('formats completion paths with proper slashes', async () => {
+            let scriptPath = n('C:/app/components/component1/component1.brs');
+            let program = {
+                files: {
+                }
+            };
+            program.files[scriptPath] = new BrsFile(scriptPath, n('components/component1/component1.brs'));
+
+            let xmlFile = new XmlFile('component.xml', 'relative', <any>program);
+            xmlFile.scriptImports.push({
+                pkgPath: ``,
+                text: '',
+                lineIndex: 1,
+                columnIndexBegin: 1,
+                columnIndexEnd: 1,
+                sourceFile: xmlFile
+            });
+
+            expect(xmlFile.getCompletions(1, 1)).to.eql([<CompletionItem>{
+                label: 'pkg:/components/component1/component1.brs',
+                kind: CompletionItemKind.File
+            }, {
+                label: 'components/component1/component1.brs',
+                kind: CompletionItemKind.File
+            }]);
         });
     });
 });
