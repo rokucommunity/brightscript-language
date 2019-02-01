@@ -52,7 +52,7 @@ export class XmlFile {
 
         //load from disk if file contents are not provided
         if (typeof fileContents !== 'string') {
-            fileContents = (await fsExtra.readFile(this.pathAbsolute)).toString();
+            fileContents = await util.getFileContents(this.pathAbsolute);
         }
 
         //split the text into lines

@@ -3,10 +3,11 @@ import * as sinonImport from 'sinon';
 
 import { Program } from '../Program';
 import { BrsFile } from './BrsFile';
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 import { CallableArg, FileReference } from '../interfaces';
 import { XmlFile } from './XmlFile';
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import util from '../util';
 let n = path.normalize;
 
 describe('XmlFile', () => {
@@ -31,6 +32,27 @@ describe('XmlFile', () => {
                 columnIndexEnd: 62,
                 pkgPath: `components${path.sep}cmp1.brs`
             });
+        });
+
+        it('throws an error if the file has already been parsed', async () => {
+            let file = new XmlFile('abspath', 'relpath', null);
+            file.parse(`'a comment`);
+            try {
+                await file.parse(`'a new comment`);
+                assert.fail(null, null, 'Should have thrown an exception, but did not');
+            } catch (e) {
+                //test passes
+            }
+        });
+
+        it('loads file contents from disk when necessary', async () => {
+            let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
+            expect(stub.called).to.be.false;
+
+            let file = new XmlFile('abspath', 'relpath', null);
+            file.parse();
+            expect(stub.called).to.be.true;
+
         });
 
         it('resolves relative paths', async () => {
@@ -97,6 +119,12 @@ describe('XmlFile', () => {
                 label: 'pkg:/components/component1/component1.brs',
                 kind: CompletionItemKind.File
             });
+        });
+
+        it('returns empty set when out of range', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse('');
+            expect(file.getCompletions(99, 99)).to.be.empty;
         });
     });
 });
