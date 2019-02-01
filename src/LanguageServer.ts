@@ -173,14 +173,18 @@ export class LanguageServer {
      * Provide a list of completion items based on the current cursor position
      * @param textDocumentPosition
      */
-    private onCompletion(textDocumentPosition: TextDocumentPositionParams): CompletionItem[] {
+    private async onCompletion(textDocumentPosition: TextDocumentPositionParams) {
+        //wait for the program to load
+        await this.serverFinishedFirstRunPromise;
+        
         let completions = this.brsProgramBuilder.program.getCompletions(
             this.getPathFromUri(textDocumentPosition.textDocument.uri),
             textDocumentPosition.position.line,
-            textDocumentPosition.position.character) as CompletionItem[];
+            textDocumentPosition.position.character
+        ) as CompletionItem[];
+
         let result = [] as CompletionItem[];
         for (let completion of completions) {
-            completion.kind = CompletionItemKind.File;
             result.push(completion);
         }
         return result;

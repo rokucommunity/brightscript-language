@@ -139,8 +139,11 @@ export class XmlFile {
 
                     //add the relative path
                     let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
+                    let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
+
                     result.push({
                         label: relativePath,
+                        detail: file.pathAbsolute,
                         kind: CompletionItemKind.File,
                         textEdit: {
                             newText: relativePath,
@@ -149,9 +152,9 @@ export class XmlFile {
                     });
 
                     //add the absolute path
-                    let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
                     result.push({
                         label: pkgPath,
+                        detail: file.pathAbsolute,
                         kind: CompletionItemKind.File,
                         textEdit: {
                             newText: pkgPath,
