@@ -82,14 +82,6 @@ export interface FileReference {
      * The end column index of the file reference
      */
     columnIndexEnd?: number;
-    /**
-     * The start column index of the script tag for this reference
-     */
-    scriptColumnIndexBegin?: number;
-    /**
-     * The end column index of the script tag for this reference
-     */
-    scriptColumnIndexEnd?: number;
 }
 
 export interface File {

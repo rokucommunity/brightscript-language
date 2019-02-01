@@ -310,4 +310,22 @@ describe('Program', () => {
 
         });
     });
+
+    describe('getCompletions', () => {
+        it('finds all file paths when initiated on xml uri', async () => {
+            let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
+            let xmlFile = await program.loadOrReloadFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="" />
+                </component>
+            `);
+            let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
+            await program.loadOrReloadFile(brsPath, '');
+            let completions = program.getCompletions(xmlPath, 3, 58);
+            expect(completions).to.eql([{
+                label: 'pkg:/components/component1.brs'
+            }]);
+        });
+    });
 });

@@ -4,6 +4,7 @@ import * as fsExtra from 'fs-extra';
 import * as brs from 'brs';
 import { FILE } from 'dns';
 import util from '../util';
+import * as path from 'path';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -13,8 +14,13 @@ export class BrsFile {
         public pathAbsolute: string,
         public pathRelative: string
     ) {
-
+        this.extension = path.extname(pathAbsolute).toLowerCase();
     }
+
+    /**
+     * The extension for this file
+     */
+    public extension: string;
 
     /**
      * Indicates if this file was processed by the program yet. 
@@ -229,5 +235,10 @@ export class BrsFile {
                 }
             }
         }
+    }
+
+    public getCompletions(lineIndex: number, columnIndex: number) {
+        //TODO
+        return [];
     }
 }

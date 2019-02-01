@@ -1,15 +1,23 @@
 import { FileReference, Diagnostic, Callable, ExpressionCall, File } from '../interfaces';
 import util from '../util';
-import { timingSafeEqual } from 'crypto';
 import * as fsExtra from 'fs-extra';
+import { Program } from '../Program';
+import * as path from 'path';
+import { CompletionItem } from '../vscode-languageserver-interfaces';
 
 export class XmlFile {
     constructor(
         public pathAbsolute: string,
-        public pathRelative: string
+        public pathRelative: string,
+        public program: Program
     ) {
-
+        this.extension = path.extname(pathAbsolute).toLowerCase();
     }
+
+    /**
+     * The extension for this file
+     */
+    public extension: string;
 
     public scriptImports = [] as FileReference[];
 
@@ -50,13 +58,11 @@ export class XmlFile {
         //find all script imports
         for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             let line = lines[lineIndex];
-            let scriptMatch = /(.*)(<\s*script.*uri\s*=\s*"(.*)".*\/>)/ig.exec(line)
+            let scriptMatch = /(.*<\s*script.*uri\s*=\s*")(.*)".*\/>/ig.exec(line)
             if (scriptMatch) {
-                let leadingJunk = scriptMatch[1];
-                let scriptTag = scriptMatch[2];
-                let filePath = scriptMatch[3];
-                let scriptColumnIndexBegin = leadingJunk.length;
-                let columnIndexBegin = line.indexOf(filePath);
+                let junkBeforeUri = scriptMatch[1];
+                let filePath = scriptMatch[2];
+                let columnIndexBegin = junkBeforeUri.length;
 
                 this.scriptImports.push({
                     sourceFile: this,
@@ -64,8 +70,6 @@ export class XmlFile {
                     lineIndex: lineIndex,
                     columnIndexBegin: columnIndexBegin,
                     columnIndexEnd: columnIndexBegin + filePath.length,
-                    scriptColumnIndexBegin: scriptColumnIndexBegin,
-                    scriptColumnIndexEnd: scriptColumnIndexBegin + scriptTag.length,
                     pathRelative: util.getRelativePath(this.pathRelative, filePath)
                 });
             }
@@ -89,5 +93,41 @@ export class XmlFile {
         }
         //didn't find any script imports for this file
         return false;
+    }
+
+    /**
+     * Get all available completions for the specified position
+     * @param lineIndex 
+     * @param columnIndex 
+     */
+    public getCompletions(lineIndex: number, columnIndex: number): CompletionItem[] {
+        let result = [] as CompletionItem[];
+        let scriptImport = this.scriptImports.find((x) => {
+            return x.lineIndex === lineIndex &&
+                //column between start and end
+                x.columnIndexBegin >= columnIndex &&
+                x.columnIndexEnd >= columnIndex
+        });
+        //the position is within a script import. Provide path completions
+        if (scriptImport) {
+            //get a list of all scripts currently being imported
+            let currentImports = this.scriptImports.map(x => x.pathRelative);
+
+            //restrict to only .brs files
+            for (let key in this.program.files) {
+                let file = this.program.files[key];
+                if (
+                    //is a brightscript file
+                    (file.extension === '.bs' || file.extension === '.brs') &&
+                    //not already referenced in this file
+                    currentImports.indexOf(file.pathRelative) === -1
+                ) {
+                    result.push({
+                        label: 'pkg:/' + file.pathRelative.replace('\\', '/')
+                    });
+                }
+            }
+        }
+        return result;
     }
 }

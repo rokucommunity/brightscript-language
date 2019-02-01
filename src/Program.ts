@@ -115,7 +115,7 @@ export class Program {
             await brsFile.parse(fileContents);
             file = brsFile;
         } else if (fileExtension === '.xml') {
-            let xmlFile = new XmlFile(pathAbsolute, pathRelative);
+            let xmlFile = new XmlFile(pathAbsolute, pathRelative, this);
             await xmlFile.parse(fileContents);
             this.createContext(xmlFile.pathRelative, xmlFile.doesReferenceFile.bind(xmlFile));
             file = xmlFile;
@@ -219,5 +219,28 @@ export class Program {
             let context = this.contexts[contextName];
             context.validate();
         }
+    }
+
+    /**
+     * Get the file at the given path
+     * @param pathAbsolute 
+     */
+    private getFile(pathAbsolute: string) {
+        pathAbsolute = path.resolve(pathAbsolute);
+        return this.files[pathAbsolute];
+    }
+
+    /**
+     * Find all available completion items at the given position
+     * @param pathAbsolute 
+     * @param lineIndex 
+     * @param columnIndex 
+     */
+    public getCompletions(pathAbsolute: string, lineIndex: number, columnIndex: number) {
+        let file = this.getFile(pathAbsolute);
+        if (!file) {
+            return [];
+        }
+        return file.getCompletions(lineIndex, columnIndex);
     }
 }

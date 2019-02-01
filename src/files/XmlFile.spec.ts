@@ -18,7 +18,7 @@ describe('XmlFile', () => {
 
     describe('parse', () => {
         it('finds script imports', async () => {
-            let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml');
+            let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="pkg:/components/cmp1.brs" />`)
             expect(file.scriptImports.length).to.equal(1);
             expect(file.scriptImports[0]).to.deep.include({
@@ -27,14 +27,12 @@ describe('XmlFile', () => {
                 lineIndex: 0,
                 columnIndexBegin: 38,
                 columnIndexEnd: 62,
-                scriptColumnIndexBegin: 0,
-                scriptColumnIndexEnd: 66,
                 pathRelative: `components${path.sep}cmp1.brs`
             });
         });
 
         it('resolves relative paths', async () => {
-            let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml');
+            let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="cmp1.brs" />`)
             expect(file.scriptImports.length).to.equal(1);
             expect(file.scriptImports[0]).to.deep.include({
@@ -42,11 +40,22 @@ describe('XmlFile', () => {
                 pathRelative: `components${path.sep}cmp1.brs`
             });
         });
+
+        it('finds correct position for empty uri in script tag', async () => {
+            let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
+            await file.parse(`<script type="text/brightscript" uri="" />`)
+            expect(file.scriptImports.length).to.equal(1);
+            expect(file.scriptImports[0]).to.deep.include({
+                lineIndex: 0,
+                columnIndexBegin: 38,
+                columnIndexEnd: 38,
+            });
+        });
     });
 
     describe('doesReferenceFile', () => {
         it('compares case insensitive', () => {
-            let file = new XmlFile('absolute', 'relative');
+            let file = new XmlFile('absolute', 'relative', null);
             file.scriptImports.push(<any>{
                 pathRelative: `components${path.sep}HeroGrid.brs`,
             });
