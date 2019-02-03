@@ -113,7 +113,7 @@ describe('BrsFile', () => {
         });
 
         //test is not working yet, but will be enabled when brs supports this syntax
-        it.skip('supports assigning functions to objects', async () => {
+        it('supports assigning functions to objects', async () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function main()
