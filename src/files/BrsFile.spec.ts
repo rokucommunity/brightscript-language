@@ -112,6 +112,18 @@ describe('BrsFile', () => {
             });
         });
 
+        it.skip('supports using the `next` keyword in a for loop', async () => {
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub countit()
+                    for each num in [1,2,3]
+                        print num
+                    next
+                end sub
+            `);
+            expect(file.diagnostics).to.be.empty;
+        });
+
         //test is not working yet, but will be enabled when brs supports this syntax
         it('supports assigning functions to objects', async () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
