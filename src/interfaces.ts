@@ -1,4 +1,5 @@
 import { XmlFile } from './files/XmlFile';
+import { Position, Range } from 'vscode-languageserver';
 
 export interface Diagnostic {
     severity: string | 'warning' | 'error';
@@ -26,6 +27,7 @@ export interface Callable {
     lineIndex?: number;
     columnIndexBegin?: number;
     columnIndexEnd?: number;
+    bodyRange?: Range;
     isDepricated?: boolean;
 }
 

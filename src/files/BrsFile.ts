@@ -1,10 +1,10 @@
-import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from '../interfaces';
-import * as fsExtra from 'fs-extra';
-
 import * as brs from 'brs';
-import { FILE } from 'dns';
-import util from '../util';
 import * as path from 'path';
+
+import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from '../interfaces';
+import { Context } from '../Context';
+import util from '../util';
+import { Position, Range } from 'vscode-languageserver';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -129,6 +129,8 @@ export class BrsFile {
 
             let returnType = 'dynamic';
 
+            let bodyRange = Range.create(lineIndex, 0, lineIndex, columnEndIndex);
+
             let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)\s*\(.*\)(?:\s*as\s*(.*))?/i.exec(line);
             if (match) {
                 let preceedingText = match[1];
@@ -136,6 +138,10 @@ export class BrsFile {
                 returnType = match[3] ? match[3] : returnType;
                 columnBeginIndex = preceedingText.length
                 columnEndIndex = columnBeginIndex + functionName.length;
+
+                let bodyPositionStart = Position.create(lineIndex, match[0].length);
+                let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
+                bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
             }
 
             //extract the parameters
@@ -148,6 +154,7 @@ export class BrsFile {
                     isRestArgument: false
                 });
             }
+
             this.callables.push({
                 name: functionName,
                 returnType: <BRSType>returnType,
@@ -156,10 +163,38 @@ export class BrsFile {
                 columnIndexEnd: columnEndIndex,
                 file: this,
                 params: params,
+                bodyRange: bodyRange,
                 type: 'function'
             });
         }
     }
+
+    /**
+     * Find the position where the function body ends
+     * @param lines 
+     * @param lineIndex - the index of the line AFTER the line where the callable was declared
+     */
+    findBodyEndPosition(lines: string[], startLineIndex: number) {
+        let openedCount = 1;
+        for (let lineIndex = startLineIndex; lineIndex < lines.length; lineIndex++) {
+            let line = lines[lineIndex];
+
+            //if a new function has been opened, move on to next line
+            if (/(function|sub)([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)) {
+                openedCount++;
+                continue;
+            }
+            let closedMatch = /^(\s*)end\s+(sub|function)/gi.exec(line);
+            if (closedMatch) {
+                openedCount--;
+                //if the last opened callable was just closed, compute the position 
+                if (openedCount === 0) {
+                    return Position.create(lineIndex, closedMatch[1].length);
+                }
+            }
+        }
+    }
+
 
     private findCallableInvocations(lines: string[]) {
         this.expressionCalls = [];
@@ -242,7 +277,9 @@ export class BrsFile {
         }
     }
 
-    public getCompletions(lineIndex: number, columnIndex: number) {
+    public getCompletions(lineIndex: number, columnIndex: number, context?: Context) {
+        //determine if cursor is inside a function
+
         //TODO
         return [];
     }

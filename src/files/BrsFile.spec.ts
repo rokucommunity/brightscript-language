@@ -7,6 +7,7 @@ import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
 import { CallableArg, Diagnostic, Callable, ExpressionCall } from '../interfaces';
 import util from '../util';
+import { Position, Range } from 'vscode-languageserver';
 
 describe('BrsFile', () => {
     afterEach(() => {
@@ -140,6 +141,31 @@ describe('BrsFile', () => {
     });
 
     describe('findCallables', () => {
+        it('finds body range', async () => {
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub Sum()
+                    print "hello world"
+                end sub
+            `);
+            let callable = file.callables[0];
+            expect(callable.bodyRange).to.eql(Range.create(1, 25, 3, 16));
+        });
+
+        it('finds correct body range even with inner function', async () => {
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            await file.parse(`
+                sub Sum()
+                    sayHi = sub()
+                        print "Hi"
+                    end sub
+                    sayHi()
+                end sub
+            `);
+            let callable = file.callables[0];
+            expect(callable.bodyRange).to.eql(Range.create(1, 25, 6, 16));
+        });
+
         it('finds callable parameters', async () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
@@ -309,7 +335,7 @@ describe('BrsFile', () => {
         it(`finds return type from regex`, async () => {
             let file = new BrsFile('absolute', 'relative');
             await file.parse('function DoSomething() as string\nend function');
-            (file as any).findCallables(['function DoSomething() as string\nend function']);
+            (file as any).findCallables(['function DoSomething() as string', 'end function']);
             expect(file.callables[0]).to.deep.include(<Callable>{
                 file: file,
                 lineIndex: 0,
