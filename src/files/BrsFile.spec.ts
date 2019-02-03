@@ -113,7 +113,7 @@ describe('BrsFile', () => {
             });
         });
 
-        it.skip('supports using the `next` keyword in a for loop', async () => {
+        it('supports using the `next` keyword in a for loop', async () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 sub countit()
