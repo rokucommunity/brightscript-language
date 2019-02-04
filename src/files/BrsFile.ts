@@ -156,6 +156,14 @@ export class BrsFile {
 
             scope.bodyRange = this.getBodyRangeForFunc(lines, func, ancestors);
 
+            //add every parameter
+            for (let param of func.parameters as any) {
+                scope.variableDeclarations.push({
+                    lineIndex: scope.bodyRange.start.line,
+                    name: param.name,
+                    type: util.valueKindToString(param.kind)
+                });
+            }
             //add every variable assignment to the scope
             for (let statement of func.body.statements) {
                 //if this is a variable assignment

@@ -118,6 +118,8 @@ export class LanguageServer {
             watch: false,
             skipPackage: true,
             deploy: false
+        }).catch((err) => {
+            //do nothing with the error...hope it's just a fluke
         });
 
         let clientCapabilities = params.capabilities;
@@ -162,6 +164,7 @@ export class LanguageServer {
         //send all of the initial diagnostics for the whole project
         try {
             await this.serverFinishedFirstRunPromise;
+            this.connection.sendNotification('build-status', `success`);
         } catch (e) {
             //send a message explaining what went wrong
             this.connection.sendNotification('critical-failure', `BrightScript language server failed to start: \n${e.message}`);
@@ -228,27 +231,33 @@ export class LanguageServer {
      * @param params 
      */
     private async onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
+        this.connection.sendNotification('build-status', 'building');
         let filePaths = params.changes.map((change) => {
             return path.normalize(Uri.parse(change.uri).fsPath);
         });
 
         //sync the program with this list of files
-        this.brsProgramBuilder.syncFiles(filePaths);
+        await this.brsProgramBuilder.syncFiles(filePaths);
 
         //revalidate the program
-        this.brsProgramBuilder.program.validate();
+        await this.brsProgramBuilder.program.validate();
 
         //send all diagnostics to the client
         this.sendDiagnostics();
+        this.connection.sendNotification('build-status', 'success');
     }
 
     private async validateTextDocument(textDocument: TextDocument): Promise<void> {
+        this.connection.sendNotification('build-status', 'building');
+
         //make sure the server has finished loading
         await this.serverFinishedFirstRunPromise;
         let filePath = Uri.parse(textDocument.uri).fsPath;
         await this.brsProgramBuilder.program.loadOrReloadFile(filePath, textDocument.getText());
         await this.brsProgramBuilder.program.validate();
         this.sendDiagnostics();
+        this.connection.sendNotification('build-status', 'success');
+
     }
 
     /**

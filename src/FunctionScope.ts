@@ -27,9 +27,10 @@ export class FunctionScope {
             if (variableDeclaration.lineIndex < lineIndex) {
                 results.push(variableDeclaration);
             } else {
-                return results;
+                break;
             }
         }
+        return results;
     }
 
     public getVariableByName(name: string) {

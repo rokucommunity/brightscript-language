@@ -266,6 +266,8 @@ export class Program {
         }
         let context = contexts[0];
 
-        return file.getCompletions(position, context);
+        let fileCompletions = file.getCompletions(position, context);
+        let contextCompletions = context.getCallablesAsCompletions();
+        return [...fileCompletions, ...contextCompletions];
     }
 }

@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
+import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -283,6 +284,21 @@ export class Context {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Get all callables as completionItems
+     */
+    public getCallablesAsCompletions() {
+        let completions = [] as CompletionItem[];
+        for (let callable of this.callables) {
+            completions.push({
+                label: callable.name,
+                kind: CompletionItemKind.Function,
+                detail: callable.description
+            });
+        }
+        return completions;
     }
 }
 

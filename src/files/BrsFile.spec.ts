@@ -466,7 +466,7 @@ describe('BrsFile', () => {
             });
         });
 
-        it.skip('finds parameters', async () => {
+        it('finds parameters', async () => {
             await file.parse(`
                 sub Main(count = 1)
                     firstName = "bob"
