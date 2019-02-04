@@ -293,6 +293,36 @@ class Util {
         resultParts = [...resultParts, ...targetParts];
         return path.join.apply(path, resultParts);
     }
+
+    /**
+     * Find all properties in an object that match the predicate. 
+     * @param obj 
+     * @param predicate 
+     * @param parentKey 
+     */
+    public findAllDeep<T>(obj: any, predicate: (value: any) => boolean | undefined, parentKey?: string) {
+        let result = [] as { key: string; value: T }[];
+
+        //base case. If this object maches, keep it as a result
+        if (predicate(obj) === true) {
+            result.push({
+                key: parentKey,
+                value: obj
+            });
+        }
+
+        //look through all children
+        if (obj instanceof Object) {
+            for (let key in obj) {
+                let value = obj[key];
+                let fullKey = parentKey ? parentKey + '.' + key : key;
+                if (typeof value === 'object') {
+                    result = [...result, ...this.findAllDeep<T>(value, predicate, fullKey)];
+                }
+            }
+        }
+        return result;
+    }
 }
 
 export default new Util();

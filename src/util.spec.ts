@@ -163,4 +163,51 @@ describe('util', () => {
             expect(util.getRelativePath('sub1/file.xml', 'sub2/file.brs')).to.equal(n(`../sub2/file.brs`));
         });
     });
+
+    describe('findAllDeep', () => {
+        class Person {
+            constructor(
+                public name: string,
+                public parent?: Person
+            ) {
+            }
+        }
+        it('finds all properties deep', () => {
+            let grandpa = new Person('grandpa');
+            let dad = new Person('dad', grandpa);
+            let me = new Person('me', dad);
+            let people = util.findAllDeep(me, (x) => x instanceof Person);
+            expect(people[0]).to.eql({ key: undefined, value: me });
+            expect(people[1]).to.eql({ key: 'parent', value: dad });
+            expect(people[2]).to.eql({ key: 'parent.parent', value: grandpa });
+        });
+
+        it('finds properties in arrays', () => {
+            let results = util.findAllDeep<{ id: Number }>({
+                children: [{
+                    id: 1,
+                    name: 'bob',
+                    children: [{
+                        id: 2,
+                        name: 'john'
+                    }, {
+                        id: 3,
+                        name: 'bob'
+                    }]
+                }, {
+                    id: 4,
+                    name: 'bob'
+                }]
+            }, (x) => { return x.name === 'bob'; });
+
+            expect(results[0].key).to.eql('children.0');
+            expect(results[0].value.id).to.eql(1);
+
+            expect(results[1].key).to.eql('children.0.children.1');
+            expect(results[1].value.id).to.eql(3);
+
+            expect(results[2].key).to.eql('children.1');
+            expect(results[2].value.id).to.eql(4);
+        });
+    });
 });
