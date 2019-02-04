@@ -238,9 +238,7 @@ export class BrsFile {
             this.callables.push({
                 name: functionName,
                 returnType: <BRSType>returnType,
-                lineIndex: lineIndex,
-                columnIndexBegin: columnBeginIndex,
-                columnIndexEnd: columnEndIndex,
+                nameRange: Range.create(lineIndex, columnBeginIndex, lineIndex, columnEndIndex),
                 file: this,
                 params: params,
                 bodyRange: bodyRange,

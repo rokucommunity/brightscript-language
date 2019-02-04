@@ -29,14 +29,10 @@ describe('BrsFile', () => {
                  end function
             `);
             expect(file.callables[0].name).to.equal('DoA');
-            expect(file.callables[0].lineIndex).to.equal(1);
-            expect(file.callables[0].columnIndexBegin).to.equal(25)
-            expect(file.callables[0].columnIndexEnd).to.equal(28)
+            expect(file.callables[0].nameRange).to.eql(Range.create(1, 25, 1, 28));
 
             expect(file.callables[1].name).to.equal('DoB');
-            expect(file.callables[1].lineIndex).to.equal(5);
-            expect(file.callables[1].columnIndexBegin).to.equal(26)
-            expect(file.callables[1].columnIndexEnd).to.equal(29)
+            expect(file.callables[1].nameRange).to.eql(Range.create(5, 26, 5, 29));
         });
 
         it('throws an error if the file has already been parsed', async () => {
@@ -73,10 +69,10 @@ describe('BrsFile', () => {
             `);
             expect(file.callables.length).to.equal(2);
             expect(file.callables[0].name).to.equal('DoA');
-            expect(file.callables[0].lineIndex).to.equal(1);
+            expect(file.callables[0].nameRange.start.line).to.equal(1);
 
             expect(file.callables[1].name).to.equal('DoA');
-            expect(file.callables[1].lineIndex).to.equal(5);
+            expect(file.callables[1].nameRange.start.line).to.equal(5);
         });
 
         it('finds function call line and column numbers', async () => {
@@ -324,9 +320,7 @@ describe('BrsFile', () => {
             (file as any).findCallables(['asdf']);
             expect(file.callables[0]).to.deep.include(<Callable>{
                 file: file,
-                lineIndex: 0,
-                columnIndexBegin: 0,
-                columnIndexEnd: 3,
+                nameRange: Range.create(0, 0, 0, 3),
                 returnType: 'dynamic',
                 type: 'function',
                 name: 'DoSomething',
@@ -340,9 +334,7 @@ describe('BrsFile', () => {
             (file as any).findCallables(['function DoSomething() as string', 'end function']);
             expect(file.callables[0]).to.deep.include(<Callable>{
                 file: file,
-                lineIndex: 0,
-                columnIndexBegin: 9,
-                columnIndexEnd: 20,
+                nameRange: Range.create(0,9,0,20),
                 returnType: 'string',
                 type: 'function',
                 name: 'DoSomething',
