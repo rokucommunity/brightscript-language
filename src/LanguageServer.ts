@@ -176,11 +176,10 @@ export class LanguageServer {
     private async onCompletion(textDocumentPosition: TextDocumentPositionParams) {
         //wait for the program to load
         await this.serverFinishedFirstRunPromise;
-        
+
         let completions = this.brsProgramBuilder.program.getCompletions(
             this.getPathFromUri(textDocumentPosition.textDocument.uri),
-            textDocumentPosition.position.line,
-            textDocumentPosition.position.character
+            textDocumentPosition.position
         ) as CompletionItem[];
 
         let result = [] as CompletionItem[];

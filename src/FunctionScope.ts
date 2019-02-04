@@ -1,15 +1,20 @@
 import { VariableDeclaration } from './interfaces';
-import { Context } from './Context';
+import { Range } from 'vscode-languageserver';
+import * as brs from 'brs';
 
 export class FunctionScope {
     constructor(
-        /**
-         * Should be falsey for top-level functions
-         */
-        public parentScope?: FunctionScope
+        public func: brs.parser.Expr.Function
     ) {
 
     }
+
+    /**
+     * The range that the body of this scope covers
+     */
+    public bodyRange: Range;
+
+    public childrenScopes = [] as FunctionScope[];
     public variableDeclarations = [] as VariableDeclaration[];
 
     /**

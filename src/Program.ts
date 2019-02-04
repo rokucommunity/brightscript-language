@@ -6,6 +6,7 @@ import util from './util';
 import { BRSConfig } from './ProgramBuilder';
 import { XmlFile } from './files/XmlFile';
 import { textChangeRangeIsUnchanged } from 'typescript';
+import { Position } from 'vscode-languageserver';
 
 export class Program {
     constructor(
@@ -234,17 +235,37 @@ export class Program {
         return this.files[pathAbsolute];
     }
 
+    private getContextsForFile(file: XmlFile | BrsFile) {
+        let result = [] as Context[];
+        for (let key in this.contexts) {
+            let context = this.contexts[key];
+
+            if (context.hasFile(file)) {
+                result.push(context);
+            }
+        }
+        return result;
+    }
+
     /**
      * Find all available completion items at the given position
      * @param pathAbsolute 
      * @param lineIndex 
      * @param columnIndex 
      */
-    public getCompletions(pathAbsolute: string, lineIndex: number, columnIndex: number) {
+    public getCompletions(pathAbsolute: string, position: Position) {
         let file = this.getFile(pathAbsolute);
         if (!file) {
             return [];
         }
-        return file.getCompletions(lineIndex, columnIndex);
+
+        //find the contexts for this file (hopefully there's only one)
+        let contexts = this.getContextsForFile(file);
+        if (contexts.length > 1) {
+            //TODO - make the user choose which context to use. 
+        }
+        let context = contexts[0];
+
+        return file.getCompletions(position, context);
     }
 }

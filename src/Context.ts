@@ -152,9 +152,9 @@ export class Context {
                         this._diagnostics.push({
                             message: diagnosticMessages.Duplicate_function_implementation_1003.message,
                             code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                            columnIndexBegin: dupeCallable.columnIndexBegin,
-                            columnIndexEnd: dupeCallable.columnIndexEnd,
-                            lineIndex: dupeCallable.lineIndex,
+                            columnIndexBegin: dupeCallable.nameRange.start.character,
+                            columnIndexEnd: dupeCallable.nameRange.end.character,
+                            lineIndex: dupeCallable.nameRange.start.line,
                             file: callable.file,
                             severity: 'error'
                         });
@@ -174,9 +174,9 @@ export class Context {
                 this._diagnostics.push({
                     message: diagnosticMessages.Duplicate_function_implementation_1003.message,
                     code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                    columnIndexBegin: callable.columnIndexBegin,
-                    columnIndexEnd: callable.columnIndexEnd,
-                    lineIndex: callable.lineIndex,
+                    columnIndexBegin: callable.nameRange.start.character,
+                    columnIndexEnd: callable.nameRange.end.character,
+                    lineIndex: callable.nameRange.start.line,
                     file: callable.file,
                     severity: 'error'
                 });

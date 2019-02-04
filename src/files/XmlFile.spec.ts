@@ -6,7 +6,7 @@ import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
 import { CallableArg, FileReference } from '../interfaces';
 import { XmlFile } from './XmlFile';
-import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Position } from 'vscode-languageserver';
 import util from '../util';
 let n = path.normalize;
 
@@ -110,12 +110,12 @@ describe('XmlFile', () => {
                 sourceFile: xmlFile
             });
 
-            expect(xmlFile.getCompletions(1, 1)[0]).to.include({
+            expect(xmlFile.getCompletions(Position.create(1, 1))[0]).to.include({
                 label: 'components/component1/component1.brs',
                 kind: CompletionItemKind.File
             });
 
-            expect(xmlFile.getCompletions(1, 1)[1]).to.include(<CompletionItem>{
+            expect(xmlFile.getCompletions(Position.create(1, 1))[1]).to.include(<CompletionItem>{
                 label: 'pkg:/components/component1/component1.brs',
                 kind: CompletionItemKind.File
             });
@@ -124,7 +124,7 @@ describe('XmlFile', () => {
         it('returns empty set when out of range', async () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse('');
-            expect(file.getCompletions(99, 99)).to.be.empty;
+            expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
         });
     });
 });

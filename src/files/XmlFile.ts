@@ -3,7 +3,7 @@ import util from '../util';
 import * as fsExtra from 'fs-extra';
 import { Program } from '../Program';
 import * as path from 'path';
-import { CompletionItem, CompletionItemKind, TextEdit, Range } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, TextEdit, Range, Position } from 'vscode-languageserver';
 
 export class XmlFile {
     constructor(
@@ -103,13 +103,13 @@ export class XmlFile {
      * @param lineIndex 
      * @param columnIndex 
      */
-    public getCompletions(lineIndex: number, columnIndex: number): CompletionItem[] {
+    public getCompletions(position: Position): CompletionItem[] {
         let result = [] as CompletionItem[];
         let scriptImport = this.scriptImports.find((x) => {
-            return x.lineIndex === lineIndex &&
+            return x.lineIndex === position.line &&
                 //column between start and end
-                columnIndex >= x.columnIndexBegin &&
-                columnIndex <= x.columnIndexEnd
+                position.character >= x.columnIndexBegin &&
+                position.character <= x.columnIndexEnd
         });
         //the position is within a script import. Provide path completions
         if (scriptImport) {

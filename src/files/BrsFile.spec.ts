@@ -5,7 +5,7 @@ import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
 import { CallableArg, Diagnostic, Callable, ExpressionCall, VariableDeclaration } from '../interfaces';
 import util from '../util';
-import { Range } from 'vscode-languageserver';
+import { Range, Position, CompletionItemKind } from 'vscode-languageserver';
 
 describe('BrsFile', () => {
     let file: BrsFile;
@@ -334,7 +334,7 @@ describe('BrsFile', () => {
             (file as any).findCallables(['function DoSomething() as string', 'end function']);
             expect(file.callables[0]).to.deep.include(<Callable>{
                 file: file,
-                nameRange: Range.create(0,9,0,20),
+                nameRange: Range.create(0, 9, 0, 20),
                 returnType: 'string',
                 type: 'function',
                 name: 'DoSomething',
@@ -343,7 +343,7 @@ describe('BrsFile', () => {
         });
     });
 
-    describe('findFunctionScopes', async () => {
+    describe('createFunctionScopes', async () => {
         it('creates scopes for parent and child functions', async () => {
             await file.parse(`
                 sub Main()
@@ -427,12 +427,63 @@ describe('BrsFile', () => {
                 type: 'string'
             });
         });
+
+        it('sets proper range for functions', async () => {
+            await file.parse(`
+                sub Main()
+                    getName = function()
+                        return "bob"
+                    end function
+                end sub
+            `);
+
+            expect(file.functionScopes).to.be.length(2);
+            expect(file.functionScopes[0].bodyRange).to.eql(Range.create(1, 26, 5, 16));
+            expect(file.functionScopes[1].bodyRange).to.eql(Range.create(2, 40, 4, 20));
+
+        });
     });
 
     describe('getCompletions', () => {
         it('returns empty set when out of range', async () => {
             await file.parse('');
-            expect(file.getCompletions(99, 99)).to.be.empty;
+            expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
+        });
+
+        it('finds only variables declared above', async () => {
+            await file.parse(`
+                sub Main()
+                    firstName = "bob"
+                    age = 21
+                    shoeSize = 10
+                end sub
+            `);
+            let completions = file.getCompletions(Position.create(3, 26))
+            expect(completions).to.be.lengthOf(1)
+            expect(completions[0]).to.deep.include({
+                kind: CompletionItemKind.Variable,
+                label: 'firstName'
+            });
+        });
+
+        it.skip('finds parameters', async () => {
+            await file.parse(`
+                sub Main(count = 1)
+                    firstName = "bob"
+                    age = 21
+                    shoeSize = 10
+                end sub
+            `);
+            let completions = file.getCompletions(Position.create(3, 26))
+            expect(completions).to.be.lengthOf(2);
+            expect(completions[0]).to.deep.include({
+                kind: CompletionItemKind.Variable,
+                label: 'count'
+            });
+            expect(completions[1]).to.deep.include({
+                kind: CompletionItemKind.Variable,
+                label: 'firstName'
+            });
         });
     });
 

@@ -24,7 +24,7 @@ export interface Callable {
     description?: string;
     returnType: BRSType;
     params: CallableParam[];
-    nameRange: Range;
+    nameRange?: Range;
     bodyRange?: Range;
     isDepricated?: boolean;
 }

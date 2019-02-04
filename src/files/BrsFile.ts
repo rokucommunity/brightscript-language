@@ -4,8 +4,9 @@ import * as path from 'path';
 import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from '../interfaces';
 import { Context } from '../Context';
 import util from '../util';
-import { Position, Range } from 'vscode-languageserver';
+import { Position, Range, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { FunctionScope } from '../FunctionScope';
+import { outputFile } from 'fs-extra';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -50,6 +51,7 @@ export class BrsFile {
         this.callables = [];
         this.expressionCalls = [];
         this.functionScopes = [];
+        this.scopesByFunc.clear();
     }
 
     /**
@@ -88,7 +90,7 @@ export class BrsFile {
 
         //traverse the ast and find all functions,
         //and create a scope object
-        this.createFunctionScopes(this.ast);
+        this.createFunctionScopes(lines, this.ast);
 
         this.wasProcessed = true;
     }
@@ -117,20 +119,44 @@ export class BrsFile {
         return standardizedDiagnostics;
     }
 
-    public function = new Map<brs.parser.Expr.Function, FunctionScope>();
+    public scopesByFunc = new Map<brs.parser.Expr.Function, FunctionScope>();
 
     /**
-     * Find all function scopes in this file
+     * Create a scope for every function in this file
      */
-    private createFunctionScopes(statements: any, parent?: FunctionScope) {
+    private createFunctionScopes(lines: string[], statements: any, parent?: FunctionScope) {
         //find every function
         let functions = util.findAllDeep<brs.parser.Expr.Function>(this.ast, (x) => x instanceof brs.parser.Expr.Function);
 
         //create a functionScope for every function
         for (let kvp of functions) {
             let func = kvp.value;
-            let scope = new FunctionScope()
+            let scope = new FunctionScope(func);
 
+            let ancestors = this.getAncestors(statements, kvp.key);
+
+            let parentFunc: brs.parser.Expr.Function;
+            //find parent function, and add this scope to it if found
+            {
+                for (let i = ancestors.length - 1; i >= 0; i--) {
+                    if (ancestors[i] instanceof brs.parser.Expr.Function) {
+                        parentFunc = ancestors[i];
+                        break;
+                    }
+                }
+                let parentScope = this.scopesByFunc.get(parentFunc);
+
+                //add this child scope to its parent
+                if (parentScope) {
+                    parentScope.childrenScopes.push(scope);
+                }
+            }
+
+            //compute the range of this func
+
+            scope.bodyRange = this.getBodyRangeForFunc(lines, func, ancestors);
+
+            //add every variable assignment to the scope
             for (let statement of func.body.statements) {
                 //if this is a variable assignment
                 if (statement instanceof brs.parser.Stmt.Assignment) {
@@ -140,10 +166,64 @@ export class BrsFile {
                         type: this.getBRSTypeFromAssignment(statement, scope)
                     });
                 }
+                //TODO support things inside of loops, conditionals, etc
             }
+            this.scopesByFunc.set(func, scope);
+
             //find every statement in the scope
             this.functionScopes.push(scope);
         }
+    }
+
+    /**
+     * Get the range for the specified function. 
+     * @param lines 
+     * @param func 
+     * @param key - the key used to find the 
+     */
+    private getBodyRangeForFunc(lines: string[], func: brs.parser.Expr.Function, ancestors: any[]): Range {
+        //find the closest ancestor with a line number
+        let lineIndex = this.getClosestLineIndex(ancestors);
+
+        //find the column index for this statement
+        let line = lines[lineIndex];
+
+        let match = /.*(?:function|sub)(?:\s+[\w\d_]*)?\(.*\)/i.exec(line);
+        if (match) {
+            let bodyPositionStart = Position.create(lineIndex, match[0].length);
+            let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
+            let bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
+            return bodyRange;
+        }
+    }
+
+    private getClosestLineIndex(ancestors: any[]) {
+        for (let i = ancestors.length - 1; i >= 0; i--) {
+            let ancestor = ancestors[i];
+            if (ancestor.name) {
+                return ancestor.name.line - 1;
+            }
+        }
+    }
+
+    /**
+     * Given a set of statements and top-level ast,
+     * find the closest function ancestor for the given key
+     * @param statements 
+     * @param key 
+     */
+    private getAncestors(statements: any[], key: string) {
+        let parts = key.split('.');
+        //throw out the last part, because that is already a func (it's the "child")
+        parts.pop();
+
+        let current = statements;
+        let ancestors = [];
+        for (let part of parts) {
+            current = current[part];
+            ancestors.push(current);
+        }
+        return ancestors;
     }
 
     private getBRSTypeFromAssignment(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BRSType {
@@ -355,10 +435,45 @@ export class BrsFile {
         }
     }
 
-    public getCompletions(lineIndex: number, columnIndex: number, context?: Context) {
-        //determine if cursor is inside a function
+    /**
+     * Find the function scope at the given position.
+     * @param position 
+     * @param functionScopes 
+     */
+    private getFunctionScopeAtPosition(position: Position, functionScopes?: FunctionScope[]): FunctionScope {
+        if (!functionScopes) {
+            functionScopes = this.functionScopes;
+        }
+        for (let scope of functionScopes) {
+            if (util.rangeContains(scope.bodyRange, position)) {
+                //see if any of that scope's children match the position also, and give them priority
+                let childScope = this.getFunctionScopeAtPosition(position, scope.childrenScopes);
+                if (childScope) {
+                    return childScope;
+                } else {
+                    return scope;
+                }
+            }
+        }
 
-        //TODO
-        return [];
+    }
+
+    public getCompletions(position: Position, context?: Context) {
+        //determine if cursor is inside a function
+        let functionScope = this.getFunctionScopeAtPosition(position);
+        if (!functionScope) {
+            //we aren't in any function scope, so just return an empty list
+            return [];
+        }
+
+        let results = [] as CompletionItem[];
+        let variables = functionScope.getVariablesAbove(position.line);
+        for (let variable of variables) {
+            results.push({
+                label: variable.name,
+                kind: variable.type === 'function' ? CompletionItemKind.Function : CompletionItemKind.Variable
+            });
+        }
+        return results;
     }
 }

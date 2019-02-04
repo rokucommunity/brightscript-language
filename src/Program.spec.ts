@@ -5,7 +5,7 @@ import { expect, assert } from 'chai';
 import { Program } from './Program';
 import { Diagnostic } from './interfaces';
 import { diagnosticMessages } from './DiagnosticMessages';
-import { CompletionItemKind } from 'vscode-languageserver';
+import { CompletionItemKind, Position } from 'vscode-languageserver';
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
@@ -323,7 +323,7 @@ describe('Program', () => {
             `);
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
             await program.loadOrReloadFile(brsPath, '');
-            let completions = program.getCompletions(xmlPath, 3, 58);
+            let completions = program.getCompletions(xmlPath, Position.create(3, 58));
             expect(completions[0]).to.include({
                 kind: CompletionItemKind.File,
                 label: 'component1.brs'
