@@ -1,15 +1,17 @@
-import * as path from 'path';
 import * as sinonImport from 'sinon';
 let sinon = sinonImport.createSandbox();
 
-import { Program } from '../Program';
 import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
-import { CallableArg, Diagnostic, Callable, ExpressionCall } from '../interfaces';
+import { CallableArg, Diagnostic, Callable, ExpressionCall, VariableDeclaration } from '../interfaces';
 import util from '../util';
-import { Position, Range } from 'vscode-languageserver';
+import { Range } from 'vscode-languageserver';
 
 describe('BrsFile', () => {
+    let file: BrsFile;
+    beforeEach(() => {
+        file = new BrsFile('abs', 'rel');
+    });
     afterEach(() => {
         sinon.restore();
     });
@@ -349,9 +351,94 @@ describe('BrsFile', () => {
         });
     });
 
+    describe('findFunctionScopes', async () => {
+        it('creates scopes for parent and child functions', async () => {
+            await file.parse(`
+                sub Main()
+                    sayHi = sub()
+                        print "hi"
+                    end sub
+
+                    scheduleJob(sub()
+                        print "job completed"
+                    end sub)
+                end sub
+            `);
+            expect(file.functionScopes).to.length(3);
+        });
+
+        it('finds variables declared in function scopes', async () => {
+            await file.parse(`
+                sub Main()
+                    sayHi = sub()
+                        age = 12
+                    end sub
+
+                    scheduleJob(sub()
+                        name = "bob"
+                    end sub)
+                end sub
+            `);
+            expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
+            expect(file.functionScopes[0].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+                lineIndex: 2,
+                name: 'sayHi',
+                type: 'function'
+            });
+
+            expect(file.functionScopes[1].variableDeclarations).to.be.length(1);
+            expect(file.functionScopes[1].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+                lineIndex: 3,
+                name: 'age',
+                type: 'integer'
+            });
+
+            expect(file.functionScopes[2].variableDeclarations).to.be.length(1);
+            expect(file.functionScopes[2].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+                lineIndex: 7,
+                name: 'name',
+                type: 'string'
+            });
+        });
+
+        it('finds value from global return', async () => {
+            await file.parse(`
+                sub Main()
+                   myName = GetName()
+                end sub
+
+                function GetName() as string
+                    return "bob"
+                end function
+            `);
+
+            expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
+            expect(file.functionScopes[0].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+                lineIndex: 2,
+                name: 'myName',
+                type: 'string'
+            });
+        });
+
+        it('finds variable type from other variable', async () => {
+            await file.parse(`
+                sub Main()
+                   name = "bob"
+                   nameCopy = name
+                end sub
+            `);
+
+            expect(file.functionScopes[0].variableDeclarations).to.be.length(2);
+            expect(file.functionScopes[0].variableDeclarations[1]).to.eql(<VariableDeclaration>{
+                lineIndex: 3,
+                name: 'nameCopy',
+                type: 'string'
+            });
+        });
+    });
+
     describe('getCompletions', () => {
         it('returns empty set when out of range', async () => {
-            let file = new BrsFile('abs', 'rel');
             await file.parse('');
             expect(file.getCompletions(99, 99)).to.be.empty;
         });

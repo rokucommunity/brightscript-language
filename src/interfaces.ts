@@ -101,6 +101,16 @@ export interface File {
     diagnostics: Diagnostic[];
 }
 
+export interface VariableDeclaration {
+    name: string;
+    type: BRSType;
+    /**
+     * Since only one variable can be declared at a time, 
+     * we only need to know the line index
+     */
+    lineIndex: number;
+}
+
 //copied from brs (since it's not exported from there)
 export enum ValueKind {
     Invalid = 0,

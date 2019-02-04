@@ -5,6 +5,7 @@ import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallablePar
 import { Context } from '../Context';
 import util from '../util';
 import { Position, Range } from 'vscode-languageserver';
+import { FunctionScope } from '../FunctionScope';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -36,6 +37,8 @@ export class BrsFile {
 
     public expressionCalls = [] as ExpressionCall[];
 
+    public functionScopes = [] as FunctionScope[];
+
     /**
      * The AST for this file
      */
@@ -46,6 +49,7 @@ export class BrsFile {
         this.diagnostics = [];
         this.callables = [];
         this.expressionCalls = [];
+        this.functionScopes = [];
     }
 
     /**
@@ -82,6 +86,10 @@ export class BrsFile {
         //find all places where a sub/function is being called
         this.findCallableInvocations(lines);
 
+        //traverse the ast and find all functions,
+        //and create a scope object
+        this.createFunctionScopes(this.ast);
+
         this.wasProcessed = true;
     }
 
@@ -107,6 +115,78 @@ export class BrsFile {
         }
 
         return standardizedDiagnostics;
+    }
+
+    public function = new Map<brs.parser.Expr.Function, FunctionScope>();
+
+    /**
+     * Find all function scopes in this file
+     */
+    private createFunctionScopes(statements: any, parent?: FunctionScope) {
+        //find every function
+        let functions = util.findAllDeep<brs.parser.Expr.Function>(this.ast, (x) => x instanceof brs.parser.Expr.Function);
+
+        //create a functionScope for every function
+        for (let kvp of functions) {
+            let func = kvp.value;
+            let scope = new FunctionScope()
+
+            for (let statement of func.body.statements) {
+                //if this is a variable assignment
+                if (statement instanceof brs.parser.Stmt.Assignment) {
+                    scope.variableDeclarations.push({
+                        lineIndex: statement.name.line - 1,
+                        name: statement.name.text,
+                        type: this.getBRSTypeFromAssignment(statement, scope)
+                    });
+                }
+            }
+            //find every statement in the scope
+            this.functionScopes.push(scope);
+        }
+    }
+
+    private getBRSTypeFromAssignment(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BRSType {
+        try {
+            //function
+            if (assignment.value instanceof brs.parser.Expr.Function) {
+                return 'function';
+
+                //literal
+            } else if (assignment.value instanceof brs.parser.Expr.Literal) {
+                return util.valueKindToString((assignment.value as any).value.kind);
+
+                //function call
+            } else if (assignment.value instanceof brs.parser.Expr.Call) {
+                let calleeName = (assignment.value.callee as any).name.text;
+                if (calleeName) {
+                    let func = this.getFunctionByName(calleeName);
+                    if (func) {
+                        return func.returnType;
+                    }
+                }
+            } else if (assignment.value instanceof brs.parser.Expr.Variable) {
+                let variableName = assignment.value.name.text;
+                let variable = scope.getVariableByName(variableName);
+                return variable.type;
+            }
+        } catch (e) {
+            //do nothing. Just return dynamic
+        }
+        //fallback to dynamic
+        return 'dynamic';
+    }
+
+    private getFunctionByName(name: string) {
+        name = name ? name.toLowerCase() : undefined;
+        if (!name) {
+            return;
+        }
+        for (let func of this.callables) {
+            if (func.name.toLowerCase() === name) {
+                return func;
+            }
+        }
     }
 
     private findCallables(lines: string[]) {
