@@ -21,7 +21,14 @@ export interface Callable {
     file: File;
     name: string;
     type: 'function' | 'sub';
-    description?: string;
+    /**
+     * A short description of the callable. Should be a short sentence.
+     */
+    shortDescription?: string;
+    /**
+     * A more lengthy explanation of the callable. This is parsed as markdown
+     */
+    documentation?: string;
     returnType: BRSType;
     params: CallableParam[];
     nameRange?: Range;

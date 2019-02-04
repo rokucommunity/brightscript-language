@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
-import { CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, MarkupContent } from 'vscode-languageserver';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -295,7 +295,8 @@ export class Context {
             completions.push({
                 label: callable.name,
                 kind: CompletionItemKind.Function,
-                detail: callable.description
+                detail: callable.shortDescription,
+                documentation: callable.documentation ? { kind: 'markdown', value: callable.documentation } : undefined
             });
         }
         return completions;
