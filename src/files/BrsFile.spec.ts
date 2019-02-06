@@ -542,4 +542,18 @@ describe('BrsFile', () => {
         });
     });
 
+    describe('findBodyEndPosition', () => {
+        it('handles variables with "sub" in them', async () => {
+            await file.parse(`
+                function DoSomething()
+                    return value.subType()
+                end function
+            `);
+            expect(file.callables[0]).to.deep.include({
+                bodyRange: Range.create(1, 38, 3, 16),
+                file: file,
+                nameRange: Range.create(1, 25, 1, 36)
+            });
+        });
+    });
 });

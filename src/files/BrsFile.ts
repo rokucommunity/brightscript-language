@@ -346,7 +346,7 @@ export class BrsFile {
             let line = lines[lineIndex];
 
             //if a new function has been opened, move on to next line
-            if (/(function|sub)([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)) {
+            if (/(function|sub(?![\w\d_]))([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)) {
                 openedCount++;
                 continue;
             }
