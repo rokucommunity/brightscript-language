@@ -22,5 +22,22 @@ export var diagnosticMessages = {
     Referenced_file_does_not_exist_1004: {
         message: 'Referenced file does not exist.',
         code: 1004
+    },
+    Xml_component_missing_component_declaration: {
+        message: 'Missing a component declaration',
+        code: 1005
+    },
+    Component_missing_name_attribute: {
+        message: 'Component must have a name attribute',
+        code: 1006
+    },
+    Component_missing_extends_attribute: {
+        message: 'Component must have an extends attribute',
+        code: 1007
+    },
+    Xml_parse_error: {
+        //generic catchall xml parse error
+        message: 'Invalid xml',
+        code: 1008
     }
 }

@@ -1,9 +1,9 @@
 import { FileReference, Diagnostic, Callable, ExpressionCall, File } from '../interfaces';
 import util from '../util';
-import * as fsExtra from 'fs-extra';
 import { Program } from '../Program';
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, TextEdit, Range, Position } from 'vscode-languageserver';
+import { diagnosticMessages } from '../DiagnosticMessages';
 
 export class XmlFile {
     constructor(
@@ -32,6 +32,16 @@ export class XmlFile {
     //TODO implement the xml CDATA parsing, which would populate this list
     public expressionCalls = [] as ExpressionCall[];
 
+    /**
+     * The name of the component that this component extends
+     */
+    public parentComponentName: string;
+
+    /**
+     * The name of the component declared in this xml file
+     */
+    public componentName: string;
+
     public reset() {
         this.wasProcessed = false;
         this.scriptImports = [];
@@ -58,22 +68,101 @@ export class XmlFile {
         //split the text into lines
         let lines = util.getLines(fileContents);
 
-        //find all script imports
-        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-            let line = lines[lineIndex];
-            let scriptMatch = /(.*<\s*script.*uri\s*=\s*")(.*)".*\/>/ig.exec(line)
-            if (scriptMatch) {
-                let junkBeforeUri = scriptMatch[1];
-                let filePath = scriptMatch[2];
-                let columnIndexBegin = junkBeforeUri.length;
+        //find script imports
+        {
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                let line = lines[lineIndex];
 
-                this.scriptImports.push({
-                    sourceFile: this,
-                    text: filePath,
+                let scriptMatch = /(.*<\s*script.*uri\s*=\s*")(.*)".*\/>/ig.exec(line)
+                if (scriptMatch) {
+                    let junkBeforeUri = scriptMatch[1];
+                    let filePath = scriptMatch[2];
+                    let columnIndexBegin = junkBeforeUri.length;
+
+                    this.scriptImports.push({
+                        sourceFile: this,
+                        text: filePath,
+                        lineIndex: lineIndex,
+                        columnIndexBegin: columnIndexBegin,
+                        columnIndexEnd: columnIndexBegin + filePath.length,
+                        pkgPath: util.getPkgPathFromTarget(this.pkgPath, filePath)
+                    });
+                }
+            }
+        }
+
+        try {
+            var parsedXml = await util.parseXml(fileContents);
+
+            if (parsedXml && parsedXml.component) {
+                if (parsedXml.component.$) {
+                    this.componentName = parsedXml.component.$.name;
+                    this.parentComponentName = parsedXml.component.$.extends;
+                }
+                let componentRange: Range;
+
+                //find the range for the component element's opening tag
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    let match = /(.*)(<component)/gi.exec(lines[lineIndex]);
+                    if (match) {
+                        componentRange = Range.create(
+                            Position.create(lineIndex, match[1].length),
+                            Position.create(lineIndex, match[0].length)
+                        )
+                        break;
+                    }
+                }
+                //component name not defined
+                if (!this.componentName) {
+                    this.diagnostics.push({
+                        code: diagnosticMessages.Component_missing_name_attribute.code,
+                        message: diagnosticMessages.Component_missing_name_attribute.message,
+                        lineIndex: componentRange.start.line,
+                        columnIndexBegin: componentRange.start.character,
+                        columnIndexEnd: componentRange.end.character,
+                        file: this,
+                        severity: 'error'
+                    });
+                }
+                //parent component name not defined
+                if (!this.parentComponentName) {
+                    this.diagnostics.push({
+                        code: diagnosticMessages.Component_missing_extends_attribute.code,
+                        message: diagnosticMessages.Component_missing_extends_attribute.message,
+                        lineIndex: componentRange.start.line,
+                        columnIndexBegin: componentRange.start.character,
+                        columnIndexEnd: componentRange.end.character,
+                        file: this,
+                        severity: 'error'
+                    });
+                }
+            } else {
+                //the component xml element was not found in the file
+                this.diagnostics.push({
+                    code: diagnosticMessages.Xml_component_missing_component_declaration.code,
+                    message: diagnosticMessages.Xml_component_missing_component_declaration.message,
+                    columnIndexBegin: 0,
+                    columnIndexEnd: Number.MAX_VALUE,
+                    file: this,
+                    lineIndex: 0,
+                    severity: 'error'
+                });
+            }
+        } catch (e) {
+            var match = /(.*)\r?\nLine:\s*(\d+)\r?\nColumn:\s*(\d+)\r?\nChar:\s*(\d*)/gi.exec(e.message);
+            if (match) {
+
+                let lineIndex = parseInt(match[2]);
+                let columnIndex = parseInt(match[3]);
+                //add basic xml parse diagnostic errors
+                this.diagnostics.push({
+                    message: match[1],
+                    code: diagnosticMessages.Xml_parse_error.code,
                     lineIndex: lineIndex,
-                    columnIndexBegin: columnIndexBegin,
-                    columnIndexEnd: columnIndexBegin + filePath.length,
-                    pkgPath: util.getPkgPathFromTarget(this.pkgPath, filePath)
+                    columnIndexBegin: columnIndex,
+                    columnIndexEnd: columnIndex,
+                    file: this,
+                    severity: 'error'
                 });
             }
         }
@@ -94,8 +183,13 @@ export class XmlFile {
                 return true;
             }
         }
-        //didn't find any script imports for this file
-        return false;
+
+        //if this is an xml file...do we extend the component it defines?
+        if (path.extname(file.pkgPath).toLowerCase() === '.xml') {
+
+            //didn't find any script imports for this file
+            return false;
+        }
     }
 
     /**

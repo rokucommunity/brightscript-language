@@ -4,7 +4,7 @@ import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
 import { ValueKind, BRSType } from './interfaces';
-import { getConfigFileParsingDiagnostics } from 'typescript';
+import * as xml2js from 'xml2js';
 import { Range, Position } from 'vscode-languageserver';
 
 class Util {
@@ -342,6 +342,22 @@ class Util {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Parse an xml file and get back a javascript object containing its results
+     * @param text
+     */
+    public parseXml(text: string) {
+        return new Promise<any>((resolve, reject) => {
+            xml2js.parseString(text, function (err, data) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
+        });
     }
 }
 

@@ -4,10 +4,11 @@ import * as sinonImport from 'sinon';
 import { Program } from '../Program';
 import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
-import { CallableArg, FileReference } from '../interfaces';
+import { CallableArg, FileReference, Diagnostic } from '../interfaces';
 import { XmlFile } from './XmlFile';
 import { CompletionItem, CompletionItemKind, Position } from 'vscode-languageserver';
 import util from '../util';
+import { diagnosticMessages } from '../DiagnosticMessages';
 let n = path.normalize;
 
 describe('XmlFile', () => {
@@ -20,6 +21,43 @@ describe('XmlFile', () => {
     });
 
     describe('parse', () => {
+
+        it('finds component names', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                <script type="text/brightscript" uri="ChildScene.brs" />
+                </component>
+            `);
+            expect(file.parentComponentName).to.equal('ParentScene');
+            expect(file.componentName).to.equal('ChildScene');
+        });
+
+        it('Adds error when no component is declared in xml', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`<script type="text/brightscript" uri="ChildScene.brs" />`);
+            expect(file.diagnostics).to.be.lengthOf(1);
+            expect(file.diagnostics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration.message);
+        });
+
+        it.only('adds error when component does not declare a name', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component extends="ParentScene">
+                <script type="text/brightscript" uri="ChildScene.brs" />
+                </component>
+            `);
+            expect(file.diagnostics).to.be.lengthOf(1);
+            expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
+                message: diagnosticMessages.Component_missing_name_attribute.message,
+                lineIndex: 2,
+                columnIndexBegin: 16,
+                columnIndexEnd: 26
+            });
+        });
+
         it('finds script imports', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="pkg:/components/cmp1.brs" />`)
