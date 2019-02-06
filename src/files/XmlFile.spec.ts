@@ -41,7 +41,7 @@ describe('XmlFile', () => {
             expect(file.diagnostics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration.message);
         });
 
-        it.only('adds error when component does not declare a name', async () => {
+        it('adds error when component does not declare a name', async () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse(`
                 <?xml version="1.0" encoding="utf-8" ?>
@@ -55,6 +55,22 @@ describe('XmlFile', () => {
                 lineIndex: 2,
                 columnIndexBegin: 16,
                 columnIndexEnd: 26
+            });
+        });
+
+        it.only('catches xml parse errors', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component 1extends="ParentScene">
+                </component>
+            `);
+            expect(file.diagnostics).to.be.lengthOf(1);
+            expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
+                code: diagnosticMessages.Xml_parse_error.code,
+                lineIndex: 2,
+                columnIndexBegin: 27,
+                columnIndexEnd: 27
             });
         });
 

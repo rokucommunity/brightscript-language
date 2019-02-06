@@ -153,7 +153,7 @@ export class XmlFile {
             if (match) {
 
                 let lineIndex = parseInt(match[2]);
-                let columnIndex = parseInt(match[3]);
+                let columnIndex = parseInt(match[3]) - 1;
                 //add basic xml parse diagnostic errors
                 this.diagnostics.push({
                     message: match[1],
