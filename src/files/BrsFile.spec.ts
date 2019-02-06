@@ -555,5 +555,14 @@ describe('BrsFile', () => {
                 nameRange: Range.create(1, 25, 1, 36)
             });
         });
+
+        it('handles variables with the word "function" in them', async () => {
+            await file.parse(`
+                function Test()
+                    typeCheckFunction = RBS_CMN_GetFunction(invalid, methodName)
+                end function
+            `);
+        });
+
     });
 });

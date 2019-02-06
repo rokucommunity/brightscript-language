@@ -309,7 +309,11 @@ export class BrsFile {
 
                 let bodyPositionStart = Position.create(lineIndex, match[0].length);
                 let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
-                bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
+                if (bodyPositionEnd) {
+                    bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
+                } else {
+                    throw new Error(`Could not find closing function tag for ${functionName} in ${this.pathAbsolute}`);
+                }
             }
 
             //extract the parameters
@@ -345,9 +349,18 @@ export class BrsFile {
         for (let lineIndex = startLineIndex; lineIndex < lines.length; lineIndex++) {
             let line = lines[lineIndex];
 
+            var openMatch = /([\w\d_]*)(function|sub(?![\w\d_]))([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)
             //if a new function has been opened, move on to next line
-            if (/(function|sub(?![\w\d_]))([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)) {
-                openedCount++;
+            if (openMatch) {
+                var preceedingText = openMatch[1];
+
+                if (preceedingText.length === 0) {
+                    openedCount++;
+                } else {
+                    //this is a variable with the word "function" or "sub" IN it. 
+                    //Did it this way to get around negative lookbehind to support
+                    //older node versions
+                }
                 continue;
             }
             let closedMatch = /^(\s*)end\s+(sub|function)/gi.exec(line);
