@@ -35,7 +35,7 @@ describe('ProgramBuilder', () => {
     })
 
     describe('loadAllFilesAST', () => {
-        it.only('loads .bs, .brs, .xml files', async () => {
+        it('loads .bs, .brs, .xml files', async () => {
             sinon.stub(b, 'getFilePaths').returns(Promise.resolve([{
                 src: 'file.brs',
                 dest: 'file.brs'
