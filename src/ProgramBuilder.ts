@@ -27,7 +27,7 @@ export class ProgramBuilder {
      * The list of errors found in the program.
      */
     private get errors() {
-        return this.program.errors;
+        return this.program.diagnostics;
     }
 
     public async run(options: BRSConfig) {
@@ -197,17 +197,26 @@ export class ProgramBuilder {
      * Parse and load the AST for every file in the project
      */
     private async loadAllFilesAST() {
+        debugger;
         let errorCount = 0;
         let files = await this.getFilePaths();
         //parse every file
-        await Promise.all(files.map(async (file) => {
-            let fileExtension = path.extname(file.src).toLowerCase();
+        await Promise.all(
+            files.map(async (file) => {
+                try {
+                    let fileExtension = path.extname(file.src).toLowerCase();
 
-            //only process brightscript files
-            if (['.bs', '.brs', '.xml'].indexOf(fileExtension) > -1) {
-                await this.program.loadOrReloadFile(file.src);
-            }
-        }));
+                    //only process brightscript files
+                    if (['.bs', '.brs', '.xml'].indexOf(fileExtension) > -1) {
+                        await this.program.loadOrReloadFile(file.src);
+                    }
+                } catch (e) {
+                    //log the error, but don't fail this process because the file might be fixable later
+                    console.error(e);
+                }
+            })
+        );
+
         return errorCount;
     }
 
@@ -281,7 +290,7 @@ export class ProgramBuilder {
      */
     private async validateProject() {
         await this.program.validate();
-        return this.program.errors.length;
+        return this.program.diagnostics.length;
     }
 }
 

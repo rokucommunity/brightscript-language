@@ -6,6 +6,9 @@ import { Program } from './Program';
 import { Diagnostic } from './interfaces';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { CompletionItemKind, Position } from 'vscode-languageserver';
+import { XmlFile } from './files/XmlFile';
+import util from './util';
+let n = path.normalize;
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
@@ -75,8 +78,8 @@ describe('Program', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(2);
-            expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
+            expect(program.diagnostics.length).to.equal(2);
+            expect(program.diagnostics[0].message.indexOf('Duplicate sub declaration'))
         });
 
         it('catches duplicate methods across multiple files', async () => {
@@ -89,8 +92,8 @@ describe('Program', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(2);
-            expect(program.errors[0].message.indexOf('Duplicate sub declaration'))
+            expect(program.diagnostics.length).to.equal(2);
+            expect(program.diagnostics[0].message.indexOf('Duplicate sub declaration'))
         });
 
         it('maintains correct callables list', async () => {
@@ -122,7 +125,7 @@ describe('Program', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(2);
+            expect(program.diagnostics.length).to.equal(2);
             //set the file contents again (resetting the wasProcessed flag)
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -131,7 +134,7 @@ describe('Program', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(2);
+            expect(program.diagnostics.length).to.equal(2);
 
             //load in a valid file, the errors should go to zero
             await program.loadOrReloadFile(`${rootDir}/source/main.brs`, `
@@ -139,7 +142,7 @@ describe('Program', () => {
                 end sub
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(0);
+            expect(program.diagnostics.length).to.equal(0);
         });
 
         it('identifies invocation of unknown callable', async () => {
@@ -151,8 +154,8 @@ describe('Program', () => {
             `);
 
             await program.validate();
-            expect(program.errors.length).to.equal(1);
-            expect(program.errors[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
+            expect(program.diagnostics.length).to.equal(1);
+            expect(program.diagnostics[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
         });
 
         it('detects methods from another file in a subdirectory', async () => {
@@ -167,7 +170,7 @@ describe('Program', () => {
                 end function
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(0);
+            expect(program.diagnostics.length).to.equal(0);
         });
     });
 
@@ -222,8 +225,8 @@ describe('Program', () => {
                 </component>
             `);
             await program.validate();
-            expect(program.errors.length).to.equal(1);
-            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+            expect(program.diagnostics.length).to.equal(1);
+            expect(program.diagnostics[0]).to.deep.include(<Diagnostic>{
                 file: program.files[xmlPath],
                 lineIndex: 3,
                 columnIndexBegin: 58,
@@ -245,7 +248,7 @@ describe('Program', () => {
                 </component>
             `);
             await program.validate();
-            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+            expect(program.diagnostics[0]).to.deep.include(<Diagnostic>{
                 message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
             });
 
@@ -253,7 +256,7 @@ describe('Program', () => {
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
             await program.loadOrReloadFile(brsPath, '');
             program.validate();
-            expect(program.errors).to.be.empty;
+            expect(program.diagnostics).to.be.empty;
 
             //add the xml file back in, but change the component brs file name. Should have an error again
             await program.loadOrReloadFile(xmlPath, `
@@ -263,7 +266,7 @@ describe('Program', () => {
                 </component>
             `);
             program.validate();
-            expect(program.errors[0]).to.deep.include(<Diagnostic>{
+            expect(program.diagnostics[0]).to.deep.include(<Diagnostic>{
                 message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
             });
         });
@@ -280,7 +283,7 @@ describe('Program', () => {
                 </component>
             `);
             await program.validate();
-            expect(program.errors).to.be.empty;
+            expect(program.diagnostics).to.be.empty;
             expect(program.contexts[xmlFile.pkgPath].files[brsPath]).to.exist;
         });
 
@@ -296,7 +299,7 @@ describe('Program', () => {
                 </component>
             `);
             await program.validate();
-            expect(program.errors).to.be.empty;
+            expect(program.diagnostics).to.be.empty;
             expect(program.contexts[xmlFile.pkgPath].files[brsPath]).not.to.exist;
 
             //reload the xml file contents, adding a new script reference.
@@ -317,7 +320,7 @@ describe('Program', () => {
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
             let xmlFile = await program.loadOrReloadFile(xmlPath, `
                 <?xml version="1.0" encoding="utf-8" ?>
-                <component name="HeroScene" extends="Scene" >');
+                <component name="HeroScene" extends="Scene">
                     <script type="text/brightscript" uri="" />
                 </component>
             `);
@@ -332,6 +335,85 @@ describe('Program', () => {
                 kind: CompletionItemKind.File,
                 label: 'pkg:/components/component1.brs'
             });
+        });
+    });
+
+    describe('xml inheritance', () => {
+        it('handles parent-child attach and detach', async () => {
+            //create parent component
+            let parentFile = await program.loadOrReloadFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                </component>
+            `);
+
+            //create child component
+            let childFile = await program.loadOrReloadFile(n(`${rootDir}/components/ChildScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                </component>
+            `);
+
+            //the child should have been attached to the parent
+            expect((childFile as XmlFile).parent).to.equal(parentFile);
+
+            //change the name of the parent
+            parentFile = await program.loadOrReloadFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="NotParentScene" extends="Scene">
+                </component>
+            `);
+
+            //the child should no longer have a parent
+            expect((childFile as XmlFile).parent).not.to.exist;
+        });
+
+        it('provides child components with parent functions', async () => {
+            //create parent component
+            await program.loadOrReloadFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                </component>
+            `);
+
+            //create child component
+            await program.loadOrReloadFile(n(`${rootDir}/components/ChildScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                    <script type="text/brightscript" uri="ChildScene.brs" />
+                </component>
+            `);
+            await program.loadOrReloadFile(`${rootDir}/components/ChildScene.brs`, `
+                sub Init()
+                    DoParentThing()
+                end sub
+            `);
+
+            await program.validate();
+
+            //there should be an error when calling DoParentThing, since it doesn't exist on child or parent
+            expect(program.diagnostics).to.be.lengthOf(1);
+            expect(program.diagnostics[0]).to.deep.include(<Diagnostic>{
+                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoParentThing')
+            });
+
+            //add the script into the parent
+            await program.loadOrReloadFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                    <script type="text/brightscript" uri="ParentScene.brs" />
+                </component>
+            `);
+
+            await program.loadOrReloadFile(`${rootDir}/components/ParentScene.brs`, `
+                sub DoParentThing()
+
+                end sub
+            `);
+
+            await program.validate();
+            //the error should be gone because the child now has access to the parent script
+            expect(program.diagnostics).to.be.lengthOf(0);
         });
     });
 });

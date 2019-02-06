@@ -7,6 +7,7 @@ import util from '../util';
 import { Position, Range, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { FunctionScope } from '../FunctionScope';
 import { outputFile } from 'fs-extra';
+import { diagnosticMessages } from '../DiagnosticMessages';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -155,6 +156,21 @@ export class BrsFile {
             //compute the range of this func
 
             scope.bodyRange = this.getBodyRangeForFunc(lines, func, ancestors);
+            if (!scope.bodyRange) {
+                let closestLineIndex = this.getClosestLineIndex(ancestors);
+                //something is wrong with the file. Skip this function scope
+                this.diagnostics.push({
+                    code: diagnosticMessages.Unknown_brs_parse_error.code,
+                    columnIndexBegin: 0,
+                    columnIndexEnd: Number.MAX_VALUE,
+                    lineIndex: closestLineIndex !== undefined ? closestLineIndex : 0,
+                    file: this,
+                    message: diagnosticMessages.Unknown_brs_parse_error.message,
+                    severity: 'error'
+                });
+                //skip creating function scope (so we don't kill the rest of the file)
+                continue;
+            }
 
             //add every parameter
             for (let param of func.parameters as any) {
@@ -192,7 +208,6 @@ export class BrsFile {
     private getBodyRangeForFunc(lines: string[], func: brs.parser.Expr.Function, ancestors: any[]): Range {
         //find the closest ancestor with a line number
         let lineIndex = this.getClosestLineIndex(ancestors);
-
         //find the column index for this statement
         let line = lines[lineIndex];
 
@@ -200,15 +215,20 @@ export class BrsFile {
         if (match) {
             let bodyPositionStart = Position.create(lineIndex, match[0].length);
             let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
-            let bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
-            return bodyRange;
+            if (bodyPositionEnd) {
+                return Range.create(bodyPositionStart, bodyPositionEnd);
+            } else {
+                throw new Error(`Could not find closing function tag for function somewhere around line ${lineIndex} in ${this.pathAbsolute}`);
+            }
+        } else {
+            // throw new Error(`Could not find closing function tag for function somewhere around line ${lineIndex} in ${this.pathAbsolute}`);
         }
     }
 
     private getClosestLineIndex(ancestors: any[]) {
         for (let i = ancestors.length - 1; i >= 0; i--) {
             let ancestor = ancestors[i];
-            if (ancestor.name) {
+            if (ancestor.name && typeof ancestor.name.line === 'number') {
                 return ancestor.name.line - 1;
             }
         }

@@ -4,6 +4,8 @@ import { Program } from '../Program';
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, TextEdit, Range, Position } from 'vscode-languageserver';
 import { diagnosticMessages } from '../DiagnosticMessages';
+import { Context } from '../Context';
+import { EventEmitter } from 'events';
 
 export class XmlFile {
     constructor(
@@ -44,7 +46,7 @@ export class XmlFile {
 
     public reset() {
         this.wasProcessed = false;
-        this.scriptImports = [];
+        this.removeScriptImports(this.scriptImports);
         this.diagnostics = [];
         this.callables = [];
         this.expressionCalls = [];
@@ -70,16 +72,16 @@ export class XmlFile {
 
         //find script imports
         {
+            let scriptImports = [] as FileReference[];
             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                 let line = lines[lineIndex];
-
                 let scriptMatch = /(.*<\s*script.*uri\s*=\s*")(.*)".*\/>/ig.exec(line)
                 if (scriptMatch) {
                     let junkBeforeUri = scriptMatch[1];
                     let filePath = scriptMatch[2];
                     let columnIndexBegin = junkBeforeUri.length;
 
-                    this.scriptImports.push({
+                    scriptImports.push({
                         sourceFile: this,
                         text: filePath,
                         lineIndex: lineIndex,
@@ -89,6 +91,9 @@ export class XmlFile {
                     });
                 }
             }
+
+            //add all of these script imports
+            this.addScriptImports(scriptImports);
         }
 
         try {
@@ -259,5 +264,105 @@ export class XmlFile {
             }
         }
         return result;
+    }
+
+    public emitter = new EventEmitter();
+
+    public on(eventName: 'add-script-imports', callback: (scriptImports: FileReference[]) => void);
+    public on(eventName: 'remove-script-imports', callback: (scriptImports: FileReference[]) => void);
+    public on(eventName: string, callback: (data: any) => void) {
+        this.emitter.on(eventName, callback);
+        return () => {
+            this.emitter.removeListener(eventName, callback);
+        }
+    }
+
+    /**
+     * Get the file that this component extends. 
+     */
+    public get parent() {
+        return this.parentContainer ? this.parentContainer.file : undefined;
+    }
+    public parentContainer: { file: XmlFile, disconnects: (() => void)[] };
+
+    /**
+     * Components can extend another component.
+     * This method attaches the parent component to this component, where 
+     * this component can listen for script import changes on the parent. 
+     * @param parent 
+     */
+    public attachParent(parent: XmlFile) {
+        //detach any existing parent
+        this.detachParent();
+
+        this.parentContainer = {
+            file: parent,
+            disconnects: []
+        };
+
+        //grab any current script imports from the parent
+        this.addScriptImports(parent.scriptImports);
+
+        //whenever the parent adds new scripts, we need to add those same scripts ourselves
+        this.parentContainer.disconnects.push(
+            parent.on('add-script-imports', (scriptImports) => {
+                this.addScriptImports(scriptImports);
+            })
+        );
+        this.parentContainer.disconnects.push(
+            parent.on('remove-script-imports', (scriptImports) => {
+                this.removeScriptImports(scriptImports);
+            })
+        );
+        //we don't have any remove script imports because the files just get recreated
+    }
+
+    public detachParent() {
+        if (this.parentContainer) {
+            for (let disconnect of this.parentContainer.disconnects) {
+                disconnect();
+            }
+
+            //remove all parent script references
+            for (let i = this.scriptImports.length - 1; i >= 0; i--) {
+                let myScriptImport = this.scriptImports[i];
+
+                //if this script import exists in the parent, remove it from me
+                if (this.parentContainer.file.scriptImports.indexOf(myScriptImport) > -1) {
+                    this.scriptImports.splice(i, 1);
+                }
+            }
+            this.parentContainer = undefined;
+        }
+    }
+
+    /**
+     * Register a set of script imports for this file
+     * @param fileReferences 
+     */
+    private addScriptImports(scriptImports: FileReference[]) {
+        if (scriptImports.length > 0) {
+            this.scriptImports = [...this.scriptImports, ...scriptImports];
+            this.emitter.emit('add-script-imports', scriptImports);
+        }
+    }
+
+    /**
+     * Remove the specified script imports from this file
+     * @param scriptImports 
+     */
+    private removeScriptImports(scriptImports: FileReference[]) {
+        if (scriptImports.length > 0) {
+            this.emitter.emit('remove-script-imports', this.scriptImports);
+            for (let scriptImport of scriptImports) {
+
+                //remove the script imports
+                let idx = this.scriptImports.indexOf(scriptImport)
+                if (idx > -1) {
+                    this.scriptImports.splice(idx, 1);
+                }
+            }
+        }
+
     }
 }

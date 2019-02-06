@@ -58,7 +58,7 @@ describe('XmlFile', () => {
             });
         });
 
-        it.only('catches xml parse errors', async () => {
+        it('catches xml parse errors', async () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse(`
                 <?xml version="1.0" encoding="utf-8" ?>
@@ -72,6 +72,23 @@ describe('XmlFile', () => {
                 columnIndexBegin: 27,
                 columnIndexEnd: 27
             });
+        });
+
+        it('emits add-script-imports event', async () => {
+            let deferred = util.defer();
+            let file = new XmlFile('abs', 'rel', null);
+
+            //the test passes when the event is emitted
+            file.on('add-script-imports', deferred.resolve);
+
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component extends="ParentScene">
+                <script type="text/brightscript" uri="ChildScene.brs" />
+                </component>
+            `);
+
+            await deferred.promise;
         });
 
         it('finds script imports', async () => {
@@ -181,4 +198,132 @@ describe('XmlFile', () => {
             expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
         });
     });
+
+    describe('attachParent', () => {
+        it('properly fetches script imports for inheritance', () => {
+            let parent = new XmlFile('abs/parent.xml', 'rel/parent.xml', null);
+            parent.scriptImports.push({
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script1.brs',
+                sourceFile: parent,
+                text: ''
+            });
+
+            let child = new XmlFile('abs/child.xml', 'rel/child.xml', null);
+            expect(child.scriptImports).to.be.lengthOf(0);
+            child.attachParent(parent);
+
+            let grandchild = new XmlFile('abs/grandchild.xml', 'rel/grandchild.xml', null);
+            grandchild.attachParent(child);
+
+            //should get parent's existing script
+            expect(child.scriptImports).to.be.lengthOf(1);
+            //should get grandparent's existing script
+            expect(grandchild.scriptImports).to.be.lengthOf(1);
+
+            //add a new script to the parent
+            (parent as any).addScriptImports([{
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script2.brs',
+                sourceFile: parent,
+                text: ''
+            }]);
+
+            //child should have parent script
+            expect(child.scriptImports).to.be.lengthOf(2);
+            //grandchild should have parent script
+            expect(grandchild.scriptImports).to.be.lengthOf(2);
+
+            //add script to child
+            (child as any).addScriptImports([{
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script3.brs',
+                sourceFile: parent,
+                text: ''
+            }]);
+
+            expect(parent.scriptImports).to.be.lengthOf(2);
+            expect(child.scriptImports).to.be.lengthOf(3);
+            expect(grandchild.scriptImports).to.be.lengthOf(3);
+        });
+
+        it('properly fetches script imports with out-of-order attached files', () => {
+            let parent = new XmlFile('abs/parent.xml', 'rel/parent.xml', null);
+            parent.scriptImports.push({
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script1.brs',
+                sourceFile: parent,
+                text: ''
+            });
+
+            let child = new XmlFile('abs/child.xml', 'rel/child.xml', null);
+            expect(child.scriptImports).to.be.lengthOf(0);
+
+            let grandchild = new XmlFile('abs/grandchild.xml', 'rel/grandchild.xml', null);
+            grandchild.attachParent(child);
+
+            //attach the child to the parent AFTER the grandchild attached to the child
+            child.attachParent(parent);
+
+            //should get parent's existing script
+            expect(child.scriptImports).to.be.lengthOf(1);
+            //should get grandparent's existing script
+            expect(grandchild.scriptImports).to.be.lengthOf(1);
+
+            //add a new script to the parent
+            (parent as any).addScriptImports([{
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script2.brs',
+                sourceFile: parent,
+                text: ''
+            }]);
+
+            //child should have parent script
+            expect(child.scriptImports).to.be.lengthOf(2);
+            //grandchild should have parent script
+            expect(grandchild.scriptImports).to.be.lengthOf(2);
+
+            //add script to child
+            (child as any).addScriptImports([{
+                columnIndexBegin: 0,
+                columnIndexEnd: 0,
+                lineIndex: 0,
+                pkgPath: 'script3.brs',
+                sourceFile: parent,
+                text: ''
+            }]);
+
+            expect(parent.scriptImports).to.be.lengthOf(2);
+            expect(child.scriptImports).to.be.lengthOf(3);
+            expect(grandchild.scriptImports).to.be.lengthOf(3);
+        });
+    });
+
+    describe('reset', () => {
+        it('tells children to remove parent scripts', async () => {
+            let parent = new XmlFile('abs/parent.xml', 'rel/parent.xml', null);
+            parent.scriptImports.push(<any>{
+                pkgPath: 'script1.brs',
+                sourceFile: parent
+            });
+
+            let child = new XmlFile('abs/child.xml', 'rel/child.xml', null);
+            child.attachParent(parent);
+            expect(child.scriptImports).to.be.lengthOf(1);
+
+            parent.reset();
+            expect(child.scriptImports).to.be.lengthOf(0);
+        });
+    });
+
 });

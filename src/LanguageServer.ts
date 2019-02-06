@@ -25,6 +25,7 @@ import Uri from 'vscode-uri';
 
 import { ProgramBuilder } from './ProgramBuilder';
 import { Program } from './Program';
+import util from './util';
 
 export class LanguageServer {
     constructor() {
@@ -113,6 +114,7 @@ export class LanguageServer {
         //start up a new BrightScript program builder in watch mode,
         //disable all output file generation and deployments, as this
         //is purely for the language server options
+        
         this.serverFinishedFirstRunPromise = this.brsProgramBuilder.run({
             cwd: <string>params.rootPath,
             watch: false,
@@ -275,7 +277,7 @@ export class LanguageServer {
             issuesByFile[filePath] = [];
         }
 
-        for (let error of this.brsProgramBuilder.program.errors) {
+        for (let error of this.brsProgramBuilder.program.diagnostics) {
             issuesByFile[error.file.pathAbsolute].push({
                 severity: error.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
                 range: {

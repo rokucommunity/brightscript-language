@@ -359,6 +359,21 @@ class Util {
             });
         });
     }
+
+    public defer<T>() {
+        let resolve: (value?: T | PromiseLike<T>) => void;
+        let reject: (reason?: any) => void;
+        let promise = new Promise<T>((resolveValue, rejectValue) => {
+            resolve = resolveValue;
+            reject = rejectValue;
+        });
+        return {
+            promise: promise,
+            resolve: resolve,
+            reject: reject
+        };
+    }
+
 }
 
 export default new Util();

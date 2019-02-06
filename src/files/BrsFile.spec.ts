@@ -563,6 +563,5 @@ describe('BrsFile', () => {
                 end function
             `);
         });
-
     });
 });

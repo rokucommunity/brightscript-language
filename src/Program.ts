@@ -33,7 +33,7 @@ export class Program {
      * Get the list of errors for the entire program. It's calculated on the fly, so
      * call this sparingly.
      */
-    public get errors() {
+    public get diagnostics() {
         let errorLists = [this._errors] as Diagnostic[][];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
@@ -135,7 +135,48 @@ export class Program {
 
         //allow all contexts to add this file if they wish
         this.notifyContexts(file);
+
+        //connect any components who have inheritance
+        this.connectComponents();
         return file;
+    }
+
+    /**
+     * Get a lookup of files by their component name
+     */
+    private getComponentFileLookup() {
+        var lookup = {} as { [componentName: string]: XmlFile };
+        for (let key in this.files) {
+            let file = this.files[key];
+            //if this is an xml file, and we were able to compute a component name
+            if (file instanceof XmlFile && file.componentName) {
+                lookup[file.componentName] = file;
+            }
+        }
+        return lookup;
+    }
+
+    private connectComponents() {
+        let componentLookup = this.getComponentFileLookup();
+
+        //build a lookup of files by their compoonent names
+        //walk through every component in the project
+        for (let pathAbsolute in this.files) {
+            let file = this.files[pathAbsolute];
+
+            if (file instanceof XmlFile) {
+                let parentComponent = componentLookup[file.parentComponentName];
+
+                //if we found the parent, and the parent is DIFFERENT than the previous parent, 
+                if (parentComponent && file.parent !== parentComponent) {
+                    //attach the parent to its child
+                    file.attachParent(parentComponent);
+                } else {
+                    //no parent component could be found...disconnect any previous parent component
+                    file.detachParent();
+                }
+            }
+        }
     }
 
     private notifyContexts(file: BrsFile | XmlFile) {
@@ -163,6 +204,9 @@ export class Program {
         file.reset();
         await file.parse(fileContents);
 
+        //resolve all component inheritance
+        this.connectComponents();
+
         //add the file back to interested contexts
         this.notifyContexts(file);
 
@@ -177,6 +221,7 @@ export class Program {
                 }
             }
         }
+
         return file;
     }
 
