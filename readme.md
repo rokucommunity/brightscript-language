@@ -3,7 +3,7 @@
 A sort-of compiler and a language server for Roku's BrightScript language.
 
 [![Build Status](https://travis-ci.org/TwitchBronBron/brightscript.svg?branch=master)](https://travis-ci.org/TwitchBronBron/brightscript)
-[![codecov](https://codecov.io/gh/TwitchBronBron/brightscript/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript)
+[![codecov](https://codecov.io/gh/TwitchBronBron/brightscript/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript) [![Greenkeeper badge](https://badges.greenkeeper.io/TwitchBronBron/brightscript.svg)](https://greenkeeper.io/)
 
  **Disclaimer:** This is currently a **work in progress** and is not yet ready for mainstream use. 
 
