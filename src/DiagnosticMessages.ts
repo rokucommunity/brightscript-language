@@ -39,13 +39,5 @@ export var diagnosticMessages = {
         //generic catchall xml parse error
         message: 'Invalid xml',
         code: 1008
-    },
-    /**
-     * This will happen infrequently. Sometimes we can't figure out the range of the 
-     * function body because there is a parse error somewhere
-     */
-    Unknown_brs_parse_error: {
-        message: 'Unable to compute function scope due to a parse error',
-        code: 1009
     }
 }

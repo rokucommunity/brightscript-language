@@ -6,6 +6,7 @@ import * as rokuDeploy from 'roku-deploy';
 import { ValueKind, BRSType } from './interfaces';
 import * as xml2js from 'xml2js';
 import { Range, Position } from 'vscode-languageserver';
+import * as brs from 'brs';
 
 class Util {
     public log(...args) {
@@ -204,6 +205,34 @@ class Util {
             case ValueKind.Uninitialized: return 'uninitialized';
             case ValueKind.Void: return 'void';
         }
+    }
+
+    /**
+     * Convert a 1-indexed brs Location to a 0-indexed vscode range
+     * @param location 
+     */
+    public locationToRange(location: brs.lexer.Location) {
+        return Range.create(
+            location.start.line - 1,
+            location.start.column - 1,
+            location.end.line - 1,
+            location.end.column - 1
+        );
+    }
+
+    /**
+     * Compute the range of a function's body
+     * @param func
+     */
+    public getBodyRangeForFunc(func: brs.parser.Expr.Function) {
+        return Range.create(
+            //func body begins at start of line after its declaration
+            func.location.start.line,
+            0,
+            //func body ends right before the `end function|sub` line
+            func.end.location.start.line - 1,
+            func.end.location.start.column - 1
+        );
     }
 
     /**

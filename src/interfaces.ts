@@ -11,10 +11,9 @@ export interface Diagnostic {
      * The unique diagnostic code for this type of message
      */
     code: number;
+    location: Range;
     file: File;
-    lineIndex: number;
-    columnIndexBegin: number;
-    columnIndexEnd: number;
+
 }
 
 export interface Callable {
@@ -51,6 +50,7 @@ export interface ExpressionCall {
 export interface CallableArg {
     text: string;
     type: BRSType;
+    range: Range;
 }
 
 export interface CallableParam {

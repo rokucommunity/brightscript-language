@@ -96,24 +96,16 @@ export class BrsFile {
         this.wasProcessed = true;
     }
 
-    public standardizeLexParseErrors(errors: { message: string, stack: string }[], lines: string[]) {
+    public standardizeLexParseErrors(errors: brs.parser.ParseError[], lines: string[]) {
         let standardizedDiagnostics = [] as Diagnostic[];
         for (let error of errors) {
             let diagnostic = <Diagnostic>{
                 code: 1000,
-                lineIndex: 0,
-                columnIndexBegin: 0,
-                columnIndexEnd: Number.MAX_VALUE,
+                location: util.locationToRange(error.location),
                 file: this,
                 severity: 'error',
                 message: error.message
             };
-            //extract the line number from the message
-            let match = /\[Line (\d+)\]\s*(.*)/i.exec(error.message);
-            if (match) {
-                diagnostic.lineIndex = parseInt(match[1]) - 1;
-                diagnostic.message = match[2];
-            }
             standardizedDiagnostics.push(diagnostic);
         }
 
@@ -154,27 +146,12 @@ export class BrsFile {
             }
 
             //compute the range of this func
-
-            scope.bodyRange = this.getBodyRangeForFunc(lines, func, ancestors);
-            if (!scope.bodyRange) {
-                let closestLineIndex = this.getClosestLineIndex(ancestors);
-                //something is wrong with the file. Skip this function scope
-                this.diagnostics.push({
-                    code: diagnosticMessages.Unknown_brs_parse_error.code,
-                    columnIndexBegin: 0,
-                    columnIndexEnd: Number.MAX_VALUE,
-                    lineIndex: closestLineIndex !== undefined ? closestLineIndex : 0,
-                    file: this,
-                    message: diagnosticMessages.Unknown_brs_parse_error.message,
-                    severity: 'error'
-                });
-                //skip creating function scope (so we don't kill the rest of the file)
-                continue;
-            }
+            scope.bodyRange = util.getBodyRangeForFunc(func);
 
             //add every parameter
             for (let param of func.parameters as any) {
                 scope.variableDeclarations.push({
+                    //TODO update these to use the actual token locations
                     lineIndex: scope.bodyRange.start.line,
                     name: param.name,
                     type: util.valueKindToString(param.kind)
@@ -185,7 +162,7 @@ export class BrsFile {
                 //if this is a variable assignment
                 if (statement instanceof brs.parser.Stmt.Assignment) {
                     scope.variableDeclarations.push({
-                        lineIndex: statement.name.line - 1,
+                        lineIndex: statement.name.location.start.line - 1,
                         name: statement.name.text,
                         type: this.getBRSTypeFromAssignment(statement, scope)
                     });
@@ -196,32 +173,6 @@ export class BrsFile {
 
             //find every statement in the scope
             this.functionScopes.push(scope);
-        }
-    }
-
-    /**
-     * Get the range for the specified function. 
-     * @param lines 
-     * @param func 
-     * @param key - the key used to find the 
-     */
-    private getBodyRangeForFunc(lines: string[], func: brs.parser.Expr.Function, ancestors: any[]): Range {
-        //find the closest ancestor with a line number
-        let lineIndex = this.getClosestLineIndex(ancestors);
-        //find the column index for this statement
-        let line = lines[lineIndex];
-
-        let match = /.*(?:function|sub)(?:\s+[\w\d_]*)?\(.*\)/i.exec(line);
-        if (match) {
-            let bodyPositionStart = Position.create(lineIndex, match[0].length);
-            let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
-            if (bodyPositionEnd) {
-                return Range.create(bodyPositionStart, bodyPositionEnd);
-            } else {
-                throw new Error(`Could not find closing function tag for function somewhere around line ${lineIndex} in ${this.pathAbsolute}`);
-            }
-        } else {
-            // throw new Error(`Could not find closing function tag for function somewhere around line ${lineIndex} in ${this.pathAbsolute}`);
         }
     }
 
@@ -300,40 +251,8 @@ export class BrsFile {
     private findCallables(lines: string[]) {
         this.callables = [];
         for (let statement of this.ast as any) {
-            if (!statement.func) {
+            if (!(statement instanceof brs.parser.Stmt.Function)) {
                 continue;
-            }
-            let functionName = statement.name.text;
-
-            let lineIndex = statement.name.line - 1;
-
-            //find the column index for this statement
-            let line = lines[lineIndex];
-
-            //default to the beginning of the line
-            let columnBeginIndex = 0;
-            //default to the end of the line
-            let columnEndIndex = line.length - 1;
-
-            let returnType = 'dynamic';
-
-            let bodyRange = Range.create(lineIndex, 0, lineIndex, columnEndIndex);
-
-            let match = /^(\s*(?:function|sub)\s+)([\w\d_]*)\s*\(.*\)(?:\s*as\s*(.*))?/i.exec(line);
-            if (match) {
-                let preceedingText = match[1];
-                let lineFunctionName = match[2];
-                returnType = match[3] ? match[3] : returnType;
-                columnBeginIndex = preceedingText.length
-                columnEndIndex = columnBeginIndex + functionName.length;
-
-                let bodyPositionStart = Position.create(lineIndex, match[0].length);
-                let bodyPositionEnd = this.findBodyEndPosition(lines, lineIndex + 1);
-                if (bodyPositionEnd) {
-                    bodyRange = Range.create(bodyPositionStart, bodyPositionEnd);
-                } else {
-                    throw new Error(`Could not find closing function tag for ${functionName} in ${this.pathAbsolute}`);
-                }
             }
 
             //extract the parameters
@@ -348,52 +267,17 @@ export class BrsFile {
             }
 
             this.callables.push({
-                name: functionName,
-                returnType: <BRSType>returnType,
-                nameRange: Range.create(lineIndex, columnBeginIndex, lineIndex, columnEndIndex),
+                name: statement.name.text,
+                returnType: util.valueKindToString(statement.func.returns),
+                nameRange: util.locationToRange(statement.name.location),
                 file: this,
                 params: params,
-                bodyRange: bodyRange,
+                //the function body starts on the next line (since we can't have one-line functions)
+                bodyRange: util.getBodyRangeForFunc(statement.func),
                 type: 'function'
             });
         }
     }
-
-    /**
-     * Find the position where the function body ends
-     * @param lines 
-     * @param lineIndex - the index of the line AFTER the line where the callable was declared
-     */
-    findBodyEndPosition(lines: string[], startLineIndex: number) {
-        let openedCount = 1;
-        for (let lineIndex = startLineIndex; lineIndex < lines.length; lineIndex++) {
-            let line = lines[lineIndex];
-
-            var openMatch = /([\w\d_]*)(function|sub(?![\w\d_]))([ \t]*([\w\d]+))?\(.*\)/gi.exec(line)
-            //if a new function has been opened, move on to next line
-            if (openMatch) {
-                var preceedingText = openMatch[1];
-
-                if (preceedingText.length === 0) {
-                    openedCount++;
-                } else {
-                    //this is a variable with the word "function" or "sub" IN it. 
-                    //Did it this way to get around negative lookbehind to support
-                    //older node versions
-                }
-                continue;
-            }
-            let closedMatch = /^(\s*)end\s+(sub|function)/gi.exec(line);
-            if (closedMatch) {
-                openedCount--;
-                //if the last opened callable was just closed, compute the position 
-                if (openedCount === 0) {
-                    return Position.create(lineIndex, closedMatch[1].length);
-                }
-            }
-        }
-    }
-
 
     private findCallableInvocations(lines: string[]) {
         this.expressionCalls = [];
@@ -407,32 +291,29 @@ export class BrsFile {
             let bodyStatements = statement.func.body.statements;
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {
-                    let functionName = bodyStatement.expression.callee.name.text;
-
-                    //filter out non-global function invocations (not currently supported. TODO support it)
+                    let expression: brs.parser.Expr.Call = bodyStatement.expression;
+                    expression.callee
+                    //filter out dotted function invocations (i.e. object.doSomething()) (not currently supported. TODO support it)
                     if (bodyStatement.expression.callee.obj) {
                         continue;
                     }
-                    let lineIndex = bodyStatement.expression.callee.name.line - 1;
-                    let line = lines[lineIndex];
-                    let columnIndexBegin = 0;
-                    let columnIndexEnd = Number.MAX_VALUE;
+                    let functionName = (expression.callee as any).name.text;
 
-                    //find the invocation on this line
-                    let regexp = new RegExp(`^(.*)${functionName}\s*\()`, 'i');
-                    let match = regexp.exec(line);
-                    //if we found a match, fine-tune the column indexes
-                    if (match) {
-                        let junkBefore = match[1];
-                        columnIndexBegin = junkBefore.length;
-                        columnIndexEnd = columnIndexBegin + functionName.length;
-                    }
+                    //callee is the name of the function being called
+                    let callee = expression.callee as brs.parser.Expr.Variable;
+
+                    let calleeRange = util.locationToRange(callee.location);
+
+                    let columnIndexBegin = calleeRange.start.character;
+                    let columnIndexEnd = calleeRange.end.character
 
                     let args = [] as CallableArg[];
-                    for (let arg of bodyStatement.expression.args) {
+                    //TODO convert if stmts to use instanceof instead
+                    for (let arg of expression.args as any) {
                         //is variable being passed into argument
                         if (arg.name) {
                             args.push({
+                                range: util.locationToRange(arg.location),
                                 //TODO - look up the data type of the actual variable
                                 type: 'dynamic',
                                 text: arg.name.text
@@ -444,6 +325,7 @@ export class BrsFile {
                                 text = arg.value.value.toString();
                             }
                             let callableArg = {
+                                range: util.locationToRange(arg.location),
                                 type: util.valueKindToString(arg.value.kind),
                                 text: text
                             };
@@ -454,6 +336,7 @@ export class BrsFile {
                             args.push(callableArg);
                         } else {
                             args.push({
+                                range: util.locationToRange(arg.location),
                                 type: 'dynamic',
                                 //TODO get text from other types of args
                                 text: ''
@@ -464,9 +347,10 @@ export class BrsFile {
                     let expCall: ExpressionCall = {
                         file: this,
                         name: functionName,
+                        //TODO convert this to a range
                         columnIndexBegin: columnIndexBegin,
                         columnIndexEnd: columnIndexEnd,
-                        lineIndex: lineIndex,
+                        lineIndex: calleeRange.start.line,
                         //TODO keep track of parameters
                         args: args
                     };
