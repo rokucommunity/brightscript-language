@@ -197,7 +197,6 @@ export class ProgramBuilder {
      * Parse and load the AST for every file in the project
      */
     private async loadAllFilesAST() {
-        debugger;
         let errorCount = 0;
         let files = await this.getFilePaths();
         //parse every file

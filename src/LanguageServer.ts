@@ -114,7 +114,7 @@ export class LanguageServer {
         //start up a new BrightScript program builder in watch mode,
         //disable all output file generation and deployments, as this
         //is purely for the language server options
-        
+
         this.serverFinishedFirstRunPromise = this.brsProgramBuilder.run({
             cwd: <string>params.rootPath,
             watch: false,
@@ -280,10 +280,7 @@ export class LanguageServer {
         for (let error of this.brsProgramBuilder.program.diagnostics) {
             issuesByFile[error.file.pathAbsolute].push({
                 severity: error.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
-                range: {
-                    start: Position.create(error.lineIndex, error.columnIndexBegin),
-                    end: Position.create(error.lineIndex, error.columnIndexEnd)
-                },
+                range: error.location,
                 message: error.message,
                 //code: 'NO CODE',
                 source: 'brs'
