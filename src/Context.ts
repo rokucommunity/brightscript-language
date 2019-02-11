@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
-import { CompletionItem, CompletionItemKind, MarkupContent } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -153,9 +153,12 @@ export class Context {
                         this._diagnostics.push({
                             message: diagnosticMessages.Duplicate_function_implementation_1003.message,
                             code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                            columnIndexBegin: dupeCallable.nameRange.start.character,
-                            columnIndexEnd: dupeCallable.nameRange.end.character,
-                            lineIndex: dupeCallable.nameRange.start.line,
+                            location: Range.create(
+                                dupeCallable.nameRange.start.line,
+                                dupeCallable.nameRange.start.character,
+                                dupeCallable.nameRange.start.line,
+                                dupeCallable.nameRange.end.character
+                            ),
                             file: callable.file,
                             severity: 'error'
                         });
@@ -175,9 +178,12 @@ export class Context {
                 this._diagnostics.push({
                     message: diagnosticMessages.Duplicate_function_implementation_1003.message,
                     code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                    columnIndexBegin: callable.nameRange.start.character,
-                    columnIndexEnd: callable.nameRange.end.character,
-                    lineIndex: callable.nameRange.start.line,
+                    location: Range.create(
+                        callable.nameRange.start.line,
+                        callable.nameRange.start.character,
+                        callable.nameRange.start.line,
+                        callable.nameRange.end.character
+                    ),
                     file: callable.file,
                     severity: 'error'
                 });
@@ -200,9 +206,12 @@ export class Context {
                     this._diagnostics.push({
                         message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, expCall.name),
                         code: diagnosticMessages.Cannot_find_function_name_1001.code,
-                        columnIndexBegin: expCall.columnIndexBegin,
-                        columnIndexEnd: expCall.columnIndexEnd,
-                        lineIndex: expCall.lineIndex,
+                        location: Range.create(
+                            expCall.lineIndex,
+                            expCall.columnIndexBegin,
+                            expCall.lineIndex,
+                            expCall.columnIndexEnd
+                        ),
                         file: contextFile.file,
                         severity: 'error'
                     });
@@ -228,10 +237,13 @@ export class Context {
                         this._diagnostics.push({
                             message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
                             code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
-                            columnIndexBegin: expCall.columnIndexBegin,
+                            location: Range.create(
+                                expCall.lineIndex,
+                                expCall.columnIndexBegin,
+                                expCall.lineIndex,
+                                Number.MAX_VALUE
+                            ),
                             //TODO detect end of expression call
-                            columnIndexEnd: Number.MAX_VALUE,
-                            lineIndex: expCall.lineIndex,
                             file: contextFile.file,
                             severity: 'error'
                         });
@@ -250,9 +262,12 @@ export class Context {
                         this._diagnostics.push({
                             message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
                             code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
-                            lineIndex: scriptImport.lineIndex,
-                            columnIndexBegin: scriptImport.columnIndexBegin,
-                            columnIndexEnd: scriptImport.columnIndexEnd,
+                            location: Range.create(
+                                scriptImport.lineIndex,
+                                scriptImport.columnIndexBegin,
+                                scriptImport.lineIndex,
+                                scriptImport.columnIndexEnd
+                            ),
                             file: file,
                             severity: 'error',
                         });

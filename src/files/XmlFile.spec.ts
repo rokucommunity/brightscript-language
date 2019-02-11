@@ -6,7 +6,7 @@ import { BrsFile } from './BrsFile';
 import { expect, assert } from 'chai';
 import { CallableArg, FileReference, Diagnostic } from '../interfaces';
 import { XmlFile } from './XmlFile';
-import { CompletionItem, CompletionItemKind, Position } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-languageserver';
 import util from '../util';
 import { diagnosticMessages } from '../DiagnosticMessages';
 let n = path.normalize;
@@ -52,9 +52,7 @@ describe('XmlFile', () => {
             expect(file.diagnostics).to.be.lengthOf(1);
             expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
                 message: diagnosticMessages.Component_missing_name_attribute.message,
-                lineIndex: 2,
-                columnIndexBegin: 16,
-                columnIndexEnd: 26
+                location: Range.create(2, 16, 2, 26)
             });
         });
 
@@ -68,9 +66,7 @@ describe('XmlFile', () => {
             expect(file.diagnostics).to.be.lengthOf(1);
             expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
                 code: diagnosticMessages.Xml_parse_error.code,
-                lineIndex: 2,
-                columnIndexBegin: 27,
-                columnIndexEnd: 27
+                location: Range.create(2, 27, 2, 27),
             });
         });
 

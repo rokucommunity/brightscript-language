@@ -5,7 +5,7 @@ import { expect, assert } from 'chai';
 import { Program } from './Program';
 import { Diagnostic } from './interfaces';
 import { diagnosticMessages } from './DiagnosticMessages';
-import { CompletionItemKind, Position } from 'vscode-languageserver';
+import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 import { XmlFile } from './files/XmlFile';
 import util from './util';
 let n = path.normalize;
@@ -228,9 +228,7 @@ describe('Program', () => {
             expect(program.diagnostics.length).to.equal(1);
             expect(program.diagnostics[0]).to.deep.include(<Diagnostic>{
                 file: program.files[xmlPath],
-                lineIndex: 3,
-                columnIndexBegin: 58,
-                columnIndexEnd: 88,
+                location: Range.create(3, 58, 3, 88),
                 message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
                 code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
                 severity: 'error'

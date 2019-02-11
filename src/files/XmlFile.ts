@@ -122,9 +122,12 @@ export class XmlFile {
                     this.diagnostics.push({
                         code: diagnosticMessages.Component_missing_name_attribute.code,
                         message: diagnosticMessages.Component_missing_name_attribute.message,
-                        lineIndex: componentRange.start.line,
-                        columnIndexBegin: componentRange.start.character,
-                        columnIndexEnd: componentRange.end.character,
+                        location: Range.create(
+                            componentRange.start.line,
+                            componentRange.start.character,
+                            componentRange.start.line,
+                            componentRange.end.character
+                        ),
                         file: this,
                         severity: 'error'
                     });
@@ -134,9 +137,12 @@ export class XmlFile {
                     this.diagnostics.push({
                         code: diagnosticMessages.Component_missing_extends_attribute.code,
                         message: diagnosticMessages.Component_missing_extends_attribute.message,
-                        lineIndex: componentRange.start.line,
-                        columnIndexBegin: componentRange.start.character,
-                        columnIndexEnd: componentRange.end.character,
+                        location: Range.create(
+                            componentRange.start.line,
+                            componentRange.start.character,
+                            componentRange.start.line,
+                            componentRange.end.character
+                        ),
                         file: this,
                         severity: 'error'
                     });
@@ -146,10 +152,13 @@ export class XmlFile {
                 this.diagnostics.push({
                     code: diagnosticMessages.Xml_component_missing_component_declaration.code,
                     message: diagnosticMessages.Xml_component_missing_component_declaration.message,
-                    columnIndexBegin: 0,
-                    columnIndexEnd: Number.MAX_VALUE,
+                    location: Range.create(
+                        0,
+                        0,
+                        0,
+                        Number.MAX_VALUE
+                    ),
                     file: this,
-                    lineIndex: 0,
                     severity: 'error'
                 });
             }
@@ -163,9 +172,12 @@ export class XmlFile {
                 this.diagnostics.push({
                     message: match[1],
                     code: diagnosticMessages.Xml_parse_error.code,
-                    lineIndex: lineIndex,
-                    columnIndexBegin: columnIndex,
-                    columnIndexEnd: columnIndex,
+                    location: Range.create(
+                        lineIndex,
+                        columnIndex,
+                        lineIndex,
+                        columnIndex
+                    ),
                     file: this,
                     severity: 'error'
                 });

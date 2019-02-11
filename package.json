@@ -77,7 +77,7 @@
     "typescript": "^3.2.4"
   },
   "dependencies": {
-    "brs": "github:twitchbronbron/brs#ce11ee4",
+    "brs": "github:twitchbronbron/brs#ad7bdb0",
     "chokidar": "^2.0.4",
     "clear": "^0.1.0",
     "command-line-args": "^5.0.2",
