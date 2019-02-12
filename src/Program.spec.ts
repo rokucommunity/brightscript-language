@@ -232,8 +232,8 @@ describe('Program', () => {
                 </component>
             `);
 
-            //The child context should no longer have the link
-            expect(program.contexts[n('components/ChildScene.xml')].parentContext).to.be.undefined;
+            //The child context should no longer have the link to the parent context, and should instead point back to platform
+            expect(program.contexts[n('components/ChildScene.xml')].parentContext.name).to.equal('platform');
         });
 
         it('creates a new context for every added component xml', async () => {
