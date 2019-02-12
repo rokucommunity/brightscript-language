@@ -198,7 +198,18 @@ describe('Program', () => {
     });
 
     describe('addOrReplaceFile', async () => {
-        it.skip('links xml contexts based on xml parent-child relationships', async () => {
+        it('emits file-removed when file already exists', async () => {
+            let callCount = 0;
+            program.on('file-removed', () => {
+                callCount++;
+            });
+            await program.addOrReplaceFile(`${rootDir}/lib.brs`, `'comment`);
+            expect(callCount).to.equal(0);
+            await program.addOrReplaceFile(`${rootDir}/lib.brs`, `'comment`);
+            expect(callCount).to.equal(1);
+        });
+
+        it.only('links xml contexts based on xml parent-child relationships', async () => {
             await program.addOrReplaceFile(n(`${rootDir}/components/ParentScene.xml`), `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ParentScene" extends="Scene">
@@ -211,7 +222,7 @@ describe('Program', () => {
                 <component name="ChildScene" extends="ParentScene">
                 </component>
             `);
-            await new Promise((resolve) => { setTimeout(resolve, 200) });
+
             expect(program.contexts[n('components/ChildScene.xml')].parentContext.name).to.equal(n('components/ParentScene.xml'));
 
             //change the parent's name.

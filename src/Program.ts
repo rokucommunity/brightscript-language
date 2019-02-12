@@ -122,9 +122,12 @@ export class Program {
             var context = new XmlContext(xmlFile);
             //attach this program to the new context
             context.attachProgram(this);
-            //context inherits from platform by default
-            context.parentContext = this.platformContext;
-            
+
+            //if the context doesn't have a parent context, give it the platform context
+            if (!context.parentContext) {
+                context.parentContext = this.platformContext;
+            }
+
             this.contexts[context.name] = context;
         } else {
             let genericFile = {
@@ -235,7 +238,7 @@ export class Program {
             context.removeFile(file)
         }
 
-        //if there is a context named the same as this file's path, remove it
+        //if there is a context named the same as this file's path, remove it (i.e. xml contexts)
         let context = this.contexts[file.pkgPath];
         if (context) {
             context.dispose();

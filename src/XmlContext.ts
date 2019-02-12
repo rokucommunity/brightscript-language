@@ -40,12 +40,13 @@ export class XmlContext extends Context {
         //detach xml file's parent if it's removed from the program
         this.programHandles.push(
             this.program.on('file-removed', (file) => {
-                debugger;
                 if (
-                    //xml file has a parent
-                    this.xmlFile.parent &&
-                    //incoming file IS that parent
-                    file === this.xmlFile.parent
+                    //incoming file is an xml file
+                    file instanceof XmlFile &&
+                    //this xml file has a parent
+                    this.xmlFile.parentComponentName &&
+                    //incoming file has same name as parent
+                    file.componentName.toLowerCase() === this.xmlFile.parentComponentName.toLowerCase()
                 ) {
                     this.isValidated = false;
                     this.xmlFile.detachParent();
