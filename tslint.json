@@ -12,6 +12,7 @@
             "never"
         ],
         "arrow-return-shorthand": false,
+        "no-floating-promises": true,
         "class-name": true,
         "comment-format": false,
         "curly": true,

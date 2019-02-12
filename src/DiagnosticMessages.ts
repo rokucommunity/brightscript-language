@@ -7,7 +7,7 @@ export var diagnosticMessages = {
         message: 'There was an error parsing the file',
         code: 1000,
     },
-    Cannot_find_function_name_1001: {
+    Call_to_unknown_function_1001: {
         message: `Cannot find name '{0}'`,
         code: 1001
     },
@@ -23,21 +23,25 @@ export var diagnosticMessages = {
         message: 'Referenced file does not exist.',
         code: 1004
     },
-    Xml_component_missing_component_declaration: {
+    Xml_component_missing_component_declaration_1005: {
         message: 'Missing a component declaration',
         code: 1005
     },
-    Component_missing_name_attribute: {
+    Component_missing_name_attribute_1006: {
         message: 'Component must have a name attribute',
         code: 1006
     },
-    Component_missing_extends_attribute: {
+    Component_missing_extends_attribute_1007: {
         message: 'Component must have an extends attribute',
         code: 1007
     },
-    Xml_parse_error: {
+    Xml_parse_error_1008: {
         //generic catchall xml parse error
         message: 'Invalid xml',
         code: 1008
+    },
+    Unnecessary_script_import_in_child_from_parent_1009: {
+        message: 'Unnecessary script import: Script is already imported in ancestor component {0}',
+        code: 1009
     }
 }

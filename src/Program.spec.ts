@@ -8,8 +8,6 @@ import { diagnosticMessages } from './DiagnosticMessages';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 import { XmlFile } from './files/XmlFile';
 import util from './util';
-import { Context } from './Context';
-import { BrsFile } from './files/BrsFile';
 let n = path.normalize;
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
@@ -25,6 +23,11 @@ afterEach(() => {
 });
 
 describe('Program', () => {
+    describe('platformContext', () => {
+        it('returns all callables when asked', () => {
+            expect(program.platformContext.getAllCallables().length).to.be.greaterThan(0);
+        });
+    });
     describe('addFile', () => {
         it('works with different cwd', async () => {
             let projectDir = path.join(testProjectsPath, 'project2');
@@ -72,17 +75,65 @@ describe('Program', () => {
         });
     });
     describe('validate', () => {
-        it('recognizes platform functions', async () => {
+        it('does not throw errors on shadowed init functions in components', async () => {
+            await program.addOrReplaceFile(`${rootDir}/lib.brs`, `
+                function DoSomething()
+                    return true
+                end function
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/components/Parent.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Parent" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/lib.brs" />
+                </component>
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/components/Child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Child" extends="Parent">
+                </component>
+            `);
+
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.only('recognizes platform function calls', async () => {
             expect(program.getDiagnostics().length).to.equal(0);
-            program.addOrReplaceFile('absolute_path/file.brs', `
+            await program.addOrReplaceFile(`${rootDir}/source/file.brs`, `
                 function DoB()
-                    abs(1.5)
+                    sleep(100)
                 end function
             `)
             //validate the context
-            program.validate();
+            await program.validate();
+            var diagnostics = program.getDiagnostics();
             //shouldn't have any errors
-            expect(program.getDiagnostics().length).to.equal(0);
+            expect(diagnostics).to.be.lengthOf(0);
+        });
+
+        it('shows warning when a child component imports the same script as its parent', async () => {
+            await program.addOrReplaceFile(`${rootDir}/components/parent.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/lib.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                    <script type="text/brightscript" uri="pkg:/lib.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/lib.brs`, `'comment`);
+            await program.validate();
+            var diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code);
+            expect(diagnostics[0].severity).to.equal('warning');
         });
 
         it('catches duplicate methods in single file', async () => {
@@ -112,14 +163,14 @@ describe('Program', () => {
         });
 
         it('maintains correct callables list', async () => {
-            let initialCallableCount = program.contexts['global'].getCallables().length;
+            let initialCallableCount = program.contexts['global'].getAllCallables().length;
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
                 end sub
                 sub DoSomething()
                 end sub
             `);
-            expect(program.contexts['global'].getCallables().length).equals(initialCallableCount + 2);
+            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount + 2);
             //set the file contents again (resetting the wasProcessed flag)
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -127,9 +178,9 @@ describe('Program', () => {
                 sub DoSomething()
                 end sub
                 `);
-            expect(program.contexts['global'].getCallables().length).equals(initialCallableCount + 2);
+            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount + 2);
             program.removeFile(`${rootDir}/source/main.brs`);
-            expect(program.contexts['global'].getCallables().length).equals(initialCallableCount);
+            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount);
         });
 
         it('resets errors on revalidate', async () => {
@@ -160,7 +211,7 @@ describe('Program', () => {
             expect(program.getDiagnostics().length).to.equal(0);
         });
 
-        it('identifies invocation of unknown callable', async () => {
+        it('identifies invocation of unknown function', async () => {
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub Main()
                     name = "Hello"
@@ -170,7 +221,7 @@ describe('Program', () => {
 
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(1);
-            expect(program.getDiagnostics()[0].message.toLowerCase().indexOf('cannot find name')).to.equal(0);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
         });
 
         it('detects methods from another file in a subdirectory', async () => {
@@ -445,7 +496,7 @@ describe('Program', () => {
             //there should be an error when calling DoParentThing, since it doesn't exist on child or parent
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoParentThing')
+                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoParentThing')
             });
 
             //add the script into the parent

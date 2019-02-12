@@ -283,7 +283,7 @@ export class LanguageServer {
                 severity: diagnostic.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
                 range: diagnostic.location,
                 message: diagnostic.message,
-                //code: 'NO CODE',
+                code: diagnostic.code,
                 source: 'brs'
             });
         }

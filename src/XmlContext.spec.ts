@@ -2,6 +2,7 @@ import { XmlFile } from './files/XmlFile';
 import { XmlContext } from './XmlContext';
 import * as path from 'path'; import { Program } from './Program';
 import { expect } from 'chai';
+import { diagnosticMessages } from './DiagnosticMessages';
 ;
 var n = path.normalize;
 let rootDir = 'C:/projects/RokuApp';

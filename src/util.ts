@@ -3,7 +3,7 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
-import { ValueKind, BRSType } from './interfaces';
+import { ValueKind, BRSType, Callable } from './interfaces';
 import * as xml2js from 'xml2js';
 import { Range, Position } from 'vscode-languageserver';
 import * as brs from 'brs';
@@ -233,6 +233,26 @@ class Util {
             func.end.location.start.line - 1,
             func.end.location.start.column - 1
         );
+    }
+
+    /**
+     * Given a list of callables, get that as a a dictionary indexed by name.
+     * @param callables 
+     */
+    public getCallablesByLowerName(callables: Callable[]) {
+        //find duplicate functions
+        let result = {} as { [name: string]: Callable[] };
+
+        for (let callable of callables) {
+            let lowerName = callable.name.toLowerCase();
+
+            //create a new array for this name
+            if (result[lowerName] === undefined) {
+                result[lowerName] = [];
+            }
+            result[lowerName].push(callable);
+        }
+        return result;
     }
 
     /**

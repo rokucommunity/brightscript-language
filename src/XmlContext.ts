@@ -2,6 +2,10 @@ import { Context } from './Context';
 import { XmlFile } from './files/XmlFile';
 import { Program } from './Program';
 import { BrsFile } from './files/BrsFile';
+import { diagnosticMessages } from './DiagnosticMessages';
+import { FileReference } from './interfaces';
+import { Range } from 'vscode-languageserver';
+import util from './util';
 
 export class XmlContext extends Context {
     constructor(xmlFile: XmlFile) {
@@ -88,6 +92,77 @@ export class XmlContext extends Context {
         ) {
             this.isValidated = false;
             this.xmlFile.attachParent(file);
+        }
+    }
+
+    public validate() {
+        debugger;
+        if (this.isValidated === false) {
+            super.validate();
+
+            //detect when the child imports a script that its ancestor also imports
+            this.diagnosticDetectDuplicateAncestorScriptImports();
+
+            //detect script imports to files that are not loaded in this context
+            this.diagnosticValidateScriptImportPaths();
+        }
+    }
+
+    /**
+     * Detect when a child has imported a script that an ancestor also imported
+     */
+    private diagnosticDetectDuplicateAncestorScriptImports() {
+        if (this.xmlFile.parent) {
+            //build a lookup of pkg paths -> FileReference so we can more easily look up collisions 
+            var parentScriptImports = this.xmlFile.parent.getAllScriptImports();
+            var lookup = {} as { [pkgPath: string]: FileReference };
+            for (let parentScriptImport of parentScriptImports) {
+                //keep the first occurance of a pkgPath. Parent imports are first in the array
+                if (!lookup[parentScriptImport.pkgPath]) {
+                    lookup[parentScriptImport.pkgPath] = parentScriptImport;
+                }
+            }
+
+            //add warning for every import this file shares with an ancestor
+            for (let scriptImport of this.xmlFile.ownScriptImports) {
+                let ancestorScriptImport = lookup[scriptImport.pkgPath];
+                if (ancestorScriptImport) {
+                    let ancestorComponentName = (ancestorScriptImport.sourceFile as XmlFile).componentName;
+                    this._diagnostics.push({
+                        severity: 'warning',
+                        file: this.xmlFile,
+                        location: Range.create(scriptImport.lineIndex, scriptImport.columnIndexBegin, scriptImport.lineIndex, scriptImport.columnIndexEnd),
+                        code: diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code,
+                        message: util.stringFormat(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.message, ancestorComponentName)
+                    });
+                }
+            }
+
+        }
+    }
+
+    /**
+     * Verify that all of the scripts ipmorted by 
+     */
+    private diagnosticValidateScriptImportPaths() {
+        //verify every script import
+        for (let scriptImport of this.xmlFile.ownScriptImports) {
+            let referencedFile = this.getFileByRelativePath(scriptImport.pkgPath);
+            //if we can't find the file
+            if (!referencedFile) {
+                this._diagnostics.push({
+                    message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
+                    code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                    location: Range.create(
+                        scriptImport.lineIndex,
+                        scriptImport.columnIndexBegin,
+                        scriptImport.lineIndex,
+                        scriptImport.columnIndexEnd
+                    ),
+                    file: this.xmlFile,
+                    severity: 'error',
+                });
+            }
         }
     }
 

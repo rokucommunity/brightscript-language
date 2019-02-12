@@ -4,9 +4,7 @@ import { Program } from '../Program';
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, TextEdit, Range, Position } from 'vscode-languageserver';
 import { diagnosticMessages } from '../DiagnosticMessages';
-import { Context } from '../Context';
 import { EventEmitter } from 'events';
-import { XmlContext } from '../XmlContext';
 
 export class XmlFile {
     constructor(
@@ -25,9 +23,13 @@ export class XmlFile {
      */
     public extension: string;
 
-    public scriptImports = [] as FileReference[];
+    public ownScriptImports = [] as FileReference[];
 
-    public diagnostics = [] as Diagnostic[];
+    public getDiagnostics() {
+        return [...this.parseDiagnistics];
+    }
+
+    public parseDiagnistics = [] as Diagnostic[];
 
     //TODO implement the xml CDATA parsing, which would populate this list
     public callables = [] as Callable[];
@@ -86,7 +88,7 @@ export class XmlFile {
             }
 
             //add all of these script imports
-            this.scriptImports = scriptImports;
+            this.ownScriptImports = scriptImports;
         }
 
         try {
@@ -112,9 +114,9 @@ export class XmlFile {
                 }
                 //component name not defined
                 if (!this.componentName) {
-                    this.diagnostics.push({
-                        code: diagnosticMessages.Component_missing_name_attribute.code,
-                        message: diagnosticMessages.Component_missing_name_attribute.message,
+                    this.parseDiagnistics.push({
+                        code: diagnosticMessages.Component_missing_name_attribute_1006.code,
+                        message: diagnosticMessages.Component_missing_name_attribute_1006.message,
                         location: Range.create(
                             componentRange.start.line,
                             componentRange.start.character,
@@ -127,9 +129,9 @@ export class XmlFile {
                 }
                 //parent component name not defined
                 if (!this.parentComponentName) {
-                    this.diagnostics.push({
-                        code: diagnosticMessages.Component_missing_extends_attribute.code,
-                        message: diagnosticMessages.Component_missing_extends_attribute.message,
+                    this.parseDiagnistics.push({
+                        code: diagnosticMessages.Component_missing_extends_attribute_1007.code,
+                        message: diagnosticMessages.Component_missing_extends_attribute_1007.message,
                         location: Range.create(
                             componentRange.start.line,
                             componentRange.start.character,
@@ -142,9 +144,9 @@ export class XmlFile {
                 }
             } else {
                 //the component xml element was not found in the file
-                this.diagnostics.push({
-                    code: diagnosticMessages.Xml_component_missing_component_declaration.code,
-                    message: diagnosticMessages.Xml_component_missing_component_declaration.message,
+                this.parseDiagnistics.push({
+                    code: diagnosticMessages.Xml_component_missing_component_declaration_1005.code,
+                    message: diagnosticMessages.Xml_component_missing_component_declaration_1005.message,
                     location: Range.create(
                         0,
                         0,
@@ -162,9 +164,9 @@ export class XmlFile {
                 let lineIndex = parseInt(match[2]);
                 let columnIndex = parseInt(match[3]) - 1;
                 //add basic xml parse diagnostic errors
-                this.diagnostics.push({
+                this.parseDiagnistics.push({
                     message: match[1],
-                    code: diagnosticMessages.Xml_parse_error.code,
+                    code: diagnosticMessages.Xml_parse_error_1008.code,
                     location: Range.create(
                         lineIndex,
                         columnIndex,
@@ -180,6 +182,27 @@ export class XmlFile {
     }
 
     /**
+     * Get the list of scripts imported by this component and all of its ancestors
+     */
+    public getAllScriptImports() {
+        var imports = [...this.ownScriptImports] as FileReference[];
+        var file: XmlFile = this;
+        while (file.parent) {
+            imports = [...imports, ...file.parent.getOwnScriptImports()];
+            file = file.parent;
+        }
+        return imports;
+    }
+
+    /**
+     * Get the list of scripts explicitly imported by this file. 
+     * This method excludes any ancestor imports
+     */
+    public getOwnScriptImports() {
+        return this.ownScriptImports;
+    }
+
+    /**
      * Determines if this xml file has a reference to the specified file (or if it's itself)
      * @param file 
      */
@@ -187,7 +210,7 @@ export class XmlFile {
         if (file === this) {
             return true;
         }
-        for (let scriptImport of this.scriptImports) {
+        for (let scriptImport of this.ownScriptImports) {
             //if the script imports the file
             if (scriptImport.pkgPath.toLowerCase() === file.pkgPath.toLowerCase()) {
                 return true;
@@ -209,7 +232,7 @@ export class XmlFile {
      */
     public getCompletions(position: Position): CompletionItem[] {
         let result = [] as CompletionItem[];
-        let scriptImport = this.scriptImports.find((x) => {
+        let scriptImport = this.ownScriptImports.find((x) => {
             return x.lineIndex === position.line &&
                 //column between start and end
                 position.character >= x.columnIndexBegin &&
@@ -218,7 +241,7 @@ export class XmlFile {
         //the position is within a script import. Provide path completions
         if (scriptImport) {
             //get a list of all scripts currently being imported
-            let currentImports = this.scriptImports.map(x => x.pkgPath);
+            let currentImports = this.ownScriptImports.map(x => x.pkgPath);
 
             //restrict to only .brs files
             for (let key in this.program.files) {
@@ -291,6 +314,12 @@ export class XmlFile {
     public parent: XmlFile;
 
     /**
+     * Certain conditions make it necessary for this file to be revalidated (like adding/changing/removing a parent).
+     * This property will be false when the file needs to be revalidated.
+     */
+    private isValidated = false;
+
+    /**
      * Components can extend another component.
      * This method attaches the parent component to this component, where 
      * this component can listen for script import changes on the parent. 
@@ -301,12 +330,16 @@ export class XmlFile {
         this.detachParent();
         this.parent = parent;
         this.emit('attach-parent', parent);
+
+        this.isValidated = false;
     }
 
     public detachParent() {
         if (this.parent) {
             this.parent = undefined;
             this.emit('detach-parent');
+
+            this.isValidated = false;
         }
     }
 }

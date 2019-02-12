@@ -1,7 +1,8 @@
 import { Callable } from './interfaces';
 import { BrsFile } from './files/BrsFile';
+import { platform } from 'os';
 
-export let platformFile = new BrsFile('global', 'global');
+export let platformFile = new BrsFile('platform', 'platform');
 
 let mathFunctions = [{
     name: 'Abs',
@@ -761,5 +762,5 @@ By using Chr, you can create strings containing characters which cannot be conta
         }]
     }
 ] as Callable[];
-
 export var platformCallables = [...mathFunctions, ...runtimeFunctions, ...globalUtilityFunctions, ...globalStringFunctions];
+platformFile.callables = platformCallables;

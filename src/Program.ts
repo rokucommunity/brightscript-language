@@ -130,11 +130,11 @@ export class Program {
 
             this.contexts[context.name] = context;
         } else {
-            let genericFile = {
+            //TODO do we actually need to implement this? Figure out how to handle img paths
+            let genericFile = <any>{
                 pathAbsolute: pathAbsolute,
                 pkgPath: pkgPath,
-                wasProcessed: true,
-                diagnostics: []
+                wasProcessed: true
             } as File;
             file = <any>genericFile;
         }

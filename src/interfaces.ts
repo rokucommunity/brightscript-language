@@ -1,5 +1,6 @@
 import { XmlFile } from './files/XmlFile';
 import { Position, Range } from 'vscode-languageserver';
+import { BrsFile } from './files/BrsFile';
 
 export interface Diagnostic {
     severity: string | 'warning' | 'error';
@@ -17,7 +18,7 @@ export interface Diagnostic {
 }
 
 export interface Callable {
-    file: File;
+    file: BrsFile | XmlFile;
     name: string;
     type: 'function' | 'sub';
     /**
@@ -103,7 +104,7 @@ export interface File {
      */
     pkgPath: string;
     pathAbsolute: string;
-    diagnostics: Diagnostic[];
+    getDiagnostics(): Diagnostic[];
 }
 
 export interface VariableDeclaration {

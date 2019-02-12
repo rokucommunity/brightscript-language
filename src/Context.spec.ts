@@ -69,7 +69,7 @@ describe('Context', () => {
     describe('addFile', () => {
         it('picks up new callables', async () => {
             //we have global callables, so get that initial number
-            let originalLength = context.getCallables().length;
+            let originalLength = context.getAllCallables().length;
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
@@ -81,13 +81,13 @@ describe('Context', () => {
                  end function
             `);
             context.addOrReplaceFile(file);
-            expect(context.getCallables().length).to.equal(originalLength + 2);
+            expect(context.getAllCallables().length).to.equal(originalLength + 2);
         });
     });
 
     describe('removeFile', () => {
         it('removes callables from list', async () => {
-            let initCallableCount = context.getCallables().length;
+            let initCallableCount = context.getAllCallables().length;
             //add the file
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
@@ -96,11 +96,11 @@ describe('Context', () => {
                 end function
             `);
             context.addOrReplaceFile(file);
-            expect(context.getCallables().length).to.equal(initCallableCount + 1);
+            expect(context.getAllCallables().length).to.equal(initCallableCount + 1);
 
             //remove the file
             context.removeFile(file);
-            expect(context.getCallables().length).to.equal(initCallableCount);
+            expect(context.getAllCallables().length).to.equal(initCallableCount);
         });
     });
 
@@ -142,8 +142,8 @@ describe('Context', () => {
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoB'),
-                code: diagnosticMessages.Cannot_find_function_name_1001.code
+                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoB'),
+                code: diagnosticMessages.Call_to_unknown_function_1001.code
             });
         });
 
@@ -164,8 +164,8 @@ describe('Context', () => {
             context.validate();
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoC'),
-                code: diagnosticMessages.Cannot_find_function_name_1001.code
+                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoC'),
+                code: diagnosticMessages.Call_to_unknown_function_1001.code
             });
         });
 
@@ -314,17 +314,17 @@ describe('Context', () => {
 
             var childContext = new Context('child', null);
             childContext.attachProgram(program);
-            expect(childContext.getCallables()).to.be.lengthOf(0);
+            expect(childContext.getAllCallables()).to.be.lengthOf(0);
 
             childContext.attachParentContext(parentContext);
 
             //now that we attached the parent, the child should recognize the parent's callables
-            expect(childContext.getCallables()).to.be.lengthOf(1);
-            expect(childContext.getCallables()[0].name).to.equal('parentFunction');
+            expect(childContext.getAllCallables()).to.be.lengthOf(1);
+            expect(childContext.getAllCallables()[0].name).to.equal('parentFunction');
 
             //removes parent callables when parent is detached
             childContext.detachParent();
-            expect(childContext.getCallables()).to.be.lengthOf(0);
+            expect(childContext.getAllCallables()).to.be.lengthOf(0);
         });
     });
 });

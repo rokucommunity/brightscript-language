@@ -37,8 +37,8 @@ describe('XmlFile', () => {
         it('Adds error when no component is declared in xml', async () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse(`<script type="text/brightscript" uri="ChildScene.brs" />`);
-            expect(file.diagnostics).to.be.lengthOf(1);
-            expect(file.diagnostics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration.message);
+            expect(file.parseDiagnistics).to.be.lengthOf(1);
+            expect(file.parseDiagnistics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration_1005.message);
         });
 
         it('adds error when component does not declare a name', async () => {
@@ -49,9 +49,9 @@ describe('XmlFile', () => {
                 <script type="text/brightscript" uri="ChildScene.brs" />
                 </component>
             `);
-            expect(file.diagnostics).to.be.lengthOf(1);
-            expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Component_missing_name_attribute.message,
+            expect(file.parseDiagnistics).to.be.lengthOf(1);
+            expect(file.parseDiagnistics[0]).to.deep.include(<Diagnostic>{
+                message: diagnosticMessages.Component_missing_name_attribute_1006.message,
                 location: Range.create(2, 16, 2, 26)
             });
         });
@@ -63,9 +63,9 @@ describe('XmlFile', () => {
                 <component 1extends="ParentScene">
                 </component>
             `);
-            expect(file.diagnostics).to.be.lengthOf(1);
-            expect(file.diagnostics[0]).to.deep.include(<Diagnostic>{
-                code: diagnosticMessages.Xml_parse_error.code,
+            expect(file.parseDiagnistics).to.be.lengthOf(1);
+            expect(file.parseDiagnistics[0]).to.deep.include(<Diagnostic>{
+                code: diagnosticMessages.Xml_parse_error_1008.code,
                 location: Range.create(2, 27, 2, 27),
             });
         });
@@ -73,8 +73,8 @@ describe('XmlFile', () => {
         it('finds script imports', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="pkg:/components/cmp1.brs" />`)
-            expect(file.scriptImports.length).to.equal(1);
-            expect(file.scriptImports[0]).to.deep.include(<FileReference>{
+            expect(file.ownScriptImports.length).to.equal(1);
+            expect(file.ownScriptImports[0]).to.deep.include(<FileReference>{
                 sourceFile: file,
                 text: 'pkg:/components/cmp1.brs',
                 lineIndex: 0,
@@ -108,8 +108,8 @@ describe('XmlFile', () => {
         it('resolves relative paths', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="cmp1.brs" />`)
-            expect(file.scriptImports.length).to.equal(1);
-            expect(file.scriptImports[0]).to.deep.include(<FileReference>{
+            expect(file.ownScriptImports.length).to.equal(1);
+            expect(file.ownScriptImports[0]).to.deep.include(<FileReference>{
                 text: 'cmp1.brs',
                 pkgPath: `components${path.sep}cmp1.brs`
             });
@@ -118,8 +118,8 @@ describe('XmlFile', () => {
         it('finds correct position for empty uri in script tag', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
             await file.parse(`<script type="text/brightscript" uri="" />`)
-            expect(file.scriptImports.length).to.equal(1);
-            expect(file.scriptImports[0]).to.deep.include({
+            expect(file.ownScriptImports.length).to.equal(1);
+            expect(file.ownScriptImports[0]).to.deep.include({
                 lineIndex: 0,
                 columnIndexBegin: 38,
                 columnIndexEnd: 38,
@@ -130,7 +130,7 @@ describe('XmlFile', () => {
     describe('doesReferenceFile', () => {
         it('compares case insensitive', () => {
             let xmlFile = new XmlFile('absolute', 'relative', null);
-            xmlFile.scriptImports.push({
+            xmlFile.ownScriptImports.push({
                 pkgPath: `components${path.sep}HeroGrid.brs`,
                 text: '',
                 lineIndex: 1,
@@ -151,7 +151,7 @@ describe('XmlFile', () => {
             program.files[scriptPath] = new BrsFile(scriptPath, n('components/component1/component1.brs'));
 
             let xmlFile = new XmlFile('component.xml', 'relative', <any>program);
-            xmlFile.scriptImports.push({
+            xmlFile.ownScriptImports.push({
                 pkgPath: ``,
                 text: '',
                 lineIndex: 1,
@@ -177,4 +177,15 @@ describe('XmlFile', () => {
             expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
         });
     });
+
+    describe('getAllScriptImports', () => {
+        it('returns own imports', () => {
+            var file = new XmlFile('file.xml', 'file.xml', null);
+            var scriptImport = {
+                text: 'some-import'
+            };
+            file.ownScriptImports.push(<any>scriptImport);
+            expect(file.getAllScriptImports()).to.be.lengthOf(1);
+        });
+    })
 });

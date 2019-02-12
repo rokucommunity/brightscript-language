@@ -136,11 +136,11 @@ describe('BrsFile', () => {
                 function DoSomething
                 end function            
             `);
-            expect(file.diagnostics.length).to.be.greaterThan(0);
-            expect(file.diagnostics[0]).to.deep.include({
+            expect(file.getDiagnostics().length).to.be.greaterThan(0);
+            expect(file.getDiagnostics()[0]).to.deep.include({
                 file: file
             });
-            expect(file.diagnostics[0].location.start.line).to.equal(1);
+            expect(file.getDiagnostics()[0].location.start.line).to.equal(1);
         });
 
         it('supports using the `next` keyword in a for loop', async () => {
@@ -152,8 +152,8 @@ describe('BrsFile', () => {
                     next
                 end sub
             `);
-            console.error(file.diagnostics);
-            expect(file.diagnostics).to.be.empty;
+            console.error(file.getDiagnostics());
+            expect(file.getDiagnostics()).to.be.empty;
         });
 
         //test is not working yet, but will be enabled when brs supports this syntax
@@ -167,7 +167,7 @@ describe('BrsFile', () => {
                     end sub
                 end function
             `);
-            expect(file.diagnostics.length).to.equal(0);
+            expect(file.getDiagnostics().length).to.equal(0);
         });
     });
 

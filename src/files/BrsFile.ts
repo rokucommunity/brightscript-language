@@ -33,7 +33,11 @@ export class BrsFile {
      */
     public wasProcessed = false;
 
-    public diagnostics = [] as Diagnostic[];
+    private diagnostics = [] as Diagnostic[];
+
+    public getDiagnostics() {
+        return [...this.diagnostics];
+    }
 
     public callables = [] as Callable[]
 
