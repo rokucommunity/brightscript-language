@@ -2,10 +2,10 @@ import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
 import { Diagnostic, Callable, File } from './interfaces';
 import { EventEmitter } from 'events';
-import { globalCallables, globalFile } from './GlobalCallables';
 import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
+import { Program } from './Program';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -15,8 +15,80 @@ export class Context {
         public name: string,
         private matcher: (file: File) => boolean | void
     ) {
-        this.callables = [...this.callables, ...globalCallables];
     }
+
+    /**
+     * Indicates whether this context needs to be validated. 
+     * Will be true when first constructed, or anytime one of its watched files is added, changed, or removed
+     */
+    public isValidated = true;
+
+    protected program: Program;
+
+    protected programHandles = [] as (() => void)[];
+
+    /**
+     * Attach the context to a program. This allows the context to monitor file adds, changes, and removals, and respond accordingly
+     * @param program 
+     */
+    public attachProgram(program: Program) {
+        this.program = program;
+        this.programHandles = [
+            program.on('file-added', (file) => {
+                if (this.matcher(file)) {
+                    this.addOrReplaceFile(file);
+                }
+            }),
+
+            program.on('file-removed', (file) => {
+                if (this.hasFile(file)) {
+                    this.removeFile(file);
+                }
+            })
+        ];
+
+        //add any current matches
+        for (let filePath in program.files) {
+            let file = program.files[filePath];
+            if (this.matcher(file)) {
+                this.addOrReplaceFile(file);
+            }
+        }
+    }
+
+    /**
+     * Clean up all event handles
+     */
+    public dispose() {
+        for (let disconnect of this.programHandles) {
+            disconnect();
+        }
+        this.detachParent();
+    }
+
+    private parentHandles = [] as (() => void)[];
+
+    public attachParent(parent: Context) {
+        this.parent = parent;
+        this.parentHandles = [
+            //whenever the parent is marked dirty, mark ourself as dirty
+            parent.on('invalidated', () => {
+                this.isValidated = false;
+            })
+        ];
+    }
+
+    public detachParent() {
+        for (let disconnect of this.parentHandles) {
+            disconnect();
+        }
+        this.parent = undefined;
+    }
+
+    /**
+     * A parent context that this context inherits all things from.
+     */
+    public parent: Context;
 
     /**
      * Determine if this file should 
@@ -28,37 +100,54 @@ export class Context {
 
     public files = {} as { [filePath: string]: ContextFile };
 
-    public clear() {
-        this.files = {};
-        this.callables = [];
-        this._diagnostics = [];
-    }
-
     /**
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.
      */
-    public get diagnostics(): Diagnostic[] {
-        let diagnosticList = [this._diagnostics];
+    public getDiagnostics(): Diagnostic[] {
+        let diagnosticLists = [this._diagnostics] as Diagnostic[][];
+        //add diagnostics from every referenced file
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
-            diagnosticList.push(ctxFile.file.diagnostics);
+            diagnosticLists.push(ctxFile.file.diagnostics);
         }
-        let result = Array.prototype.concat.apply([], diagnosticList);
+        let result = Array.prototype.concat.apply([], diagnosticLists);
         return result;
     }
 
-    private _diagnostics = [] as Diagnostic[];
+    /**
+     * The list of diagnostics found specifically for this context. Individual file diagnostics are stored on the files themselves.
+     */
+    protected _diagnostics = [] as Diagnostic[];
 
     /**
-     * A list of context-global subs/functions found in all files in this context. 
+     * Get the list of callables available in this context (either declared in this context or in a parent context) 
      */
-    public callables = [] as Callable[];
+    public getCallables() {
+        let result = [] as Callable[];
+
+        //get callables from own files
+        for (let filePath in this.files) {
+            let file = this.files[filePath];
+            for (let callable of file.file.callables) {
+                result.push(callable);
+            }
+        }
+
+        //get callables from parent context
+        if (this.parent) {
+            let callables = this.parent.getCallables();
+            for (let callable of callables) {
+                result.push(callable);
+            }
+        }
+
+        return result;
+    }
 
     public emitter = new EventEmitter();
 
-    public on(eventName: 'add-error', callback: (error: Diagnostic) => void);
-    public on(eventName: 'remove-error', callback: (error: Diagnostic) => void);
+    public on(eventName: 'invalidated', callback: () => void);
     public on(eventName: string, callback: (data: any) => void) {
         this.emitter.on(eventName, callback);
         return () => {
@@ -66,20 +155,25 @@ export class Context {
         }
     }
 
+    protected emit(name: 'invalidated');
+    protected emit(name: string, data?: any) {
+        this.emitter.emit(name, data);
+    }
+
     /**
      * Add a file to the program.
      * @param filePath 
      * @param fileContents 
      */
-    public addFile(file: BrsFile | XmlFile) {
+    public addOrReplaceFile(file: BrsFile | XmlFile) {
+        this.isValidated = false;
+
+        //if the file is already loaded, remove it first
         if (this.files[file.pathAbsolute]) {
-            throw new Error(`File is already loaded in this context. Perhaps you meant to call reloadFile: ${file.pathAbsolute} `);
+            this.removeFile(file);
         }
 
         let ctxFile = new ContextFile(file);
-
-        //add callables
-        this.callables = [...this.callables, ...file.callables];
 
         //keep a reference to this file
         this.files[file.pathAbsolute] = ctxFile;
@@ -89,34 +183,35 @@ export class Context {
      * Remove the file from this context. 
      * If the file doesn't exist, the method exits immediately, but does not throw an error.
      * @param file
+     * @param emitRemovedEvent - if false, the 'remove-file' event will not be emitted
      */
     public removeFile(file: File) {
+        this.isValidated = false;
+
         let ctxFile = this.files[file.pathAbsolute];
         if (!ctxFile) {
             return;
         }
 
-        //remove all callables from this file from this
-        for (let callable of ctxFile.file.callables) {
-            let idx = this.callables.indexOf(callable);
-            if (idx > -1) {
-                this.callables.splice(idx, 1);
-            }
-        }
-
-        //remove all errors for this file from this
-        this._diagnostics = this._diagnostics.filter((error) => {
-            return error.file !== file;
-        });
         //remove the reference to this file
         delete this.files[file.pathAbsolute];
+        this.emit('invalidated');
     }
 
     public validate() {
+        //if this context is already validated, no need to revalidate
+        if (this.isValidated === true) {
+            return;
+        }
+        //validate our parent before we validate ourself
+        if (this.parent && this.parent.isValidated === false) {
+            this.parent.validate();
+        }
         //clear the context's errors list (we will populate them from this method)
         this._diagnostics = [];
+        let callables = this.getCallables();
         //sort the callables by filepath and then method name
-        this.callables = this.callables.sort((a, b) => {
+        callables = callables.sort((a, b) => {
             return (
                 //sort by path
                 a.file.pathAbsolute.localeCompare(b.file.pathAbsolute) ||
@@ -129,11 +224,12 @@ export class Context {
         let callablesByName = {} as { [name: string]: Callable };
         let markedFirstCallableAsDupe = {} as { [name: string]: boolean };
         {
-            for (let callable of this.callables) {
+            for (let callable of callables) {
                 //skip global callables, because they can be overridden
-                if (callable.file === globalFile) {
-                    continue;
-                }
+                //TODO fix this
+                // if (callable.file === platformFile) {
+                //     continue;
+                // }
                 let name = callable.name.toLowerCase();
 
                 //new callable, add to list and continue
@@ -167,31 +263,32 @@ export class Context {
             }
         }
 
-        //add the global callables to the callables lookup
-        for (let globalCallable of globalCallables) {
-            let name = globalCallable.name.toLowerCase();
+        //TODO - don't do this anymore???
+        // //add the global callables to the callables lookup
+        // for (let globalCallable of globalCallables) {
+        //     let name = globalCallable.name.toLowerCase();
 
-            let callable = callablesByName[name];
-            //don't emit errors for overloaded global functions
-            if (callable && !globalCallables.indexOf(callable)) {
-                //emit error that this callable shadows a global function
-                this._diagnostics.push({
-                    message: diagnosticMessages.Duplicate_function_implementation_1003.message,
-                    code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                    location: Range.create(
-                        callable.nameRange.start.line,
-                        callable.nameRange.start.character,
-                        callable.nameRange.start.line,
-                        callable.nameRange.end.character
-                    ),
-                    file: callable.file,
-                    severity: 'error'
-                });
-            } else {
-                //add global callable to available list
-                callablesByName[name] = globalCallable;
-            }
-        }
+        //     let callable = callablesByName[name];
+        //     //don't emit errors for overloaded global functions
+        //     if (callable && !globalCallables.indexOf(callable)) {
+        //         //emit error that this callable shadows a global function
+        //         this._diagnostics.push({
+        //             message: diagnosticMessages.Duplicate_function_implementation_1003.message,
+        //             code: diagnosticMessages.Duplicate_function_implementation_1003.code,
+        //             location: Range.create(
+        //                 callable.nameRange.start.line,
+        //                 callable.nameRange.start.character,
+        //                 callable.nameRange.start.line,
+        //                 callable.nameRange.end.character
+        //             ),
+        //             file: callable.file,
+        //             severity: 'error'
+        //         });
+        //     } else {
+        //         //add global callable to available list
+        //         callablesByName[name] = globalCallable;
+        //     }
+        // }
 
         //do many per-file checks
         for (let key in this.files) {
@@ -275,6 +372,8 @@ export class Context {
                 }
             }
         }
+
+        this.isValidated = false;
     }
 
     /**
@@ -306,7 +405,8 @@ export class Context {
      */
     public getCallablesAsCompletions() {
         let completions = [] as CompletionItem[];
-        for (let callable of this.callables) {
+        let callables = this.getCallables();
+        for (let callable of callables) {
             completions.push({
                 label: callable.name,
                 kind: CompletionItemKind.Function,

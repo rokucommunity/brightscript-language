@@ -27,7 +27,7 @@ export class ProgramBuilder {
      * The list of errors found in the program.
      */
     private get errors() {
-        return this.program.diagnostics;
+        return this.program.getDiagnostics();
     }
 
     public async run(options: BRSConfig) {
@@ -78,7 +78,7 @@ export class ProgramBuilder {
         this.watcher.on('all', (event: string, path: string) => {
             console.log(event, path);
             if (event === 'add' || event === 'change') {
-                this.program.loadOrReloadFile(path);
+                this.program.addOrReplaceFile(path);
             } else if (event === 'unlink') {
                 this.program.removeFile(path);
             }
@@ -207,7 +207,7 @@ export class ProgramBuilder {
 
                     //only process brightscript files
                     if (['.bs', '.brs', '.xml'].indexOf(fileExtension) > -1) {
-                        await this.program.loadOrReloadFile(file.src);
+                        await this.program.addOrReplaceFile(file.src);
                     }
                 } catch (e) {
                     //log the error, but don't fail this process because the file might be fixable later
@@ -271,7 +271,7 @@ export class ProgramBuilder {
             return fileObj.src;
         });
 
-        let reloadPromise = this.program.loadOrReloadFiles(addedOrExistingPaths)
+        let reloadPromise = this.program.addOrReplaceFiles(addedOrExistingPaths)
 
         for (let fileObj of syncStatus.deleted) {
             //only remove the files in the whitelist parameter
@@ -289,7 +289,7 @@ export class ProgramBuilder {
      */
     private async validateProject() {
         await this.program.validate();
-        return this.program.diagnostics.length;
+        return this.program.getDiagnostics().length;
     }
 }
 

@@ -7,6 +7,9 @@ import { BRSConfig } from './ProgramBuilder';
 import { XmlFile } from './files/XmlFile';
 import { textChangeRangeIsUnchanged } from 'typescript';
 import { Position } from 'vscode-languageserver';
+import { XmlContext } from './XmlContext';
+import { platformCallables, platformFile } from './platformCallables';
+import { EventEmitter } from 'events';
 
 export class Program {
     constructor(
@@ -17,37 +20,46 @@ export class Program {
     ) {
         this.config = util.normalizeConfig(config);
 
-        //normalize the root dir
+        //normalize the root dir path
         this.rootDir = util.getRootDir(config);
 
+        //create the 'platform' context
+        this.platformContext = new Context('platform', (file) => false);
+        //add all platform callables
+        this.platformContext.addOrReplaceFile(platformFile);
+
         //create the "global" context
-        this.createContext('global', (file) => {
+        var globalContext = new Context('global', (file) => {
             //global context includes every file under the `source` folder
             return file.pkgPath.indexOf(`source${path.sep}`) === 0;
         });
+        globalContext.attachProgram(this);
+        //the global context inherits from platform context
+        globalContext.attachParent(this.platformContext);
+        this.contexts[globalContext.name] = globalContext;
     }
+
+    private platformContext: Context;
 
     private rootDir: string;
 
     /**
-     * Get the list of errors for the entire program. It's calculated on the fly, so
-     * call this sparingly.
+     * Get the list of errors for the entire program. It's calculated on the fly
+     * by walking through every file, so call this sparingly.
      */
-    public get diagnostics() {
-        let errorLists = [this._errors] as Diagnostic[][];
+    public getDiagnostics() {
+        let errorLists = [] as Diagnostic[][];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
-            errorLists.push(context.diagnostics);
+            errorLists.push(context.getDiagnostics());
         }
         let result = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
         return result;
     }
 
     /**
-     * List of errors found on this project
+     * A map of every file loaded into this program
      */
-    private _errors = [] as Diagnostic[];
-
     public files = {} as { [filePath: string]: BrsFile | XmlFile };
 
     public contexts = {} as { [name: string]: Context };
@@ -62,52 +74,32 @@ export class Program {
     }
 
     /**
-     * Create a new context. 
-     * @param name 
-     * @param matcher called on every file operation to deteremine if that file should be included in the context.
-     */
-    private createContext(name, matcher: (file: File) => boolean | void) {
-        let context = new Context(name, matcher);
-        //walk over every file to allow the context to include them
-        for (let filePath in this.files) {
-            let file = this.files[filePath];
-            if (context.shouldIncludeFile(file)) {
-                context.addFile(this.files[filePath]);
-            }
-        }
-        this.contexts[name] = context;
-        return context;
-    }
-
-    /**
-     * Add and parse all of the provided files
+     * Add and parse all of the provided files. 
+     * Files that are already loaded will be replaced by the latest
+     * contents from the file system.
      * @param filePaths 
      */
-    public async loadOrReloadFiles(filePaths: string[]) {
+    public async addOrReplaceFiles(filePaths: string[]) {
         await Promise.all(
             filePaths.map(async (filePath) => {
-                await this.loadOrReloadFile(filePath);
+                await this.addOrReplaceFile(filePath);
             })
         );
     }
 
     /**
-     * Load a file into the program, or replace it of it's already loaded
-     * @param filePathAbsolute 
+     * Load a file into the program. If that file already exists, it is replaced.
+     * If file contents are provided, those are used, Otherwise, the file is loaded from the file system
+     * @param pathAbsolute 
      * @param fileContents 
      */
-    public async loadOrReloadFile(filePathAbsolute: string, fileContents?: string) {
-        filePathAbsolute = util.normalizeFilePath(filePathAbsolute);
-        //if the file is already loaded, remove it first
-        if (this.files[filePathAbsolute]) {
-            return await this.reloadFile(filePathAbsolute, fileContents);
-        } else {
-            return await this.loadFile(filePathAbsolute, fileContents);
-        }
-    }
-
-    private async loadFile(pathAbsolute: string, fileContents?: string) {
+    public async addOrReplaceFile(pathAbsolute: string, fileContents?: string) {
         pathAbsolute = util.normalizeFilePath(pathAbsolute);
+
+        //if the file is already loaded, remove it
+        if (this.hasFile(pathAbsolute)) {
+            this.removeFile(pathAbsolute);
+        }
         let pkgPath = pathAbsolute.replace(this.rootDir + path.sep, '');
         let fileExtension = path.extname(pathAbsolute).toLowerCase();
         let file: BrsFile | XmlFile;
@@ -120,8 +112,13 @@ export class Program {
         } else if (fileExtension === '.xml') {
             let xmlFile = new XmlFile(pathAbsolute, pkgPath, this);
             await xmlFile.parse(fileContents);
-            this.createContext(xmlFile.pkgPath, xmlFile.doesReferenceFile.bind(xmlFile));
             file = xmlFile;
+
+            //create a new context for this xml file
+            var context = new XmlContext(xmlFile);
+            //attach this program to the new context
+            context.attachProgram(this);
+            this.contexts[context.name] = context;
         } else {
             let genericFile = {
                 pathAbsolute: pathAbsolute,
@@ -133,12 +130,27 @@ export class Program {
         }
         this.files[pathAbsolute] = file;
 
-        //allow all contexts to add this file if they wish
-        this.notifyContexts(file);
+        //notify all listeners about this file change
+        this.emit('file-added', file);
 
-        //connect any components who have inheritance
-        this.connectComponents();
         return file;
+    }
+
+    private emitter = new EventEmitter();
+
+    public on(name: 'file-added', callback: (file: BrsFile | XmlFile) => void);
+    public on(name: 'file-removed', callback: (file: BrsFile | XmlFile) => void);
+    public on(name: string, callback: (data: any) => void) {
+        this.emitter.on(name, callback);
+        return () => {
+            this.emitter.removeListener(name, callback);
+        }
+    }
+
+    protected emit(name: 'file-added', file: BrsFile | XmlFile);
+    protected emit(name: 'file-removed', file: BrsFile | XmlFile);
+    protected emit(name: string, data?: any) {
+        this.emitter.emit(name, data);
     }
 
     /**
@@ -179,50 +191,17 @@ export class Program {
         }
     }
 
-    private notifyContexts(file: BrsFile | XmlFile) {
-        //notify all contexts of this new file
-        for (let contextName in this.contexts) {
-            let context = this.contexts[contextName];
-            if (context.shouldIncludeFile(file) && !context.hasFile(file)) {
-                context.addFile(file);
+    /**
+     * Get a file with the specified pkg path. 
+     * If not found, return undefined
+     */
+    public getFileByPkgPath(pkgPath: string) {
+        for (let filePath in this.files) {
+            let file = this.files[filePath];
+            if (file.pkgPath === pkgPath) {
+                return file;
             }
         }
-    }
-
-    private async reloadFile(filePath: string, fileContents?: string) {
-
-        filePath = util.normalizeFilePath(filePath);
-        let file = this.files[filePath];
-        //remove the file from all contexts
-        for (let contextName in this.contexts) {
-            let context = this.contexts[contextName];
-            if (context.hasFile(file)) {
-                context.removeFile(file);
-            }
-        }
-
-        file.reset();
-        await file.parse(fileContents);
-
-        //resolve all component inheritance
-        this.connectComponents();
-
-        //add the file back to interested contexts
-        this.notifyContexts(file);
-
-        //if this file is a context (i.e. xml file), clear that context and reload all referenced files
-        let context = this.contexts[file.pkgPath];
-        if (context) {
-            context.clear();
-            for (let key in this.files) {
-                let file = this.files[key];
-                if (context.shouldIncludeFile(file)) {
-                    context.addFile(file);
-                }
-            }
-        }
-
-        return file;
     }
 
     /**
@@ -242,9 +221,7 @@ export class Program {
     public removeFile(filePath: string) {
         filePath = path.normalize(filePath);
         let file = this.files[filePath];
-        if (!file) {
-            throw new Error(`File does not exist in project: ${filePath}`);
-        }
+
         //notify every context of this file removal
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
@@ -254,15 +231,16 @@ export class Program {
         //if there is a context named the same as this file's path, remove it
         let context = this.contexts[file.pkgPath];
         if (context) {
-            context.clear();
+            context.dispose();
             delete this.contexts[file.pkgPath];
         }
         //remove the file from the program
         delete this.files[filePath];
+        this.emit('file-removed', file);
     }
 
     /**
-     * Traverse the entire project, and validate all rules
+     * Traverse the entire project, and validate all contexts
      */
     public async validate() {
         for (let contextName in this.contexts) {

@@ -255,7 +255,7 @@ export class LanguageServer {
         //make sure the server has finished loading
         await this.serverFinishedFirstRunPromise;
         let filePath = Uri.parse(textDocument.uri).fsPath;
-        await this.brsProgramBuilder.program.loadOrReloadFile(filePath, textDocument.getText());
+        await this.brsProgramBuilder.program.addOrReplaceFile(filePath, textDocument.getText());
         await this.brsProgramBuilder.program.validate();
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
@@ -277,11 +277,12 @@ export class LanguageServer {
             issuesByFile[filePath] = [];
         }
 
-        for (let error of this.brsProgramBuilder.program.diagnostics) {
-            issuesByFile[error.file.pathAbsolute].push({
-                severity: error.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
-                range: error.location,
-                message: error.message,
+        let diagnostics = this.brsProgramBuilder.program.getDiagnostics();
+        for (let diagnostic of diagnostics) {
+            issuesByFile[diagnostic.file.pathAbsolute].push({
+                severity: diagnostic.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
+                range: diagnostic.location,
+                message: diagnostic.message,
                 //code: 'NO CODE',
                 source: 'brs'
             });

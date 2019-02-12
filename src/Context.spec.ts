@@ -22,7 +22,7 @@ describe('Context', () => {
     describe('addFile', () => {
         it('picks up new callables', async () => {
             //we have global callables, so get that initial number
-            let originalLength = context.callables.length;
+            let originalLength = context.getCallables().length;
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
@@ -33,14 +33,14 @@ describe('Context', () => {
                      print "A"
                  end function
             `);
-            context.addFile(file);
-            expect(context.callables.length).to.equal(originalLength + 2);
+            context.addOrReplaceFile(file);
+            expect(context.getCallables().length).to.equal(originalLength + 2);
         });
     });
 
     describe('removeFile', () => {
         it('removes callables from list', async () => {
-            let initCallableCount = context.callables.length;
+            let initCallableCount = context.getCallables().length;
             //add the file
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
@@ -48,18 +48,18 @@ describe('Context', () => {
                     print "A"
                 end function
             `);
-            context.addFile(file);
-            expect(context.callables.length).to.equal(initCallableCount + 1);
+            context.addOrReplaceFile(file);
+            expect(context.getCallables().length).to.equal(initCallableCount + 1);
 
             //remove the file
             context.removeFile(file);
-            expect(context.callables.length).to.equal(initCallableCount);
+            expect(context.getCallables().length).to.equal(initCallableCount);
         });
     });
 
     describe('validate', () => {
         it('detects duplicate callables', async () => {
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
@@ -70,36 +70,38 @@ describe('Context', () => {
                      print "A"
                  end function
             `);
-            context.addFile(file);
-            expect(context.diagnostics.length).to.equal(0);
+            context.addOrReplaceFile(file);
+            expect(
+                context.getDiagnostics().length
+            ).to.equal(0);
             //validate the context
             context.validate();
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
-            expect(context.diagnostics.length).to.equal(2);
+            expect(context.getDiagnostics().length).to.equal(2);
         });
 
         it('detects calls to unknown callables', async () => {
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
                     DoB()
                 end function
             `);
-            context.addFile(file);
-            expect(context.diagnostics.length).to.equal(0);
+            context.addOrReplaceFile(file);
+            expect(context.getDiagnostics().length).to.equal(0);
             //validate the context
             context.validate();
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoB'),
                 code: diagnosticMessages.Cannot_find_function_name_1001.code
             });
         });
 
         it('recognizes known callables', async () => {
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoA()
@@ -109,12 +111,12 @@ describe('Context', () => {
                     DoC()
                 end function
             `);
-            context.addFile(file);
-            expect(context.diagnostics.length).to.equal(0);
+            context.addOrReplaceFile(file);
+            expect(context.getDiagnostics().length).to.equal(0);
             //validate the context
             context.validate();
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Cannot_find_function_name_1001.message, 'DoC'),
                 code: diagnosticMessages.Cannot_find_function_name_1001.code
             });
@@ -122,33 +124,18 @@ describe('Context', () => {
 
         //We don't currently support someObj.callSomething() format, so don't throw errors on those
         it('does not fail on object callables', async () => {
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
             await file.parse(`
                 function DoB()
                     m.doSomething()
                 end function
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             //validate the context
             context.validate();
             //shouldn't have any errors
-            expect(context.diagnostics.length).to.equal(0);
-        });
-
-        it('recognizes global functions', async () => {
-            expect(context.diagnostics.length).to.equal(0);
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
-            await file.parse(`
-                function DoB()
-                    abs(1.5)
-                end function
-            `);
-            context.addFile(file);
-            //validate the context
-            context.validate();
-            //shouldn't have any errors
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
         });
 
         it('detects calling functions with too many parameters', async () => {
@@ -161,11 +148,11 @@ describe('Context', () => {
                     a(1)
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 0, 1),
                 code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
             });
@@ -181,11 +168,11 @@ describe('Context', () => {
                     a()
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 0),
                 code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
             });
@@ -201,10 +188,10 @@ describe('Context', () => {
                     a()
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
         });
 
         it('shows expected parameter range in error message', async () => {
@@ -217,11 +204,11 @@ describe('Context', () => {
                     a()
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, '1-2', 0),
                 code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
             });
@@ -237,10 +224,10 @@ describe('Context', () => {
                     a("cat" + "dog" + "mouse")
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(0);
+            expect(context.getDiagnostics().length).to.equal(0);
         });
 
         it('Catches extra arguments for expressions as arguments to a function', async () => {
@@ -253,14 +240,39 @@ describe('Context', () => {
                     a(m.lib.movies[0], 1)
                 end sub
             `);
-            context.addFile(file);
+            context.addOrReplaceFile(file);
             context.validate();
             //should have an error
-            expect(context.diagnostics.length).to.equal(1);
-            expect(context.diagnostics[0]).to.deep.include({
+            expect(context.getDiagnostics().length).to.equal(1);
+            expect(context.getDiagnostics()[0]).to.deep.include({
                 message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 2),
                 code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
             });
+        });
+    });
+
+    describe('inheritance', () => {
+        it('inherits callables from parent', () => {
+            let parentFile = new BrsFile('parentFile.brs', 'parentFile.brs');
+            parentFile.callables.push(<any>{
+                name: 'parentFunction'
+            });
+            var parentContext = new Context('parent', null);
+            parentContext.addOrReplaceFile(parentFile);
+
+            var childContext = new Context('child', null);
+
+            expect(childContext.getCallables()).to.be.lengthOf(0);
+
+            childContext.attachParent(parentContext);
+
+            //now that we attached the parent, the child should recognize the parent's callables
+            expect(childContext.getCallables()).to.be.lengthOf(1);
+            expect(childContext.getCallables()[0].name).to.equal('parentFunction');
+
+            //removes parent callables when parent is detached
+            childContext.detachParent();
+            expect(childContext.getCallables()).to.be.lengthOf(0);
         });
     });
 });

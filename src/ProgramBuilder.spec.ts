@@ -48,9 +48,9 @@ describe('ProgramBuilder', () => {
             }]));
 
             b.program = {
-                loadOrReloadFile: () => { }
+                addOrReplaceFile: () => { }
             };
-            let stub = sinon.stub(b.program, 'loadOrReloadFile');
+            let stub = sinon.stub(b.program, 'addOrReplaceFile');
             await b.loadAllFilesAST()
             expect(stub.getCalls()).to.be.lengthOf(3);
         });
