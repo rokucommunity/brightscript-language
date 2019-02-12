@@ -209,7 +209,7 @@ describe('Program', () => {
             expect(callCount).to.equal(1);
         });
 
-        it.only('links xml contexts based on xml parent-child relationships', async () => {
+        it('links xml contexts based on xml parent-child relationships', async () => {
             await program.addOrReplaceFile(n(`${rootDir}/components/ParentScene.xml`), `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ParentScene" extends="Scene">
