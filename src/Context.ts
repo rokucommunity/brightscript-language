@@ -66,29 +66,34 @@ export class Context {
         this.detachParent();
     }
 
-    private parentHandles = [] as (() => void)[];
+    private parentContextHandles = [] as (() => void)[];
 
-    public attachParent(parent: Context) {
-        this.parent = parent;
-        this.parentHandles = [
+    public attachParentContext(parent: Context) {
+        this.parentContext = parent;
+        this.parentContextHandles = [
             //whenever the parent is marked dirty, mark ourself as dirty
             parent.on('invalidated', () => {
                 this.isValidated = false;
             })
         ];
+
+        //immediately invalidate self if parent is not validated
+        if (!this.parentContext.isValidated) {
+            this.isValidated = false;
+        }
     }
 
     public detachParent() {
-        for (let disconnect of this.parentHandles) {
+        for (let disconnect of this.parentContextHandles) {
             disconnect();
         }
-        this.parent = undefined;
+        this.parentContext = this.program.platformContext;
     }
 
     /**
      * A parent context that this context inherits all things from.
      */
-    public parent: Context;
+    public parentContext: Context;
 
     /**
      * Determine if this file should 
@@ -135,8 +140,8 @@ export class Context {
         }
 
         //get callables from parent context
-        if (this.parent) {
-            let callables = this.parent.getCallables();
+        if (this.parentContext) {
+            let callables = this.parentContext.getCallables();
             for (let callable of callables) {
                 result.push(callable);
             }
@@ -204,8 +209,8 @@ export class Context {
             return;
         }
         //validate our parent before we validate ourself
-        if (this.parent && this.parent.isValidated === false) {
-            this.parent.validate();
+        if (this.parentContext && this.parentContext.isValidated === false) {
+            this.parentContext.validate();
         }
         //clear the context's errors list (we will populate them from this method)
         this._diagnostics = [];

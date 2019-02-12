@@ -46,15 +46,6 @@ export class BrsFile {
      */
     private ast: brs.parser.Stmt.Statement[];
 
-    public reset() {
-        this.wasProcessed = false;
-        this.diagnostics = [];
-        this.callables = [];
-        this.expressionCalls = [];
-        this.functionScopes = [];
-        this.scopesByFunc.clear();
-    }
-
     /**
      * Calculate the AST for this file
      * @param fileContents 

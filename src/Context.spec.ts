@@ -7,6 +7,8 @@ import { expect } from 'chai';
 import { Context as Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import util from './util';
+import { EventEmitter } from 'events';
+let n = path.normalize;
 
 describe('Context', () => {
     let sinon = sinonImport.createSandbox();
@@ -17,6 +19,51 @@ describe('Context', () => {
     });
     afterEach(() => {
         sinon.restore();
+    });
+
+    describe('attachProgram', () => {
+        it('correctly listens to program events', async () => {
+            var context = new Context('some context', (file) => true);
+
+            let file = new BrsFile(n('abs/file.brs'), n('rel/file.brs'));
+
+            //we're only testing events, so make this emitter look like a program
+            var program = new EventEmitter();
+            (program as any).files = {};
+
+            //attach the program (and therefore to the program's events)
+            context.attachProgram(program as any);
+
+            expect(context.hasFile(file)).to.be.false;
+
+            //"add" a file. context should keep it
+            program.emit('file-added', file);
+            expect(context.hasFile(file)).to.be.true;
+
+            //"remove" a file. context should discard it
+            program.emit('file-removed', file);
+            expect(context.hasFile(file)).to.be.false;
+        });
+    });
+
+    describe('attachParentContext', () => {
+        it('listens for invalidated events', async () => {
+            var parentCtx = new Context('parent', null);
+            parentCtx.isValidated = false;
+
+            var childCtx = new Context('child', null);
+            childCtx.isValidated = true;
+
+            //attaching child to invalidated parent invalidates child
+            childCtx.attachParentContext(parentCtx);
+            expect(childCtx.isValidated).to.be.false;
+
+            childCtx.isValidated = true;
+
+            //when parent emits invalidated, child marks as invalidated
+            (parentCtx as any).emit('invalidated');
+            expect(childCtx.isValidated).to.be.false;
+        });
     });
 
     describe('addFile', () => {
@@ -253,18 +300,23 @@ describe('Context', () => {
 
     describe('inheritance', () => {
         it('inherits callables from parent', () => {
+            var program = new Program({ rootDir });
+            //erase the platform context so our tests are more stable
+            program.platformContext = new Context('platform', null);
+
             let parentFile = new BrsFile('parentFile.brs', 'parentFile.brs');
             parentFile.callables.push(<any>{
                 name: 'parentFunction'
             });
             var parentContext = new Context('parent', null);
+            parentContext.attachProgram(program);
             parentContext.addOrReplaceFile(parentFile);
 
             var childContext = new Context('child', null);
-
+            childContext.attachProgram(program);
             expect(childContext.getCallables()).to.be.lengthOf(0);
 
-            childContext.attachParent(parentContext);
+            childContext.attachParentContext(parentContext);
 
             //now that we attached the parent, the child should recognize the parent's callables
             expect(childContext.getCallables()).to.be.lengthOf(1);

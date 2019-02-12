@@ -197,7 +197,34 @@ describe('Program', () => {
         });
     });
 
-    describe('loadOrReloadFile', async () => {
+    describe('addOrReplaceFile', async () => {
+        it.skip('links xml contexts based on xml parent-child relationships', async () => {
+            await program.addOrReplaceFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                </component>
+            `);
+
+            //create child component
+            await program.addOrReplaceFile(n(`${rootDir}/components/ChildScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                </component>
+            `);
+            await new Promise((resolve) => { setTimeout(resolve, 200) });
+            expect(program.contexts[n('components/ChildScene.xml')].parentContext.name).to.equal(n('components/ParentScene.xml'));
+
+            //change the parent's name.
+            await program.addOrReplaceFile(n(`${rootDir}/components/ParentScene.xml`), `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="NotParentScene" extends="Scene">
+                </component>
+            `);
+
+            //The child context should no longer have the link
+            expect(program.contexts[n('components/ChildScene.xml')].parentContext).to.be.undefined;
+        });
+
         it('creates a new context for every added component xml', async () => {
             //we have global callables, so get that initial number
             await program.addOrReplaceFile(`${rootDir}/components/component1.xml`, '');
@@ -427,6 +454,48 @@ describe('Program', () => {
             await program.validate();
             //the error should be gone because the child now has access to the parent script
             expect(program.getDiagnostics()).to.be.lengthOf(0);
+        });
+    });
+
+    describe('xml context', () => {
+        it('detects script import changes', async () => {
+            //create the xml file without script imports
+            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="MyScene" extends="Scene">
+                </component>
+            `);
+
+            //the component context should only have the xml file
+            expect(util.propertyCount(program.contexts[xmlFile.pkgPath].files)).to.equal(1);
+
+            //create the lib file
+            let libFile = await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `'comment`);
+
+            //change the xml file to have a script import
+            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="MyScene" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/source/lib.brs" />
+                </component>
+            `);
+
+            //the component context should have the xml file AND the lib file
+            expect(util.propertyCount(program.contexts[xmlFile.pkgPath].files)).to.equal(2);
+            expect(program.contexts[xmlFile.pkgPath].files[xmlFile.pathAbsolute]).to.exist;
+            expect(program.contexts[xmlFile.pkgPath].files[libFile.pathAbsolute]).to.exist;
+
+            //reload the xml file again, removing the script import.
+            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="MyScene" extends="Scene">
+                </component>
+            `);
+
+            //the context should again only have the xml file loaded
+            expect(util.propertyCount(program.contexts[xmlFile.pkgPath].files)).to.equal(1);
+            expect(program.contexts[xmlFile.pkgPath]).to.exist;
+
         });
     });
 });

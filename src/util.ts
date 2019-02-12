@@ -389,6 +389,16 @@ class Util {
         });
     }
 
+    public propertyCount(object: Object) {
+        var count = 0;
+        for (let key in object) {
+            if (object.hasOwnProperty(key)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public defer<T>() {
         let resolve: (value?: T | PromiseLike<T>) => void;
         let reject: (reason?: any) => void;

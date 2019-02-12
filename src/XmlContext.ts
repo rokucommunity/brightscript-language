@@ -10,26 +10,68 @@ export class XmlContext extends Context {
         });
         this.xmlFile = xmlFile;
         this.xmlFileHandles = [
-            //when the xml file adds script imports to its list, find those files from program and add to context
-            this.xmlFile.on('add-script-imports', (scriptImports) => {
-                //add every file from the program for these imports
-                for (let scriptImport of scriptImports) {
-                    var file = this.program.getFileByPkgPath(scriptImport.pkgPath);
-                    if (file) {
-                        this.addOrReplaceFile(file);
-                    }
-                }
+            //when the xml file gets a parent added, link to that parent's context
+            this.xmlFile.on('attach-parent', (parent: XmlFile) => {
+                this.handleXmlFileParentAttach(parent);
             }),
-            //when the xml file removes script imports, remove those files from context
-            this.xmlFile.on('remove-script-imports', scriptImports => {
-                for (let scriptImport of scriptImports) {
-                    var file = this.program.getFileByPkgPath(scriptImport.pkgPath);
-                    if (file) {
-                        this.removeFile(file);
-                    }
+
+            //when xml file detaches its parent, remove the context link
+            this.xmlFile.on('detach-parent', () => {
+                this.detachParent();
+            }),
+        ];
+
+        //if the xml file already has a parent attached, attach our context to that parent xml's context
+        if (this.xmlFile.parent) {
+            this.handleXmlFileParentAttach(this.xmlFile.parent);
+        }
+    }
+
+    public attachProgram(program: Program) {
+        super.attachProgram(program);
+
+        //if the xml file has an unresolved parent, look for its parent on every file add
+        this.programHandles.push(
+            this.program.on('file-added', (file) => {
+                this.addParentIfMatch(file);
+            })
+        );
+
+        //detach xml file's parent if it's removed from the program
+        this.programHandles.push(
+            this.program.on('file-removed', (file) => {
+                debugger;
+                if (
+                    //xml file has a parent
+                    this.xmlFile.parent &&
+                    //incoming file IS that parent
+                    file === this.xmlFile.parent
+                ) {
+                    this.isValidated = false;
+                    this.xmlFile.detachParent();
+
+                    //disconnect the context link
+                    this.detachParent();
                 }
             })
-        ];
+        );
+
+        //try finding and attaching the parent component
+        for (let key in this.program.files) {
+            this.addParentIfMatch(this.program.files[key]);
+        }
+
+        //if the xml file already has a parent xml file, attach it
+        if (this.xmlFile.parent && this.xmlFile.parent !== (this.program.platformContext as any)) {
+            this.handleXmlFileParentAttach(this.xmlFile.parent);
+        }
+    }
+
+    private handleXmlFileParentAttach(file: XmlFile) {
+        var parentContext = this.program.contexts[file.pkgPath];
+        if (parentContext) {
+            this.attachParentContext(parentContext);
+        }
     }
 
     private addParentIfMatch(file: BrsFile | XmlFile) {
@@ -48,36 +90,6 @@ export class XmlContext extends Context {
         }
     }
 
-    public attachProgram(program: Program) {
-        super.attachProgram(program);
-
-        //if the xml file has an unresolved parent, look for its parent on every file add
-        this.programHandles.push(
-            this.program.on('file-added', (file) => {
-                this.addParentIfMatch(file);
-            })
-        );
-
-        //detach xml file's parent if it's removed from the program
-        this.programHandles.push(
-            this.program.on('file-removed', (file) => {
-                if (
-                    //xml file has a parent
-                    this.xmlFile.parent &&
-                    //incoming file IS that parent
-                    file === this.xmlFile.parent
-                ) {
-                    this.isValidated = false;
-                    this.xmlFile.detachParent();
-                }
-            })
-        );
-
-        //try resolving the parent component
-        for (let key in this.program.files) {
-            this.addParentIfMatch(this.program.files[key]);
-        }
-    }
 
     private xmlFileHandles = [] as (() => void)[];
 

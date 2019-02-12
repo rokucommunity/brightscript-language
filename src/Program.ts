@@ -35,11 +35,15 @@ export class Program {
         });
         globalContext.attachProgram(this);
         //the global context inherits from platform context
-        globalContext.attachParent(this.platformContext);
+        globalContext.attachParentContext(this.platformContext);
         this.contexts[globalContext.name] = globalContext;
     }
 
-    private platformContext: Context;
+    /**
+     * A context that contains all platform-provided functions.
+     * All contexts should directly or indirectly inherit from this context
+     */
+    public platformContext: Context;
 
     private rootDir: string;
 
@@ -118,6 +122,9 @@ export class Program {
             var context = new XmlContext(xmlFile);
             //attach this program to the new context
             context.attachProgram(this);
+            //context inherits from platform by default
+            context.parentContext = this.platformContext;
+            
             this.contexts[context.name] = context;
         } else {
             let genericFile = {
