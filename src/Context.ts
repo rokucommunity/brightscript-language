@@ -340,7 +340,14 @@ export class Context {
         for (let lowerName in callablesByLowerName) {
             let callables = callablesByLowerName[lowerName];
 
+            let platformCallables = callables.filter(x => x.file === this.program.platformFile)
+            //add warning for shadowed platform functions
+
+            //filter out the platform callables for the remainder of this loop
+            callables = callables.filter(x => x.file !== this.program.platformFile);
+
             //TODO add warnings for shadowed methods instead of hard warnings
+
 
             //if there are no duplicates, move on
             if (callables.length < 2) {
@@ -349,7 +356,7 @@ export class Context {
 
             for (let callable of callables) {
                 this._diagnostics.push({
-                    message: diagnosticMessages.Duplicate_function_implementation_1003.message,
+                    message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name),
                     code: diagnosticMessages.Duplicate_function_implementation_1003.code,
                     location: Range.create(
                         callable.nameRange.start.line,

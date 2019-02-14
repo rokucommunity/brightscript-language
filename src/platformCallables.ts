@@ -1,6 +1,7 @@
 import { Callable } from './interfaces';
 import { BrsFile } from './files/BrsFile';
 import { platform } from 'os';
+import { Range } from 'vscode-languageserver';
 
 export let platformFile = new BrsFile('platform', 'platform');
 
@@ -763,4 +764,9 @@ By using Chr, you can create strings containing characters which cannot be conta
     }
 ] as Callable[];
 export var platformCallables = [...mathFunctions, ...runtimeFunctions, ...globalUtilityFunctions, ...globalStringFunctions];
+//give each callable a dummy location
+for (var callable of platformCallables) {
+    callable.nameRange = Range.create(0, 0, 0, callable.name.length);
+    callable.bodyRange = Range.create(0, 0, 0, callable.name.length);
+}
 platformFile.callables = platformCallables;

@@ -16,7 +16,7 @@ export var diagnosticMessages = {
         code: 1002
     },
     Duplicate_function_implementation_1003: {
-        message: 'Duplicate function implementation.',
+        message: 'Duplicate function implementation for {0}.',
         code: 1003
     },
     Referenced_file_does_not_exist_1004: {

@@ -99,7 +99,7 @@ describe('Program', () => {
             expect(program.getDiagnostics()).to.be.lengthOf(0);
         });
 
-        it.only('recognizes platform function calls', async () => {
+        it('recognizes platform function calls', async () => {
             expect(program.getDiagnostics().length).to.equal(0);
             await program.addOrReplaceFile(`${rootDir}/source/file.brs`, `
                 function DoB()

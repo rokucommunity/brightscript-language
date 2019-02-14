@@ -27,6 +27,11 @@ export class Program {
         this.platformContext = new Context('platform', (file) => false);
         //add all platform callables
         this.platformContext.addOrReplaceFile(platformFile);
+        this.platformFile = platformFile;
+        this.platformContext.attachProgram(this);
+        //for now, disable validation of this context because the platform files have some duplicate method declarations
+        this.platformContext.validate = () => [];
+        this.platformContext.isValidated = true;
 
         //create the "global" context
         var globalContext = new Context('global', (file) => {
@@ -44,6 +49,10 @@ export class Program {
      * All contexts should directly or indirectly inherit from this context
      */
     public platformContext: Context;
+    /**
+     * The file that contains all of the platform files
+     */
+    public platformFile: BrsFile;
 
     private rootDir: string;
 

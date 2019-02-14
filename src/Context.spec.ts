@@ -16,6 +16,7 @@ describe('Context', () => {
     let context: Context;
     beforeEach(() => {
         context = new Context('root', () => { });
+        context.attachProgram(new Program({}));
     });
     afterEach(() => {
         sinon.restore();
