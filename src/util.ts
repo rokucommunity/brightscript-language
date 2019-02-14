@@ -3,9 +3,9 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
-import { ValueKind, BRSType, Callable } from './interfaces';
+import { ValueKind, BRSType, Callable, CallableContainer } from './interfaces';
 import * as xml2js from 'xml2js';
-import { Range, Position } from 'vscode-languageserver';
+import { Range, Position, DiagnosticSeverity } from 'vscode-languageserver';
 import * as brs from 'brs';
 
 class Util {
@@ -239,20 +239,38 @@ class Util {
      * Given a list of callables, get that as a a dictionary indexed by name.
      * @param callables 
      */
-    public getCallablesByLowerName(callables: Callable[]) {
+    public getCallableContainersByLowerName(callables: CallableContainer[]) {
         //find duplicate functions
-        let result = {} as { [name: string]: Callable[] };
+        let result = {} as { [name: string]: CallableContainer[] };
 
-        for (let callable of callables) {
-            let lowerName = callable.name.toLowerCase();
+        for (let callableContainer of callables) {
+            let lowerName = callableContainer.callable.name.toLowerCase();
 
             //create a new array for this name
             if (result[lowerName] === undefined) {
                 result[lowerName] = [];
             }
-            result[lowerName].push(callable);
+            result[lowerName].push(callableContainer);
         }
         return result;
+    }
+
+    /**
+     * 
+     * @param severity 
+     */
+    public severityToDiagnostic(severity: 'hint' | 'information' | 'warning' | 'error') {
+        switch (severity) {
+            case 'hint':
+                return DiagnosticSeverity.Hint;
+            case 'information':
+                return DiagnosticSeverity.Information;
+            case 'warning':
+                return DiagnosticSeverity.Warning;
+            case 'error':
+            default:
+                return DiagnosticSeverity.Error;
+        }
     }
 
     /**

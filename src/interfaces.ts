@@ -1,9 +1,10 @@
 import { XmlFile } from './files/XmlFile';
 import { Position, Range } from 'vscode-languageserver';
 import { BrsFile } from './files/BrsFile';
+import { Context } from './Context';
 
 export interface Diagnostic {
-    severity: string | 'warning' | 'error';
+    severity: 'hint' | 'information' | 'warning' | 'error';
     /**
      * The message for this diagnostic
      */
@@ -131,6 +132,15 @@ export enum ValueKind {
     Dynamic = 9,
     Void = 10,
     Object = 11
+}
+
+
+/**
+ * A wrapper around a callable to provide more information about where it came from
+ */
+export interface CallableContainer {
+    callable: Callable;
+    context: Context;
 }
 
 export enum Lexeme {

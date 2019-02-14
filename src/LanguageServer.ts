@@ -280,7 +280,7 @@ export class LanguageServer {
         let diagnostics = this.brsProgramBuilder.program.getDiagnostics();
         for (let diagnostic of diagnostics) {
             issuesByFile[diagnostic.file.pathAbsolute].push({
-                severity: diagnostic.severity === 'warning' ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
+                severity: util.severityToDiagnostic(diagnostic.severity),
                 range: diagnostic.location,
                 message: diagnostic.message,
                 code: diagnostic.code,

@@ -136,6 +136,51 @@ describe('Program', () => {
             expect(diagnostics[0].severity).to.equal('warning');
         });
 
+        it('adds info diag when child component method shadows parent component method', async () => {
+            await program.addOrReplaceFile(`${rootDir}/components/parent.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/parent.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                    <script type="text/brightscript" uri="pkg:/child.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/parent.brs`, `sub DoSomething()\nend sub`);
+            await program.addOrReplaceFile(`${rootDir}/child.brs`, `sub DoSomething()\nend sub`);
+            await program.validate();
+            var diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010.code);
+        });
+
+        it('does not add info diagnostic on shadowed "init" functions', async () => {
+            await program.addOrReplaceFile(`${rootDir}/components/parent.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/parent.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="ParentScene">
+                    <script type="text/brightscript" uri="pkg:/child.brs" />
+                </component>            
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/parent.brs`, `sub Init()\nend sub`);
+            await program.addOrReplaceFile(`${rootDir}/child.brs`, `sub Init()\nend sub`);
+            await program.validate();
+            var diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(0);
+        });
+
         it('catches duplicate methods in single file', async () => {
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()

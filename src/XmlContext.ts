@@ -96,7 +96,6 @@ export class XmlContext extends Context {
     }
 
     public validate() {
-        debugger;
         if (this.isValidated === false) {
             super.validate();
 

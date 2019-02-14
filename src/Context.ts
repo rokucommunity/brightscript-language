@@ -1,6 +1,6 @@
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
-import { Diagnostic, Callable, File } from './interfaces';
+import { Diagnostic, Callable, File, CallableContainer } from './interfaces';
 import { EventEmitter } from 'events';
 import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
@@ -128,33 +128,30 @@ export class Context {
     /**
      * Get the list of callables available in this context (either declared in this context or in a parent context) 
      */
-    public getAllCallables() {
-        //get callables from this context
-        var result = this.getOwnCallables();
-
+    public getAllCallables(): CallableContainer[] {
         //get callables from parent contexts
         if (this.parentContext) {
-            let callables = this.parentContext.getAllCallables();
-            for (let callable of callables) {
-                result.push(callable);
-            }
+            return [...this.getOwnCallables(), ...this.parentContext.getAllCallables()];
+        } else {
+            return [...this.getOwnCallables()];
         }
-
-        return result;
     }
 
     /**
      * Get the list of callables explicitly defined in files in this context.
      * This excludes ancestor callables
      */
-    public getOwnCallables() {
-        let result = [] as Callable[];
+    public getOwnCallables(): CallableContainer[] {
+        let result = [] as CallableContainer[];
 
         //get callables from own files
         for (let filePath in this.files) {
             let file = this.files[filePath];
             for (let callable of file.file.callables) {
-                result.push(callable);
+                result.push({
+                    callable: callable,
+                    context: this
+                });
             }
         }
         return result;
@@ -231,23 +228,23 @@ export class Context {
         callables = callables.sort((a, b) => {
             return (
                 //sort by path
-                a.file.pathAbsolute.localeCompare(b.file.pathAbsolute) ||
+                a.callable.file.pathAbsolute.localeCompare(b.callable.file.pathAbsolute) ||
                 //then sort by method name
-                a.name.localeCompare(b.name)
+                a.callable.name.localeCompare(b.callable.name)
             );
         });
 
         //get a list of all callables, indexed by their lower case names
-        let callablesByLowerName = util.getCallablesByLowerName(callables);
+        let callableContainersByLowerName = util.getCallableContainersByLowerName(callables);
 
         //find all duplicate function declarations
-        this.diagnosticFindDuplicateFunctionDeclarations(callablesByLowerName);
+        this.diagnosticFindDuplicateFunctionDeclarations(callableContainersByLowerName);
 
         //do many per-file checks
         for (let key in this.files) {
             let contextFile = this.files[key];
-            this.diagnosticDetectCallsToUnknownFunctions(contextFile.file, callablesByLowerName);
-            this.diagnosticDetectFunctionCallsWithWrongParamCount(contextFile.file, callablesByLowerName);
+            this.diagnosticDetectCallsToUnknownFunctions(contextFile.file, callableContainersByLowerName);
+            this.diagnosticDetectFunctionCallsWithWrongParamCount(contextFile.file, callableContainersByLowerName);
         }
 
         this.isValidated = false;
@@ -256,21 +253,21 @@ export class Context {
     /**
      * Detect calls to functions with the incorrect number of parameters
      * @param file 
-     * @param callablesByLowerName 
+     * @param callableContainersByLowerName 
      */
-    private diagnosticDetectFunctionCallsWithWrongParamCount(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: Callable[] }) {
+    private diagnosticDetectFunctionCallsWithWrongParamCount(file: BrsFile | XmlFile, callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
         for (let expCall of file.expressionCalls) {
-            let callablesWithThisName = callablesByLowerName[expCall.name.toLowerCase()];
+            let callableContainersWithThisName = callableContainersByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error
-            let knownCallable = callablesWithThisName ? callablesWithThisName[0] : undefined;
+            let knownCallableContainer = callableContainersWithThisName ? callableContainersWithThisName[0] : undefined;
 
-            if (knownCallable) {
+            if (knownCallableContainer) {
                 //get min/max parameter count for callable
                 let minParams = 0;
                 let maxParams = 0;
-                for (let param of knownCallable.params) {
+                for (let param of knownCallableContainer.callable.params) {
                     maxParams++;
                     //optional parameters must come last, so we can assume that minParams won't increase once we hit
                     //the first isOptional
@@ -304,7 +301,7 @@ export class Context {
      * @param file 
      * @param callablesByLowerName 
      */
-    private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: Callable[] }) {
+    private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
         for (let expCall of file.expressionCalls) {
             let callablesWithThisName = callablesByLowerName[expCall.name.toLowerCase()];
@@ -336,37 +333,73 @@ export class Context {
      * Create diagnostics for any duplicate function declarations
      * @param callablesByLowerName 
      */
-    private diagnosticFindDuplicateFunctionDeclarations(callablesByLowerName: { [lowerName: string]: Callable[] }) {
-        for (let lowerName in callablesByLowerName) {
-            let callables = callablesByLowerName[lowerName];
+    private diagnosticFindDuplicateFunctionDeclarations(callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
+        //for each list of callables with the same name
+        for (let lowerName in callableContainersByLowerName) {
+            let callableContainers = callableContainersByLowerName[lowerName];
 
-            let platformCallables = callables.filter(x => x.file === this.program.platformFile)
-            //add warning for shadowed platform functions
+            let platformCallables = [] as CallableContainer[];
+            let nonPlatformCallables = [] as CallableContainer[];
+            let ownCallables = [] as CallableContainer[];
+            let ancestorNonPlatformCallables = [] as CallableContainer[];
 
-            //filter out the platform callables for the remainder of this loop
-            callables = callables.filter(x => x.file !== this.program.platformFile);
-
-            //TODO add warnings for shadowed methods instead of hard warnings
-
-
-            //if there are no duplicates, move on
-            if (callables.length < 2) {
-                continue;
+            for (let container of callableContainers) {
+                if (container.context === this.program.platformContext) {
+                    platformCallables.push(container);
+                } else {
+                    nonPlatformCallables.push(container);
+                    if (container.context === this) {
+                        ownCallables.push(container);
+                    } else {
+                        ancestorNonPlatformCallables.push(container);
+                    }
+                }
             }
 
-            for (let callable of callables) {
-                this._diagnostics.push({
-                    message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name),
-                    code: diagnosticMessages.Duplicate_function_implementation_1003.code,
-                    location: Range.create(
-                        callable.nameRange.start.line,
-                        callable.nameRange.start.character,
-                        callable.nameRange.start.line,
-                        callable.nameRange.end.character
-                    ),
-                    file: callable.file,
-                    severity: 'error'
-                });
+            //add info diagnostics about child shadowing parent functions
+            if (ownCallables.length > 0 && ancestorNonPlatformCallables.length > 0) {
+                inner: for (let container of ownCallables) {
+                    //skip the init function (because every component will have one of those){
+                    if (lowerName === 'init') {
+                        continue inner;
+                    }
+                    let shadowedCallable = ancestorNonPlatformCallables[ancestorNonPlatformCallables.length - 1];
+                    this._diagnostics.push({
+                        message: util.stringFormat(
+                            diagnosticMessages.Shadows_ancestor_function_1010.message,
+                            container.callable.name,
+                            container.context.name,
+                            shadowedCallable.callable.file.pkgPath,
+                            //grab the last item in the list, which should be the closest ancestor's version
+                            shadowedCallable.context.name,
+                        ),
+                        code: diagnosticMessages.Shadows_ancestor_function_1010.code,
+                        location: container.callable.nameRange,
+                        file: container.callable.file,
+                        severity: 'hint'
+                    });
+                }
+            }
+
+            //add error diagnostics about duplicate functions in the same context
+            if (ownCallables.length > 1) {
+
+                for (let callableContainer of ownCallables) {
+                    let callable = callableContainer.callable;
+
+                    this._diagnostics.push({
+                        message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name, callableContainer.context.name),
+                        code: diagnosticMessages.Duplicate_function_implementation_1003.code,
+                        location: Range.create(
+                            callable.nameRange.start.line,
+                            callable.nameRange.start.character,
+                            callable.nameRange.start.line,
+                            callable.nameRange.end.character
+                        ),
+                        file: callable.file,
+                        severity: 'error'
+                    });
+                }
             }
         }
     }
@@ -401,12 +434,12 @@ export class Context {
     public getCallablesAsCompletions() {
         let completions = [] as CompletionItem[];
         let callables = this.getAllCallables();
-        for (let callable of callables) {
+        for (let callableContainer of callables) {
             completions.push({
-                label: callable.name,
+                label: callableContainer.callable.name,
                 kind: CompletionItemKind.Function,
-                detail: callable.shortDescription,
-                documentation: callable.documentation ? { kind: 'markdown', value: callable.documentation } : undefined
+                detail: callableContainer.callable.shortDescription,
+                documentation: callableContainer.callable.documentation ? { kind: 'markdown', value: callableContainer.callable.documentation } : undefined
             });
         }
         return completions;
@@ -415,6 +448,7 @@ export class Context {
 
 class ContextFile {
     constructor(
-        public file: BrsFile | XmlFile) {
+        public file: BrsFile | XmlFile
+    ) {
     }
 }

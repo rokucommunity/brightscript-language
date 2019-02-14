@@ -16,7 +16,7 @@ export var diagnosticMessages = {
         code: 1002
     },
     Duplicate_function_implementation_1003: {
-        message: 'Duplicate function implementation for {0}.',
+        message: 'Duplicate function implementation for "{0}" when included in scope "{1}".',
         code: 1003
     },
     Referenced_file_does_not_exist_1004: {
@@ -41,7 +41,11 @@ export var diagnosticMessages = {
         code: 1008
     },
     Unnecessary_script_import_in_child_from_parent_1009: {
-        message: 'Unnecessary script import: Script is already imported in ancestor component {0}',
+        message: 'Unnecessary script import: Script is already imported in ancestor component "{0}"',
         code: 1009
+    },
+    Shadows_ancestor_function_1010: {
+        message: 'Function "{0}" included in "{1}" shadows function in "{2}" included in "{3}"',
+        code: 1010
     }
 }

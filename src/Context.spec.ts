@@ -321,7 +321,7 @@ describe('Context', () => {
 
             //now that we attached the parent, the child should recognize the parent's callables
             expect(childContext.getAllCallables()).to.be.lengthOf(1);
-            expect(childContext.getAllCallables()[0].name).to.equal('parentFunction');
+            expect(childContext.getAllCallables()[0].callable.name).to.equal('parentFunction');
 
             //removes parent callables when parent is detached
             childContext.detachParent();
