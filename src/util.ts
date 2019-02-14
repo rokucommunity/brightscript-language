@@ -154,6 +154,7 @@ class Util {
         config.outFile = config.outFile ? config.outFile : 'out/package.zip';
         config.username = config.username ? config.username : 'rokudev';
         config.watch = config.watch === true ? true : false;
+        config.ignoreErrorCodes = config.ignoreErrorCodes ? config.ignoreErrorCodes : [];
         return config;
     }
 

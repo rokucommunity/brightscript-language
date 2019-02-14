@@ -349,4 +349,8 @@ export interface BRSConfig {
      * The password to use when deploying to a Roku device
      */
     password?: string;
+    /**
+     * A list of error codes the compiler should NOT emit, even if encountered.
+     */
+    ignoreErrorCodes?: number[];
 }

@@ -7,7 +7,6 @@ import { expect, assert } from 'chai';
 import util from './util';
 import { Program } from './Program';
 
-
 beforeEach(() => {
 });
 afterEach(() => {

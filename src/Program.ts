@@ -67,6 +67,11 @@ export class Program {
             errorLists.push(context.getDiagnostics());
         }
         let result = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
+
+        //if we have a list of error codes to ignore, throw them out
+        if (this.config.ignoreErrorCodes.length > 0) {
+            result = result.filter(x => this.config.ignoreErrorCodes.indexOf(x.code) === -1);
+        }
         return result;
     }
 

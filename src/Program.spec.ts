@@ -605,4 +605,33 @@ describe('Program', () => {
 
         });
     });
+
+
+    describe('getDiagnostics', () => {
+        it('it excludes specified error codes', async () => {
+            //declare file with two different syntax errors
+            await program.addOrReplaceFile(n(`${rootDir}/source/main.brs`), `
+                sub A()
+                    'call with wrong param count
+                    B(1,2,3)
+
+                    'call unknown function
+                    C()
+                end sub
+
+                sub B(name as string)
+                end sub
+            `);
+
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(2);
+
+            program.config.ignoreErrorCodes = [
+                diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            ];
+
+            expect(program.getDiagnostics()).to.be.lengthOf(1);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+        });
+    });
 });
