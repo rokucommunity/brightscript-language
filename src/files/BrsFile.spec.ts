@@ -17,8 +17,7 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
-        //TODO re-enable when brs fixes bug
-        it.skip('succeeds when finding variables with "sub" in them', async () => {
+        it('succeeds when finding variables with "sub" in them', async () => {
             await file.parse(`
                 function DoSomething()
                     return value.subType()
@@ -50,21 +49,11 @@ describe('BrsFile', () => {
                      print "B"
                  end function
             `);
-            //TODO fix line ends when brs fixes name locations
             expect(file.callables[0].name).to.equal('DoA');
-            expect(file.callables[0].nameRange.start.line).to.equal(1);
-            expect(file.callables[0].nameRange.start.character).to.equal(25);
-            expect(file.callables[0].nameRange.end.line).to.equal(1);
-            // expect(file.callables[0].nameRange.end.line).to.equal(28);
-            // expect(file.callables[0].nameRange).to.eql(Range.create(1, 25, 1, 28));
-
+            expect(file.callables[0].nameRange).to.eql(Range.create(1, 25, 1, 28));
 
             expect(file.callables[1].name).to.equal('DoB');
-            expect(file.callables[1].nameRange.start.line).to.equal(5);
-            expect(file.callables[1].nameRange.start.character).to.equal(26);
-            expect(file.callables[1].nameRange.start.line).to.equal(5);
-            // expect(file.callables[1].nameRange.start.line).to.equal(29);
-            // expect(file.callables[1].nameRange).to.eql(Range.create(5, 26, 5, 29));
+            expect(file.callables[1].nameRange).to.eql(Range.create(5, 26, 5, 29));
         });
 
         it('throws an error if the file has already been parsed', async () => {
@@ -121,13 +110,11 @@ describe('BrsFile', () => {
 
             expect(file.expressionCalls[0].lineIndex).to.equal(2);
             expect(file.expressionCalls[0].columnIndexBegin).to.equal(20);
-            //TODO re-enable when brs fixes function name positions
-            // expect(file.expressionCalls[0].columnIndexEnd).to.equal(23);
+            expect(file.expressionCalls[0].columnIndexEnd).to.equal(23);
 
             expect(file.expressionCalls[1].lineIndex).to.equal(5);
             expect(file.expressionCalls[1].columnIndexBegin).to.equal(21);
-            //TODO re-enable when brs fixes function name positions
-            // expect(file.expressionCalls[1].columnIndexEnd).to.equal(24);
+            expect(file.expressionCalls[1].columnIndexEnd).to.equal(24);
         });
 
         it('sanitizes brs errors', async () => {
@@ -327,10 +314,10 @@ describe('BrsFile', () => {
             expect(file.standardizeLexParseErrors([<any>{
                 location: {
                     start: {
-                        column: 1,
+                        column: 0,
                         line: 1
                     }, end: {
-                        column: 5,
+                        column: 4,
                         line: 2
                     },
                     file: ''
