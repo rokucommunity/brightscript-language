@@ -36,7 +36,7 @@ export class ProgramBuilder {
         }
         this.options = await util.normalizeAndResolveConfig(options);
 
-        this.program = new Program(options);
+        this.program = new Program(this.options );
         //parse every file in the entire project
         await this.loadAllFilesAST();
 
