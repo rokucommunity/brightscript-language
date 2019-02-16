@@ -8,7 +8,7 @@
     "watch": "rimraf out && tsc --watch",
     "prepublishOnly": "npm run build",
     "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
-    "test": "nyc mocha 'src/**/*.spec.ts' --full-trace",
+    "test": "nyc mocha \"src/**/*.spec.ts\" --full-trace",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "files": [
