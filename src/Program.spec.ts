@@ -45,6 +45,8 @@ describe('Program', () => {
             let mainPath = path.normalize(`${rootDir}/source/main.brs`);
             //add a new source file
             await program.addOrReplaceFile(mainPath, '');
+            console.log('Main path', mainPath);
+            console.log('Contexts', JSON.stringify(Object.keys(program.contexts)));
             //file should be in global context now
             expect(program.contexts['global'].files[mainPath]).to.exist;
 
@@ -56,9 +58,12 @@ describe('Program', () => {
         });
 
         it('normalizes file paths', async () => {
-            let filePath = `${rootDir}/source\\main.brs`
+            let filePath = n(`${rootDir}/source\\main.brs`);
             await program.addOrReplaceFile(filePath, '')
-            expect(program.contexts['global'].files[path.normalize(filePath)]);
+            console.log('Main path', filePath);
+            console.log('Contexts', JSON.stringify(Object.keys(program.contexts)));
+
+            expect(program.contexts['global'].files[n(filePath)]);
 
             //shouldn't throw an exception because it will find the correct path after normalizing the above path and remove it
             try {
