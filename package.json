@@ -8,7 +8,7 @@
     "watch": "rimraf out && tsc --watch",
     "prepublishOnly": "npm run build",
     "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
-    "test": "nyc mocha src/**/*.spec.ts --full-trace",
+    "test": "nyc mocha \"src/**/*.spec.ts\" --full-trace",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "files": [
@@ -55,7 +55,7 @@
     "@types/command-line-args": "^5.0.0",
     "@types/fs-extra": "^5.0.1",
     "@types/mocha": "^5.2.5",
-    "@types/node": "^10.12.23",
+    "@types/node": "^11.9.0",
     "@types/request": "^2.47.0",
     "@types/sinon": "^7.0.4",
     "chai": "^4.2.0",
@@ -65,7 +65,7 @@
     "coveralls": "^3.0.0",
     "mocha": "^5.2.0",
     "node-run-cmd": "^1.0.1",
-    "nyc": "^13.1.0",
+    "nyc": "^13.3.0",
     "rimraf": "^2.6.2",
     "sinon": "^7.2.2",
     "source-map-support": "^0.5.10",
@@ -77,7 +77,7 @@
     "typescript": "^3.2.4"
   },
   "dependencies": {
-    "brs": "github:twitchbronbron/brs#972c3fe",
+    "brs": "github:twitchbronbron/brs#caf8c4f",
     "chokidar": "^2.0.4",
     "clear": "^0.1.0",
     "command-line-args": "^5.0.2",

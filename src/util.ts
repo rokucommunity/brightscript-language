@@ -14,7 +14,7 @@ class Util {
         console.log.apply(console.log, [timestamp, ...args]);
     }
     public clearConsole() {
-        //TODO
+        //TODO re-enable this maybe?
         // process.stdout.write('\x1B[2J\x1B[0f');
     }
 
@@ -154,6 +154,7 @@ class Util {
         config.outFile = config.outFile ? config.outFile : 'out/package.zip';
         config.username = config.username ? config.username : 'rokudev';
         config.watch = config.watch === true ? true : false;
+        config.ignoreErrorCodes = config.ignoreErrorCodes ? config.ignoreErrorCodes : [];
         return config;
     }
 
@@ -213,10 +214,12 @@ class Util {
      */
     public locationToRange(location: brs.lexer.Location) {
         return Range.create(
+            //brs error lines are 1-indexed
             location.start.line - 1,
-            location.start.column - 1,
+            //brs error columns are 0-based
+            location.start.column,
             location.end.line - 1,
-            location.end.column - 1
+            location.end.column
         );
     }
 
@@ -231,7 +234,8 @@ class Util {
             0,
             //func body ends right before the `end function|sub` line
             func.end.location.start.line - 1,
-            func.end.location.start.column - 1
+            //brs location columns are 0-based
+            func.end.location.start.column
         );
     }
 

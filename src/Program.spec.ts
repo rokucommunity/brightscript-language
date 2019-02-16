@@ -13,7 +13,7 @@ let n = path.normalize;
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 
 let sinon = sinonImport.createSandbox();
-let rootDir = 'C:/projects/RokuApp';
+let rootDir = process.cwd();
 let program: Program;
 beforeEach(() => {
     program = new Program({ rootDir });
@@ -56,9 +56,10 @@ describe('Program', () => {
         });
 
         it('normalizes file paths', async () => {
-            let filePath = `${rootDir}/source\\main.brs`
+            let filePath = n(`${rootDir}/source\\main.brs`);
             await program.addOrReplaceFile(filePath, '')
-            expect(program.contexts['global'].files[path.normalize(filePath)]);
+
+            expect(program.contexts['global'].files[n(filePath)]);
 
             //shouldn't throw an exception because it will find the correct path after normalizing the above path and remove it
             try {
@@ -603,6 +604,35 @@ describe('Program', () => {
             expect(util.propertyCount(program.contexts[xmlFile.pkgPath].files)).to.equal(1);
             expect(program.contexts[xmlFile.pkgPath]).to.exist;
 
+        });
+    });
+
+
+    describe('getDiagnostics', () => {
+        it('it excludes specified error codes', async () => {
+            //declare file with two different syntax errors
+            await program.addOrReplaceFile(n(`${rootDir}/source/main.brs`), `
+                sub A()
+                    'call with wrong param count
+                    B(1,2,3)
+
+                    'call unknown function
+                    C()
+                end sub
+
+                sub B(name as string)
+                end sub
+            `);
+
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(2);
+
+            program.config.ignoreErrorCodes = [
+                diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+            ];
+
+            expect(program.getDiagnostics()).to.be.lengthOf(1);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
         });
     });
 });

@@ -36,7 +36,7 @@ export class ProgramBuilder {
         }
         this.options = await util.normalizeAndResolveConfig(options);
 
-        this.program = new Program(options);
+        this.program = new Program(this.options );
         //parse every file in the entire project
         await this.loadAllFilesAST();
 
@@ -349,4 +349,8 @@ export interface BRSConfig {
      * The password to use when deploying to a Roku device
      */
     password?: string;
+    /**
+     * A list of error codes the compiler should NOT emit, even if encountered.
+     */
+    ignoreErrorCodes?: number[];
 }
