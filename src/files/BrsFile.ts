@@ -4,7 +4,7 @@ import * as path from 'path';
 import { Callable, ExpressionCall, Diagnostic, CallableArg, CallableParam } from '../interfaces';
 import { Context } from '../Context';
 import util from '../util';
-import { Position, Range, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
+import { Position, Range, CompletionItem, CompletionItemKind, Hover } from 'vscode-languageserver';
 import { FunctionScope } from '../FunctionScope';
 import { outputFile } from 'fs-extra';
 import { diagnosticMessages } from '../DiagnosticMessages';
@@ -12,6 +12,8 @@ import { BrsType } from '../types/BrsType';
 import { DynamicType } from '../types/DynamicType';
 import { StringType } from '../types/StringType';
 import { FunctionType } from '../types/FunctionType';
+import { VoidType } from '../types/VoidType';
+import { Program } from '../Program';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -22,7 +24,8 @@ export class BrsFile {
         /**
          * The absolute path to the file, relative to the pkg
          */
-        public pkgPath: string
+        public pkgPath: string,
+        public program: Program
     ) {
         this.extension = path.extname(pathAbsolute).toLowerCase();
     }
@@ -45,7 +48,7 @@ export class BrsFile {
 
     public callables = [] as Callable[]
 
-    public expressionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as ExpressionCall[];
 
     public functionScopes = [] as FunctionScope[];
 
@@ -85,12 +88,11 @@ export class BrsFile {
         //extract all callables from this file
         this.findCallables(lines);
 
-        //find all places where a sub/function is being called
-        this.findCallableInvocations(lines);
-
-        //traverse the ast and find all functions,
-        //and create a scope object
+        //traverse the ast and find all functions and create a scope object
         this.createFunctionScopes(lines, this.ast);
+
+        //find all places where a sub/function is being called
+        this.findFunctionCalls(lines);
 
         this.wasProcessed = true;
     }
@@ -142,6 +144,8 @@ export class BrsFile {
                 if (parentScope) {
                     parentScope.childrenScopes.push(scope);
                 }
+                //store the parent scope for this scope
+                scope.parentScope = parentScope;
             }
 
             //compute the range of this func
@@ -208,11 +212,19 @@ export class BrsFile {
         try {
             //function
             if (assignment.value instanceof brs.parser.Expr.Function) {
-                let params = [] as BrsType[];
-                for (let argument of assignment.value.parameters) {
-                    params.push(util.valueKindToBrsType(argument.type));
+                let functionType = new FunctionType(util.valueKindToBrsType(assignment.value.returns));
+                functionType.isSub = assignment.value.keyword.text === 'sub';
+                if (functionType.isSub) {
+                    functionType.returnType = new VoidType();
                 }
-                return new FunctionType(params, util.valueKindToBrsType(assignment.value.returns));
+
+                functionType.setName(assignment.name.text);
+                for (let argument of assignment.value.parameters) {
+                    let isRequired = !argument.defaultValue;
+                    //TODO compute optional parameters
+                    functionType.addParameter(argument.name, util.valueKindToBrsType(argument.type), isRequired)
+                }
+                return functionType;
 
                 //literal
             } else if (assignment.value instanceof brs.parser.Expr.Literal) {
@@ -222,9 +234,9 @@ export class BrsFile {
             } else if (assignment.value instanceof brs.parser.Expr.Call) {
                 let calleeName = (assignment.value.callee as any).name.text;
                 if (calleeName) {
-                    let func = this.getFunctionByName(calleeName);
+                    let func = this.getCallableByName(calleeName);
                     if (func) {
-                        return func.returnType;
+                        return func.type.returnType;
                     }
                 }
             } else if (assignment.value instanceof brs.parser.Expr.Variable) {
@@ -239,7 +251,7 @@ export class BrsFile {
         return new DynamicType();
     }
 
-    private getFunctionByName(name: string) {
+    private getCallableByName(name: string) {
         name = name ? name.toLowerCase() : undefined;
         if (!name) {
             return;
@@ -258,32 +270,43 @@ export class BrsFile {
                 continue;
             }
 
+            let functionType = new FunctionType(util.valueKindToBrsType(statement.func.returns));
+            functionType.setName(statement.name.text);
+            functionType.isSub = statement.func.keyword.text.toLowerCase() === 'sub';
+            if (functionType.isSub) {
+                functionType.returnType = new VoidType();
+            }
+
             //extract the parameters
             let params = [] as CallableParam[];
             for (let param of statement.func.parameters) {
-                params.push({
+                let callableParam = {
                     name: param.name,
                     type: util.valueKindToBrsType(param.type),
                     isOptional: !!param.defaultValue,
                     isRestArgument: false
-                });
+                };
+                params.push(callableParam);
+                let isRequired = !param.defaultValue;
+                functionType.addParameter(callableParam.name, callableParam.type, isRequired);
             }
 
+
             this.callables.push({
+                isSub: statement.func.keyword.text.toLowerCase() === 'sub',
                 name: statement.name.text,
-                returnType: util.valueKindToBrsType(statement.func.returns),
                 nameRange: util.locationToRange(statement.name.location),
                 file: this,
                 params: params,
                 //the function body starts on the next line (since we can't have one-line functions)
                 bodyRange: util.getBodyRangeForFunc(statement.func),
-                type: 'function'
+                type: functionType
             });
         }
     }
 
-    private findCallableInvocations(lines: string[]) {
-        this.expressionCalls = [];
+    private findFunctionCalls(lines: string[]) {
+        this.functionCalls = [];
 
         //for now, just dig into top-level function declarations.
         for (let statement of this.ast as any) {
@@ -348,16 +371,14 @@ export class BrsFile {
                     }
 
                     let expCall: ExpressionCall = {
+                        functionScope: this.getFunctionScopeAtPosition(Position.create(calleeRange.start.line, calleeRange.start.character)),
                         file: this,
                         name: functionName,
-                        //TODO convert this to a range
-                        columnIndexBegin: columnIndexBegin,
-                        columnIndexEnd: columnIndexEnd,
-                        lineIndex: calleeRange.start.line,
+                        nameRange: Range.create(calleeRange.start.line, columnIndexBegin, calleeRange.start.line, columnIndexEnd),
                         //TODO keep track of parameters
                         args: args
                     };
-                    this.expressionCalls.push(expCall);
+                    this.functionCalls.push(expCall);
                 }
             }
         }
@@ -403,5 +424,50 @@ export class BrsFile {
             });
         }
         return results;
+    }
+
+    public getHover(position: Position): Hover {
+        //function declarations
+        for (let callable of this.callables) {
+            if (util.rangeContains(callable.nameRange, position)) {
+                return {
+                    range: callable.nameRange,
+                    contents: util.getFunctionHoverDescription(callable.type)
+                };
+            }
+        }
+
+        //function calls
+        for (let functionCall of this.functionCalls) {
+            //we found a matching function call. Walk up the scope tree until we find the declared function
+            if (util.rangeContains(functionCall.nameRange, position)) {
+                let scope = functionCall.functionScope;
+                while (scope) {
+                    //look at every variable declaration
+                    for (let decl of scope.variableDeclarations) {
+                        //if the declaration is a function, and the names match
+                        if (decl.type instanceof FunctionType && decl.name.toLowerCase() === functionCall.name.toLowerCase()) {
+                            return {
+                                range: functionCall.nameRange,
+                                contents: util.getFunctionHoverDescription(decl.type)
+                            };
+                        }
+                    }
+                    scope = scope.parentScope;
+                }
+
+                //we didn't find the function in any local scope. Look for the function declaration in all relevant contexts
+                let contexts = this.program.getContextsForFile(this);
+                for (let context of contexts) {
+                    let callable = context.getCallableByName(functionCall.name);
+                    if (callable) {
+                        return {
+                            range: functionCall.nameRange,
+                            contents: util.getFunctionHoverDescription(callable.type)
+                        };
+                    }
+                }
+            }
+        }
     }
 }

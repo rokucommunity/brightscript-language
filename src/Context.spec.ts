@@ -13,10 +13,14 @@ let n = path.normalize;
 describe('Context', () => {
     let sinon = sinonImport.createSandbox();
     let rootDir = 'C:/projects/RokuApp';
+    let program: Program;
     let context: Context;
     beforeEach(() => {
+        program = new Program({
+            rootDir: rootDir
+        });
         context = new Context('root', () => { });
-        context.attachProgram(new Program({}));
+        context.attachProgram(program);
     });
     afterEach(() => {
         sinon.restore();
@@ -26,23 +30,23 @@ describe('Context', () => {
         it('correctly listens to program events', async () => {
             var context = new Context('some context', (file) => true);
 
-            let file = new BrsFile(n('abs/file.brs'), n('rel/file.brs'));
+            let file = new BrsFile(n('abs/file.brs'), n('rel/file.brs'), program);
 
             //we're only testing events, so make this emitter look like a program
-            var program = new EventEmitter();
-            (program as any).files = {};
+            var fakeProgram = new EventEmitter();
+            (fakeProgram as any).files = {};
 
             //attach the program (and therefore to the program's events)
-            context.attachProgram(program as any);
+            context.attachProgram(fakeProgram as any);
 
             expect(context.hasFile(file)).to.be.false;
 
             //"add" a file. context should keep it
-            program.emit('file-added', file);
+            fakeProgram.emit('file-added', file);
             expect(context.hasFile(file)).to.be.true;
 
             //"remove" a file. context should discard it
-            program.emit('file-removed', file);
+            fakeProgram.emit('file-removed', file);
             expect(context.hasFile(file)).to.be.false;
         });
     });
@@ -71,7 +75,7 @@ describe('Context', () => {
         it('picks up new callables', async () => {
             //we have global callables, so get that initial number
             let originalLength = context.getAllCallables().length;
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     print "A"
@@ -90,7 +94,7 @@ describe('Context', () => {
         it('removes callables from list', async () => {
             let initCallableCount = context.getAllCallables().length;
             //add the file
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     print "A"
@@ -108,7 +112,7 @@ describe('Context', () => {
     describe('validate', () => {
         it('detects duplicate callables', async () => {
             expect(context.getDiagnostics().length).to.equal(0);
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     print "A"
@@ -130,7 +134,7 @@ describe('Context', () => {
 
         it('detects calls to unknown callables', async () => {
             expect(context.getDiagnostics().length).to.equal(0);
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     DoB()
@@ -150,7 +154,7 @@ describe('Context', () => {
 
         it('recognizes known callables', async () => {
             expect(context.getDiagnostics().length).to.equal(0);
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     DoB()
@@ -173,7 +177,7 @@ describe('Context', () => {
         //We don't currently support someObj.callSomething() format, so don't throw errors on those
         it('does not fail on object callables', async () => {
             expect(context.getDiagnostics().length).to.equal(0);
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoB()
                     m.doSomething()
@@ -188,7 +192,7 @@ describe('Context', () => {
 
         it('detects calling functions with too many parameters', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a()
                 end sub
@@ -208,7 +212,7 @@ describe('Context', () => {
 
         it('detects calling functions with too many parameters', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a(name)
                 end sub
@@ -228,7 +232,7 @@ describe('Context', () => {
 
         it('allows skipping optional parameter', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a(name="Bob")
                 end sub
@@ -244,7 +248,7 @@ describe('Context', () => {
 
         it('shows expected parameter range in error message', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a(age, name="Bob")
                 end sub
@@ -264,7 +268,7 @@ describe('Context', () => {
 
         it('handles expressions as arguments to a function', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a(age, name="Bob")
                 end sub
@@ -280,7 +284,7 @@ describe('Context', () => {
 
         it('Catches extra arguments for expressions as arguments to a function', async () => {
             //sanity check
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub a(age)
                 end sub
@@ -305,7 +309,7 @@ describe('Context', () => {
             //erase the platform context so our tests are more stable
             program.platformContext = new Context('platform', null);
 
-            let parentFile = new BrsFile('parentFile.brs', 'parentFile.brs');
+            let parentFile = new BrsFile('parentFile.brs', 'parentFile.brs', program);
             parentFile.callables.push(<any>{
                 name: 'parentFunction'
             });

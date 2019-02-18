@@ -14,7 +14,14 @@ export class FunctionScope {
      */
     public bodyRange: Range;
 
+    /**
+     * The scopes that are children of this scope
+     */
     public childrenScopes = [] as FunctionScope[];
+    /**
+     * The parent scope of this scope
+     */
+    public parentScope: FunctionScope;
     public variableDeclarations = [] as VariableDeclaration[];
 
     /**

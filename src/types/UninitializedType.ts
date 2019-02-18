@@ -2,7 +2,7 @@ import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
 
 export class UninitializedType implements BrsType {
-    public isEquivalentTo(targetType: BrsType) {
+    public isAssignableTo(targetType: BrsType) {
         return (
             targetType instanceof UninitializedType ||
             targetType instanceof DynamicType
@@ -10,6 +10,10 @@ export class UninitializedType implements BrsType {
     }
 
     public isConvertibleTo(targetType: BrsType) {
-        return this.isEquivalentTo(targetType);
+        return this.isAssignableTo(targetType);
+    }
+    
+    public toString() {
+        return 'uninitialized';
     }
 }

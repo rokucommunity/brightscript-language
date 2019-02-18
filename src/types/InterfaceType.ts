@@ -1,10 +1,10 @@
 import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
 
-export class InvalidType implements BrsType {
+export class InterfaceType implements BrsType {
     public isAssignableTo(targetType: BrsType) {
         return (
-            targetType instanceof InvalidType ||
+            targetType instanceof InterfaceType ||
             targetType instanceof DynamicType
         );
     }
@@ -12,8 +12,9 @@ export class InvalidType implements BrsType {
     public isConvertibleTo(targetType: BrsType) {
         return this.isAssignableTo(targetType);
     }
-    
+
     public toString() {
-        return 'invalid';
+        //TODO make this match the actual interface of the object
+        return 'interface';
     }
 }

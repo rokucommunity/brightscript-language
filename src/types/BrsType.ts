@@ -1,4 +1,4 @@
 export interface BrsType {
-    isEquivalentTo(targetType: BrsType): boolean;
+    isAssignableTo(targetType: BrsType): boolean;
     isConvertibleTo(targetType: BrsType): boolean;
 }

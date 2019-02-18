@@ -138,6 +138,21 @@ export class Context {
     }
 
     /**
+     * Get the callable with the specified name.
+     * If there are overridden callables with the same name, the closest callable to this context is returned
+     * @param name 
+     */
+    public getCallableByName(name: string) {
+        let lowerName = name.toLowerCase();
+        let callables = this.getAllCallables();
+        for (let callable of callables) {
+            if (callable.callable.name.toLowerCase() === lowerName) {
+                return callable.callable;
+            }
+        }
+    }
+
+    /**
      * Get the list of callables explicitly defined in files in this context.
      * This excludes ancestor callables
      */
@@ -257,7 +272,7 @@ export class Context {
      */
     private diagnosticDetectFunctionCallsWithWrongParamCount(file: BrsFile | XmlFile, callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
-        for (let expCall of file.expressionCalls) {
+        for (let expCall of file.callables) {
             let callableContainersWithThisName = callableContainersByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error
@@ -275,18 +290,13 @@ export class Context {
                         minParams++;
                     }
                 }
-                let expCallArgCount = expCall.args.length;
-                if (expCall.args.length > maxParams || expCall.args.length < minParams) {
+                let expCallArgCount = expCall.params.length;
+                if (expCall.params.length > maxParams || expCall.params.length < minParams) {
                     let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                     this._diagnostics.push({
                         message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
                         code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
-                        location: Range.create(
-                            expCall.lineIndex,
-                            expCall.columnIndexBegin,
-                            expCall.lineIndex,
-                            Number.MAX_VALUE
-                        ),
+                        location: expCall.nameRange,
                         //TODO detect end of expression call
                         file: file,
                         severity: 'error'
@@ -303,7 +313,7 @@ export class Context {
      */
     private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
-        for (let expCall of file.expressionCalls) {
+        for (let expCall of file.callables) {
             let callablesWithThisName = callablesByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error
@@ -314,12 +324,7 @@ export class Context {
                 this._diagnostics.push({
                     message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, expCall.name),
                     code: diagnosticMessages.Call_to_unknown_function_1001.code,
-                    location: Range.create(
-                        expCall.lineIndex,
-                        expCall.columnIndexBegin,
-                        expCall.lineIndex,
-                        expCall.columnIndexEnd
-                    ),
+                    location: expCall.nameRange,
                     file: file,
                     severity: 'error'
                 });

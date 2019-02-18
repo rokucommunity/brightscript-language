@@ -5,7 +5,7 @@ import { DoubleType } from './DoubleType';
 import { LongIntegerType } from './LongIntegerType';
 
 export class IntegerType implements BrsType {
-    public isEquivalentTo(targetType: BrsType) {
+    public isAssignableTo(targetType: BrsType) {
         return (
             targetType instanceof IntegerType ||
             targetType instanceof DynamicType
@@ -24,5 +24,9 @@ export class IntegerType implements BrsType {
         } else {
             return false;
         }
+    }
+    
+    public toString() {
+        return 'integer';
     }
 }

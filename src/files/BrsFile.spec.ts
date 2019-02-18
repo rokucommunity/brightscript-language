@@ -12,11 +12,15 @@ import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { VoidType } from '../types/VoidType';
+import { Program } from '../Program';
 
 describe('BrsFile', () => {
+    let rootDir = process.cwd();
+    let program: Program;
     let file: BrsFile;
     beforeEach(() => {
-        file = new BrsFile('abs', 'rel');
+        program = new Program({ rootDir: rootDir });
+        file = new BrsFile('abs', 'rel', program);
     });
     afterEach(() => {
         sinon.restore();
@@ -45,7 +49,7 @@ describe('BrsFile', () => {
         });
 
         it('finds line and column numbers for functions', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     print "A"
@@ -63,7 +67,7 @@ describe('BrsFile', () => {
         });
 
         it('throws an error if the file has already been parsed', async () => {
-            let file = new BrsFile('abspath', 'relpath');
+            let file = new BrsFile('abspath', 'relpath', program);
             file.parse(`'a comment`);
             try {
                 await file.parse(`'a new comment`);
@@ -77,14 +81,14 @@ describe('BrsFile', () => {
             let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
             expect(stub.called).to.be.false;
 
-            let file = new BrsFile('abspath', 'relpath');
+            let file = new BrsFile('abspath', 'relpath', program);
             file.parse();
             expect(stub.called).to.be.true;
 
         });
 
         it('finds and registers duplicate callables', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     print "A"
@@ -103,7 +107,7 @@ describe('BrsFile', () => {
         });
 
         it('finds function call line and column numbers', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
                     DoB()
@@ -112,19 +116,15 @@ describe('BrsFile', () => {
                      DoC()
                 end function
             `);
-            expect(file.expressionCalls.length).to.equal(2);
+            expect(file.functionCalls.length).to.equal(2);
 
-            expect(file.expressionCalls[0].lineIndex).to.equal(2);
-            expect(file.expressionCalls[0].columnIndexBegin).to.equal(20);
-            expect(file.expressionCalls[0].columnIndexEnd).to.equal(23);
+            expect(file.functionCalls[0].nameRange).to.eql(Range.create(2, 20, 2, 23));
 
-            expect(file.expressionCalls[1].lineIndex).to.equal(5);
-            expect(file.expressionCalls[1].columnIndexBegin).to.equal(21);
-            expect(file.expressionCalls[1].columnIndexEnd).to.equal(24);
+            expect(file.functionCalls[1].nameRange).to.eql(Range.create(5, 21, 5, 24));
         });
 
         it('sanitizes brs errors', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoSomething
                 end function            
@@ -137,7 +137,7 @@ describe('BrsFile', () => {
         });
 
         it('supports using the `next` keyword in a for loop', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub countit()
                     for each num in [1,2,3]
@@ -151,7 +151,7 @@ describe('BrsFile', () => {
 
         //test is not working yet, but will be enabled when brs supports this syntax
         it('supports assigning functions to objects', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function main()
                     o = CreateObject("roAssociativeArray")
@@ -166,7 +166,7 @@ describe('BrsFile', () => {
 
     describe('findCallables', () => {
         it('finds body range', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub Sum()
                     print "hello world"
@@ -177,7 +177,7 @@ describe('BrsFile', () => {
         });
 
         it('finds correct body range even with inner function', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 sub Sum()
                     sayHi = sub()
@@ -191,7 +191,7 @@ describe('BrsFile', () => {
         });
 
         it('finds callable parameters', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a, b, c)
                     
@@ -221,7 +221,7 @@ describe('BrsFile', () => {
         });
 
         it('finds optional parameters', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a=2)
                     
@@ -237,7 +237,7 @@ describe('BrsFile', () => {
         });
 
         it('finds parameter types', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a, b as integer, c as string)
                     
@@ -269,14 +269,14 @@ describe('BrsFile', () => {
 
     describe('findCallableInvocations', () => {
         it('finds arguments with literal values', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum()
                     DoSomething("name", 12, true)
                 end function
             `);
-            expect(file.expressionCalls.length).to.equal(1);
-            let args = file.expressionCalls[0].args;
+            expect(file.functionCalls.length).to.equal(1);
+            let args = file.functionCalls[0].args;
             expect(args.length).to.equal(3);
             expect(args[0]).deep.include(<CallableArg>{
                 type: new StringType(),
@@ -293,7 +293,7 @@ describe('BrsFile', () => {
         });
 
         it('finds arguments with variable values', async () => {
-            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs');
+            let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum()
                     count = 1
@@ -302,16 +302,16 @@ describe('BrsFile', () => {
                     DoSomething(count, name, isAlive)
                 end function
             `);
-            expect(file.expressionCalls.length).to.equal(1);
-            expect(file.expressionCalls[0].args[0]).deep.include(<CallableArg>{
+            expect(file.functionCalls.length).to.equal(1);
+            expect(file.functionCalls[0].args[0]).deep.include(<CallableArg>{
                 type: new DynamicType(),
                 text: 'count'
             });
-            expect(file.expressionCalls[0].args[1]).deep.include(<CallableArg>{
+            expect(file.functionCalls[0].args[1]).deep.include(<CallableArg>{
                 type: new DynamicType(),
                 text: 'name'
             });
-            expect(file.expressionCalls[0].args[2]).deep.include(<CallableArg>{
+            expect(file.functionCalls[0].args[2]).deep.include(<CallableArg>{
                 type: new DynamicType(),
                 text: 'isAlive'
             });
@@ -320,7 +320,7 @@ describe('BrsFile', () => {
 
     describe('standardizeLexParserErrors', () => {
         it('properly maps the location to a Range', () => {
-            let file = new BrsFile('', '');
+            let file = new BrsFile('', '', program);
             expect(file.standardizeLexParseErrors([<any>{
                 location: {
                     start: {
@@ -347,26 +347,25 @@ describe('BrsFile', () => {
     describe('findCallables', () => {
         //this test is to help with code coverage
         it('skips top-level statements', async () => {
-            let file = new BrsFile('absolute', 'relative');
+            let file = new BrsFile('absolute', 'relative', program);
             await file.parse('name = "Bob"');
             expect(file.callables.length).to.equal(0);
         });
 
         it(`finds return type from regex`, async () => {
-            let file = new BrsFile('absolute', 'relative');
+            let file = new BrsFile('absolute', 'relative', program);
             await file.parse(`
                 function DoSomething() as string
                 end function
             `);
-            expect(file.callables[0]).to.deep.include(<Callable>{
+            expect(file.callables[0]).to.deep.include(<Partial<Callable>>{
                 file: file,
                 //there's a bug in the brs code computing function line numbers. TODO enable this when the bug is fixed
-                // nameRange: Range.create(1, 25, 0, 36),
-                returnType: new StringType(),
-                type: 'function',
+                nameRange: Range.create(1, 25, 0, 36),
                 name: 'DoSomething',
                 params: []
             });
+            expect(file.callables[0].type.returnType).instanceof(StringType);
         });
     });
 
@@ -403,7 +402,7 @@ describe('BrsFile', () => {
                 lineIndex: 2,
                 name: 'sayHi'
             });
-            expect(file.functionScopes[0].variableDeclarations[0].type.isEquivalentTo(new FunctionType([], new VoidType()))).is.true;
+            expect(file.functionScopes[0].variableDeclarations[0].type).instanceof(FunctionType);
 
 
             expect(file.functionScopes[1].variableDeclarations).to.be.length(1);
@@ -512,6 +511,82 @@ describe('BrsFile', () => {
                 kind: CompletionItemKind.Variable,
                 label: 'firstName'
             });
+        });
+    });
+
+    describe.only('getHover', () => {
+        it('finds declared function', async () => {
+            await file.parse(`
+                function Main(count = 1)
+                    firstName = "bob"
+                    age = 21
+                    shoeSize = 10
+                end function
+            `);
+
+            var hover = file.getHover(Position.create(1, 28));
+            expect(hover).to.exist;
+
+            expect(hover.range).to.eql(Range.create(1, 25, 1, 29));
+            expect(hover.contents).to.equal('function Main(count? as dynamic) as dynamic');
+        });
+
+        it('finds variable function hover in same scope', async () => {
+            await file.parse(`
+                sub Main()
+                    sayMyName = sub(name as string)
+                    end sub
+
+                    sayMyName()
+                end sub
+            `);
+
+            var hover = file.getHover(Position.create(5, 24));
+
+            expect(hover.range).to.eql(Range.create(5, 20, 5, 29));
+            expect(hover.contents).to.equal('sub sayMyName(name as string) as void');
+        });
+
+        it('finds function hover in file scope', async () => {
+            await file.parse(`
+                sub Main()
+                    sayMyName()
+                end sub
+
+                sub sayMyName()
+
+                end sub
+            `);
+
+            var hover = file.getHover(Position.create(2, 25));
+
+            expect(hover.range).to.eql(Range.create(2, 20, 2, 29));
+            expect(hover.contents).to.equal('sub sayMyName() as void');
+        });
+
+        it.only('finds function hover in context scope', async () => {
+            let rootDir = process.cwd();
+            var program = new Program({
+                rootDir: rootDir
+            });
+
+            let mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    sayMyName()
+                end sub
+            `);
+
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub sayMyName(name as string)
+
+                end sub
+            `);
+
+            var hover = mainFile.getHover(Position.create(2, 25));
+            expect(hover).to.exist;
+
+            expect(hover.range).to.eql(Range.create(2, 20, 2, 29));
+            expect(hover.contents).to.equal('sub sayMyName(name as string) as void');
         });
     });
 });

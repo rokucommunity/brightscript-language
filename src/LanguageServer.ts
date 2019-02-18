@@ -20,6 +20,8 @@ import {
     DidChangeWatchedFilesParams,
     FileChangeType,
     FileEvent,
+    ServerCapabilities,
+    Hover,
 } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
@@ -77,6 +79,8 @@ export class LanguageServer {
         // the completion list.
         this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
 
+        this.connection.onHover(this.onHover.bind(this));
+
         /*
        this.connection.onDidOpenTextDocument((params) => {
             // A text document got opened in VSCode.
@@ -131,7 +135,6 @@ export class LanguageServer {
         this.hasConfigurationCapability = !!(clientCapabilities.workspace && !!clientCapabilities.workspace.configuration);
         this.clientHasWorkspaceFolderCapability = !!(clientCapabilities.workspace && !!clientCapabilities.workspace.workspaceFolders);
 
-        let serverCapabilities;
         //return the capabilities of the server
         return {
             capabilities: {
@@ -139,10 +142,10 @@ export class LanguageServer {
                 // Tell the client that the server supports code completion
                 completionProvider: {
                     resolveProvider: true
-                }
-            }
+                },
+                hoverProvider: true
+            } as ServerCapabilities
         };
-
     }
 
     /**
@@ -247,6 +250,18 @@ export class LanguageServer {
         //send all diagnostics to the client
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
+    }
+
+    private onHover(params: TextDocumentPositionParams) {
+        let pathAbsolute = this.getPathFromUri(params.textDocument.uri);
+        var hover = this.brsProgramBuilder.program.getHover(pathAbsolute, params.position);
+
+        //TODO improve this to support more than just .brs files
+        if (hover && hover.contents) {
+            //create fenced code block to get colorization
+            hover.contents = '```brightscript\n' + hover.contents + '```';
+        }
+        return hover;
     }
 
     private async validateTextDocument(textDocument: TextDocument): Promise<void> {

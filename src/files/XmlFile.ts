@@ -2,7 +2,7 @@ import { FileReference, Diagnostic, Callable, ExpressionCall, File } from '../in
 import util from '../util';
 import { Program } from '../Program';
 import * as path from 'path';
-import { CompletionItem, CompletionItemKind, TextEdit, Range, Position } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, TextEdit, Range, Position, Hover } from 'vscode-languageserver';
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { EventEmitter } from 'events';
 
@@ -341,5 +341,11 @@ export class XmlFile {
 
             this.isValidated = false;
         }
+    }
+
+    public getHover(position: Position): Hover {
+        //TODO implement
+        let result = {} as Hover;
+        return null;
     }
 }

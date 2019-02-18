@@ -25,9 +25,10 @@ export class Program {
 
         //create the 'platform' context
         this.platformContext = new Context('platform', (file) => false);
+        
         //add all platform callables
         this.platformContext.addOrReplaceFile(platformFile);
-        this.platformFile = platformFile;
+        platformFile.program = this;
         this.platformContext.attachProgram(this);
         //for now, disable validation of this context because the platform files have some duplicate method declarations
         this.platformContext.validate = () => [];
@@ -49,10 +50,6 @@ export class Program {
      * All contexts should directly or indirectly inherit from this context
      */
     public platformContext: Context;
-    /**
-     * The file that contains all of the platform files
-     */
-    public platformFile: BrsFile;
 
     private rootDir: string;
 
@@ -124,7 +121,7 @@ export class Program {
 
         //get the extension of the file
         if (fileExtension === '.brs' || fileExtension === '.bs') {
-            let brsFile = new BrsFile(pathAbsolute, pkgPath);
+            let brsFile = new BrsFile(pathAbsolute, pkgPath, this);
             await brsFile.parse(fileContents);
             file = brsFile;
         } else if (fileExtension === '.xml') {
@@ -282,7 +279,11 @@ export class Program {
         return this.files[pathAbsolute];
     }
 
-    private getContextsForFile(file: XmlFile | BrsFile) {
+    /**
+     * Get a list of all contexts the file is loaded into
+     * @param file 
+     */
+    public getContextsForFile(file: XmlFile | BrsFile) {
         let result = [] as Context[];
         for (let key in this.contexts) {
             let context = this.contexts[key];
@@ -316,5 +317,15 @@ export class Program {
         let fileCompletions = file.getCompletions(position, context);
         let contextCompletions = context.getCallablesAsCompletions();
         return [...fileCompletions, ...contextCompletions];
+    }
+
+    public getHover(pathAbsolute: string, position: Position) {
+        //find the file
+        let file = this.getFile(pathAbsolute);
+        if (!file) {
+            return null;
+        }
+
+        return file.getHover(position);
     }
 }

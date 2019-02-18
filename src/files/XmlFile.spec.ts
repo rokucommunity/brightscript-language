@@ -12,9 +12,11 @@ import { diagnosticMessages } from '../DiagnosticMessages';
 let n = path.normalize;
 
 describe('XmlFile', () => {
-
+    let rootDir = process.cwd();
+    let program: Program;
     let sinon = sinonImport.createSandbox();
     beforeEach(() => {
+        program = new Program({ rootDir: rootDir });
     });
     afterEach(() => {
         sinon.restore();
@@ -136,7 +138,7 @@ describe('XmlFile', () => {
                 lineIndex: 1,
                 sourceFile: xmlFile
             });
-            let brsFile = new BrsFile('absolute', `components${path.sep}HEROGRID.brs`);
+            let brsFile = new BrsFile('absolute', `components${path.sep}HEROGRID.brs`, program);
             expect(xmlFile.doesReferenceFile(brsFile)).to.be.true;
         });
     });
@@ -144,11 +146,7 @@ describe('XmlFile', () => {
     describe('getCompletions', () => {
         it('formats completion paths with proper slashes', async () => {
             let scriptPath = n('C:/app/components/component1/component1.brs');
-            let program = {
-                files: {
-                }
-            };
-            program.files[scriptPath] = new BrsFile(scriptPath, n('components/component1/component1.brs'));
+            program.files[scriptPath] = new BrsFile(scriptPath, n('components/component1/component1.brs'), program);
 
             let xmlFile = new XmlFile('component.xml', 'relative', <any>program);
             xmlFile.ownScriptImports.push({

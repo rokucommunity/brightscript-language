@@ -3,27 +3,53 @@ import { DynamicType } from './DynamicType';
 
 export class FunctionType implements BrsType {
     constructor(
-        public paramTypes: BrsType[],
         public returnType: BrsType
     ) {
 
     }
-    public isEquivalentTo(targetType: BrsType) {
+
+    /**
+     * The name of the function for this type. Can be null
+     */
+    public name: string;
+
+    /**
+     * Determines if this is a sub or not
+     */
+    public isSub: boolean = false
+
+    public params = [] as { name: string; type: BrsType; isRequired: boolean }[];
+
+    public setName(name: string) {
+        this.name = name;
+        return this;
+    }
+
+    public addParameter(name: string, type: BrsType, isRequired: boolean) {
+        this.params.push({
+            name: name,
+            type: type,
+            isRequired: isRequired ? true : false
+        });
+        return this;
+    }
+
+    public isAssignableTo(targetType: BrsType) {
         if (targetType instanceof DynamicType) {
             return true;
         } else if (targetType instanceof FunctionType) {
             //compare all parameters
-            var len = Math.max(this.paramTypes.length, targetType.paramTypes.length);
+            var len = Math.max(this.params.length, targetType.params.length);
             for (let i = 0; i < len; i++) {
-                let myParam = this.paramTypes[i];
-                let targetParam = targetType.paramTypes[i];
-                if (!myParam || !targetParam || !myParam.isEquivalentTo(targetParam)) {
+                let myParam = this.params[i];
+                let targetParam = targetType.params[i];
+                if (!myParam || !targetParam || !myParam.type.isAssignableTo(targetParam.type)) {
                     return false;
                 }
             }
 
             //compare return type
-            if (!this.returnType || !targetType.returnType || !this.returnType.isEquivalentTo(targetType.returnType)) {
+            if (!this.returnType || !targetType.returnType || !this.returnType.isAssignableTo(targetType.returnType)) {
                 return false;
             }
 
@@ -35,6 +61,11 @@ export class FunctionType implements BrsType {
     }
 
     public isConvertibleTo(targetType: BrsType) {
-        return this.isEquivalentTo(targetType);
+        return this.isAssignableTo(targetType);
+    }
+
+    public toString() {
+        //TODO add params and return type
+        return 'function';
     }
 }

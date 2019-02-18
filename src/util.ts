@@ -3,7 +3,7 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
-import { ValueKind, CallableContainer } from './interfaces';
+import { ValueKind, CallableContainer, Callable } from './interfaces';
 import * as xml2js from 'xml2js';
 import { Range, Position, DiagnosticSeverity } from 'vscode-languageserver';
 import * as brs from 'brs';
@@ -208,7 +208,7 @@ class Util {
         switch (kind) {
             case ValueKind.Boolean: return new BooleanType();
             //TODO refine the function type on the outside (I don't think this ValueKind is actually returned)
-            case ValueKind.Callable: return new FunctionType([], new VoidType());
+            case ValueKind.Callable: return new FunctionType(new VoidType());
             case ValueKind.Double: return new DoubleType();
             case ValueKind.Dynamic: return new DynamicType();
             case ValueKind.Float: return new FloatType();
@@ -467,6 +467,15 @@ class Util {
             resolve: resolve,
             reject: reject
         };
+    }
+
+    public getFunctionHoverDescription(funcType: FunctionType) {
+        let paramText = '';
+        let paramTexts = [];
+        for (let param of funcType.params) {
+            paramTexts.push(`${param.name}${param.isRequired ? '' : '?'} as ${param.type.toString()}`);
+        }
+        return `${funcType.isSub ? 'sub' : 'function'} ${funcType.name}(${paramTexts.join(', ')}) as ${funcType.returnType.toString()}`;
     }
 
 }

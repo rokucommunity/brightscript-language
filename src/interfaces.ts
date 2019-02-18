@@ -3,6 +3,8 @@ import { Position, Range } from 'vscode-languageserver';
 import { BrsFile } from './files/BrsFile';
 import { Context } from './Context';
 import { BrsType } from './types/BrsType';
+import { FunctionScope } from './FunctionScope';
+import { FunctionType } from './types/FunctionType';
 
 export interface Diagnostic {
     severity: 'hint' | 'information' | 'warning' | 'error';
@@ -22,7 +24,11 @@ export interface Diagnostic {
 export interface Callable {
     file: BrsFile | XmlFile;
     name: string;
-    type: 'function' | 'sub';
+    /**
+     * Is the callable declared as "sub". If falsey, assumed declared as "function"
+     */
+    isSub: boolean;
+    type: FunctionType;
     /**
      * A short description of the callable. Should be a short sentence.
      */
@@ -31,7 +37,6 @@ export interface Callable {
      * A more lengthy explanation of the callable. This is parsed as markdown
      */
     documentation?: string;
-    returnType: BrsType;
     params: CallableParam[];
     nameRange?: Range;
     bodyRange?: Range;
@@ -39,12 +44,11 @@ export interface Callable {
 }
 
 export interface ExpressionCall {
+    functionScope: FunctionScope;
     file: File;
     name: string;
     args: CallableArg[];
-    lineIndex: number;
-    columnIndexBegin: number;
-    columnIndexEnd: number;
+    nameRange: Range;
 }
 
 /**
