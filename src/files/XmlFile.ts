@@ -5,6 +5,7 @@ import * as path from 'path';
 import { CompletionItem, CompletionItemKind, TextEdit, Range, Position, Hover } from 'vscode-languageserver';
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { EventEmitter } from 'events';
+import { FunctionScope } from '../FunctionScope';
 
 export class XmlFile {
     constructor(
@@ -346,6 +347,11 @@ export class XmlFile {
     public getHover(position: Position): Hover {
         //TODO implement
         let result = {} as Hover;
+        return null;
+    }
+
+    public getFunctionScopeAtPosition(position: Position, functionScopes?: FunctionScope[]): FunctionScope {
+        //TODO implement
         return null;
     }
 }

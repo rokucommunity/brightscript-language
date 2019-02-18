@@ -6,6 +6,7 @@ import util from './util';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
 import { Program } from './Program';
+import { FunctionType } from './types/FunctionType';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -314,6 +315,20 @@ export class Context {
     private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
         for (let expCall of file.functionCalls) {
+            let lowerName = expCall.name.toLowerCase();
+
+            let callable: any;
+
+            //get the local scope for this expression
+            let scope = file.getFunctionScopeAtPosition(expCall.nameRange.start);
+            if (scope) {
+                //if we found a variable with the same name as the function, assume the call is "known". 
+                //If the variable is a different type, some other check should add a diagnostic for that.
+                if (scope.getVariableByName(lowerName)) {
+                    continue;
+                }
+            }
+
             let callablesWithThisName = callablesByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error

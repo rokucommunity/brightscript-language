@@ -110,6 +110,36 @@ describe('Context', () => {
     });
 
     describe('validate', () => {
+        it('resolves local-variable function calls', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething()
+                    sayMyName = function(name as string)
+                    end function
+
+                    sayMyName()
+                end sub`
+            );
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('detects local functions with same name as global', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    SayHi = sub()
+                        print "Hi from inner"
+                    end sub
+                end sub
+                sub SayHi()
+                    print "Hi from outer"
+                end sub
+            `);
+            await program.validate();
+            let diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Local_function_shadows_global_function_1011.code);
+        });
+
         it('detects duplicate callables', async () => {
             expect(context.getDiagnostics().length).to.equal(0);
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);

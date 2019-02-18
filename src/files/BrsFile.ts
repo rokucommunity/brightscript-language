@@ -406,7 +406,7 @@ export class BrsFile {
      * @param position 
      * @param functionScopes 
      */
-    private getFunctionScopeAtPosition(position: Position, functionScopes?: FunctionScope[]): FunctionScope {
+    public getFunctionScopeAtPosition(position: Position, functionScopes?: FunctionScope[]): FunctionScope {
         if (!functionScopes) {
             functionScopes = this.functionScopes;
         }
@@ -463,9 +463,16 @@ export class BrsFile {
                 for (let varDeclaration of functionScope.variableDeclarations) {
                     //we found a variable declaration with this token text!
                     if (varDeclaration.name.toLowerCase() === lowerTokenText) {
+                        let typeText: string;
+                        if (varDeclaration.type instanceof FunctionType) {
+                            typeText = varDeclaration.type.toString();
+                        } else {
+                            typeText = `${varDeclaration.name} as ${varDeclaration.type.toString()}`;
+                        }
                         return {
                             range: util.locationToRange(token.location),
-                            contents: varDeclaration.type.toString()
+                            //append the variable name to the front for context
+                            contents: typeText
                         };
                     }
                 }
