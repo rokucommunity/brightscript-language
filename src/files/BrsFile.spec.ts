@@ -352,7 +352,7 @@ describe('BrsFile', () => {
             expect(file.callables.length).to.equal(0);
         });
 
-        it(`finds return type from regex`, async () => {
+        it('finds return type', async () => {
             let file = new BrsFile('absolute', 'relative', program);
             await file.parse(`
                 function DoSomething() as string
@@ -360,8 +360,7 @@ describe('BrsFile', () => {
             `);
             expect(file.callables[0]).to.deep.include(<Partial<Callable>>{
                 file: file,
-                //there's a bug in the brs code computing function line numbers. TODO enable this when the bug is fixed
-                nameRange: Range.create(1, 25, 0, 36),
+                nameRange: Range.create(1, 25, 1, 36),
                 name: 'DoSomething',
                 params: []
             });
@@ -514,9 +513,9 @@ describe('BrsFile', () => {
         });
     });
 
-    describe.only('getHover', () => {
+    describe('getHover', () => {
         it('finds declared function', async () => {
-            await file.parse(`
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 function Main(count = 1)
                     firstName = "bob"
                     age = 21
@@ -532,7 +531,7 @@ describe('BrsFile', () => {
         });
 
         it('finds variable function hover in same scope', async () => {
-            await file.parse(`
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub Main()
                     sayMyName = sub(name as string)
                     end sub
@@ -548,7 +547,7 @@ describe('BrsFile', () => {
         });
 
         it('finds function hover in file scope', async () => {
-            await file.parse(`
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub Main()
                     sayMyName()
                 end sub

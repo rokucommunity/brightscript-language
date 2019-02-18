@@ -35,7 +35,7 @@ export class XmlFile {
     public callables = [] as Callable[];
 
     //TODO implement the xml CDATA parsing, which would populate this list
-    public expressionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as ExpressionCall[];
 
     /**
      * The name of the component that this component extends

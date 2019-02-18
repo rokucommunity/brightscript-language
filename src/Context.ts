@@ -271,8 +271,8 @@ export class Context {
      * @param callableContainersByLowerName 
      */
     private diagnosticDetectFunctionCallsWithWrongParamCount(file: BrsFile | XmlFile, callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
-        //validate all expression calls
-        for (let expCall of file.callables) {
+        //validate all function calls
+        for (let expCall of file.functionCalls) {
             let callableContainersWithThisName = callableContainersByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error
@@ -290,8 +290,8 @@ export class Context {
                         minParams++;
                     }
                 }
-                let expCallArgCount = expCall.params.length;
-                if (expCall.params.length > maxParams || expCall.params.length < minParams) {
+                let expCallArgCount = expCall.args.length;
+                if (expCall.args.length > maxParams || expCall.args.length < minParams) {
                     let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                     this._diagnostics.push({
                         message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
@@ -313,7 +313,7 @@ export class Context {
      */
     private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
-        for (let expCall of file.callables) {
+        for (let expCall of file.functionCalls) {
             let callablesWithThisName = callablesByLowerName[expCall.name.toLowerCase()];
 
             //use the first item from callablesByLowerName, because if there are more, that's a separate error
