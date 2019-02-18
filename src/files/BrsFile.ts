@@ -56,6 +56,19 @@ export class BrsFile {
      * The AST for this file
      */
     private ast: brs.parser.Stmt.Statement[];
+    private tokens: brs.lexer.Token[];
+
+    /**
+     * Get the token at the specified position
+     * @param position 
+     */
+    private getTokenAt(position: Position) {
+        for (let token of this.tokens) {
+            if (util.rangeContains(util.locationToRange(token.location), position)) {
+                return token;
+            }
+        }
+    }
 
     /**
      * Calculate the AST for this file
@@ -74,6 +87,8 @@ export class BrsFile {
         let lines = util.getLines(fileContents);
 
         let lexResult = brs.lexer.Lexer.scan(fileContents);
+
+        this.tokens = lexResult.tokens;
 
         let parser = new brs.parser.Parser();
         let parseResult = parser.parse(lexResult.tokens);
@@ -152,12 +167,13 @@ export class BrsFile {
             scope.bodyRange = util.getBodyRangeForFunc(func);
 
             //add every parameter
-            for (let param of func.parameters as any) {
+            for (let param of func.parameters) {
                 scope.variableDeclarations.push({
-                    //TODO update these to use the actual token locations
+                    nameRange: util.argumentToRange(param),
                     lineIndex: scope.bodyRange.start.line,
                     name: param.name,
-                    type: util.valueKindToBrsType(param.kind)
+                    //TODO which is it? `type` or `kind`?
+                    type: util.valueKindToBrsType(param.type || (param as any).kind)
                 });
             }
             //add every variable assignment to the scope
@@ -165,6 +181,7 @@ export class BrsFile {
                 //if this is a variable assignment
                 if (statement instanceof brs.parser.Stmt.Assignment) {
                     scope.variableDeclarations.push({
+                        nameRange: util.locationToRange(statement.name.location),
                         lineIndex: statement.name.location.start.line - 1,
                         name: statement.name.text,
                         type: this.getBRSTypeFromAssignment(statement, scope)
@@ -427,45 +444,44 @@ export class BrsFile {
     }
 
     public getHover(position: Position): Hover {
-        //function declarations
-        for (let callable of this.callables) {
-            if (util.rangeContains(callable.nameRange, position)) {
-                return {
-                    range: callable.nameRange,
-                    contents: util.getFunctionHoverDescription(callable.type)
-                };
+        //get the token at the position
+        let token = this.getTokenAt(position);
+
+        //if no token found or token does not look like an identifier, there's nothing to show
+        if (!token || /[\w\d_]+/gi.test(token.text) === false) {
+            return null;
+        }
+
+        let lowerTokenText = token.text.toLowerCase();
+
+        //look through local variables first
+        {
+            //get the function scope for this position (if exists)
+            let functionScope = this.getFunctionScopeAtPosition(position);
+            if (functionScope) {
+                //find any variable with this name
+                for (let varDeclaration of functionScope.variableDeclarations) {
+                    //we found a variable declaration with this token text!
+                    if (varDeclaration.name.toLowerCase() === lowerTokenText) {
+                        return {
+                            range: util.locationToRange(token.location),
+                            contents: varDeclaration.type.toString()
+                        };
+                    }
+                }
             }
         }
 
-        //function calls
-        for (let functionCall of this.functionCalls) {
-            //we found a matching function call. Walk up the scope tree until we find the declared function
-            if (util.rangeContains(functionCall.nameRange, position)) {
-                let scope = functionCall.functionScope;
-                while (scope) {
-                    //look at every variable declaration
-                    for (let decl of scope.variableDeclarations) {
-                        //if the declaration is a function, and the names match
-                        if (decl.type instanceof FunctionType && decl.name.toLowerCase() === functionCall.name.toLowerCase()) {
-                            return {
-                                range: functionCall.nameRange,
-                                contents: util.getFunctionHoverDescription(decl.type)
-                            };
-                        }
-                    }
-                    scope = scope.parentScope;
-                }
-
-                //we didn't find the function in any local scope. Look for the function declaration in all relevant contexts
-                let contexts = this.program.getContextsForFile(this);
-                for (let context of contexts) {
-                    let callable = context.getCallableByName(functionCall.name);
-                    if (callable) {
-                        return {
-                            range: functionCall.nameRange,
-                            contents: util.getFunctionHoverDescription(callable.type)
-                        };
-                    }
+        //look through all callables in relevant contexts
+        {
+            let contexts = this.program.getContextsForFile(this);
+            for (let context of contexts) {
+                let callable = context.getCallableByName(lowerTokenText);
+                if (callable) {
+                    return {
+                        range: util.locationToRange(token.location),
+                        contents: callable.type.toString()
+                    };
                 }
             }
         }

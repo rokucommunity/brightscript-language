@@ -116,6 +116,10 @@ export interface VariableDeclaration {
     name: string;
     type: BrsType;
     /**
+     * The range for the variable name
+     */
+    nameRange: Range;
+    /**
      * Since only one variable can be declared at a time, 
      * we only need to know the line index
      */

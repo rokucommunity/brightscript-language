@@ -469,13 +469,17 @@ class Util {
         };
     }
 
-    public getFunctionHoverDescription(funcType: FunctionType) {
-        let paramText = '';
-        let paramTexts = [];
-        for (let param of funcType.params) {
-            paramTexts.push(`${param.name}${param.isRequired ? '' : '?'} as ${param.type.toString()}`);
-        }
-        return `${funcType.isSub ? 'sub' : 'function'} ${funcType.name}(${paramTexts.join(', ')}) as ${funcType.returnType.toString()}`;
+    /**
+     * 
+     * @param argument 
+     */
+    public argumentToRange(argument: brs.types.Argument) {
+        return Range.create(
+            argument.location.start.line - 1,
+            argument.location.start.column,
+            argument.location.start.line - 1,
+            argument.location.start.column + argument.name.length
+        );
     }
 
 }

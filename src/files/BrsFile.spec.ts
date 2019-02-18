@@ -564,7 +564,7 @@ describe('BrsFile', () => {
             expect(hover.contents).to.equal('sub sayMyName() as void');
         });
 
-        it.only('finds function hover in context scope', async () => {
+        it('finds function hover in context scope', async () => {
             let rootDir = process.cwd();
             var program = new Program({
                 rootDir: rootDir

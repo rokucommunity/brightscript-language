@@ -68,7 +68,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'integer'
+        type: new IntegerType()
     }]
 }, {
     name: 'Exp',
@@ -113,7 +113,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'range',
-        type: 'integer'
+        type: new IntegerType()
     }]
 }, {
     name: 'Rnd',
@@ -122,7 +122,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: '0',
-        type: 'integer'
+        type: new IntegerType()
     }]
 }, {
     name: 'Sgn',
@@ -140,7 +140,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'integer'
+        type: new IntegerType()
     }]
 }, {
     name: 'Sin',
@@ -210,7 +210,7 @@ let runtimeFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'dynamic'
+        type: new DynamicType()
     }]
 }, {
     name: 'Run',
@@ -222,7 +222,7 @@ let runtimeFunctions = [{
         type: new StringType()
     }, {
         name: "arg",
-        type: 'dynamic',
+        type: new DynamicType(),
         isRestArgument: true
     }]
 }, {
@@ -232,10 +232,10 @@ let runtimeFunctions = [{
     file: platformFile,
     params: [{
         name: 'filename',
-        type: 'string[]'
+        type: new ArrayType(new StringType())
     }, {
         name: "arg",
-        type: 'dynamic',
+        type: new DynamicType(),
         isRestArgument: true
     }]
 }, {
@@ -257,8 +257,7 @@ let runtimeFunctions = [{
 }, {
     name: 'GetLastRunRuntimeError',
     shortDescription: 'Returns an error code result after the last script Run().These are normal:\,&hFF==ERR_OKAY\n&hFC==ERR_NORMAL_END\n&hE2==ERR_VALUE_RETURN',
-    type: 'function',
-    returnType: 'integer',
+    type: new FunctionType(new IntegerType()),
     file: platformFile,
     params: []
 }] as Callable[];
@@ -271,7 +270,7 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'milliseconds',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'Wait',
@@ -280,7 +279,7 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'timeout',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'port',
             type: new ObjectType()
@@ -316,7 +315,7 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'dummy',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'RebootSystem',
@@ -548,7 +547,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'ch',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'Instr',
@@ -557,7 +556,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'start',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'text',
             type: new StringType()
@@ -594,10 +593,10 @@ By using Chr, you can create strings containing characters which cannot be conta
         }, {
             name: 'p',
             description: '1-based position',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'n',
-            type: 'integer',
+            type: new IntegerType(),
             isOptional: true
         }]
     }, {
@@ -607,10 +606,10 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 's',
-            type: ''
+            type: new StringType()
         }, {
             name: 'n',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'Str',
@@ -628,7 +627,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'value',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'StrI',
@@ -637,10 +636,10 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'value',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'radix',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'string',
@@ -649,7 +648,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'n',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'str',
             type: new StringType()
@@ -661,10 +660,10 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'n',
-            type: 'integer'
+            type: new IntegerType()
         }, {
             name: 'ch',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'Val',
@@ -685,7 +684,7 @@ By using Chr, you can create strings containing characters which cannot be conta
             type: new StringType()
         }, {
             name: 'radix',
-            type: 'integer'
+            type: new IntegerType()
         }]
     }, {
         name: 'Substitute',
@@ -720,6 +719,9 @@ for (var callable of platformCallables) {
     for (var param of callable.params) {
         callable.type.addParameter(param.name, param.type, param.isOptional);
     }
+
+    //set name in type
+    callable.type.setName(callable.name);
 
 }
 platformFile.callables = platformCallables;

@@ -29,7 +29,7 @@ export class FunctionType implements BrsType {
         this.params.push({
             name: name,
             type: type,
-            isRequired: isRequired ? true : false
+            isRequired: isRequired === false ? false : true
         });
         return this;
     }
@@ -65,7 +65,12 @@ export class FunctionType implements BrsType {
     }
 
     public toString() {
-        //TODO add params and return type
-        return 'function';
+        let paramText = '';
+        let paramTexts = [];
+        for (let param of this.params) {
+            paramTexts.push(`${param.name}${param.isRequired ? '' : '?'} as ${param.type.toString()}`);
+        }
+        return `${this.isSub ? 'sub' : 'function'} ${this.name}(${paramTexts.join(', ')}) as ${this.returnType.toString()}`;
+
     }
 }
