@@ -3,10 +3,23 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { BRSConfig } from './ProgramBuilder';
 import * as rokuDeploy from 'roku-deploy';
-import { ValueKind, BRSType, Callable, CallableContainer } from './interfaces';
+import { ValueKind, CallableContainer } from './interfaces';
 import * as xml2js from 'xml2js';
 import { Range, Position, DiagnosticSeverity } from 'vscode-languageserver';
 import * as brs from 'brs';
+import { BooleanType } from './types/BooleanType';
+import { FunctionType } from './types/FunctionType';
+import { DoubleType } from './types/DoubleType';
+import { DynamicType } from './types/DynamicType';
+import { FloatType } from './types/FloatType';
+import { IntegerType } from './types/IntegerType';
+import { LongIntegerType } from './types/LongIntegerType';
+import { InvalidType } from './types/InvalidType';
+import { ObjectType } from './types/ObjectType';
+import { StringType } from './types/StringType';
+import { UninitializedType } from './types/UninitializedType';
+import { VoidType } from './types/VoidType';
+import { BrsType } from './types/BrsType';
 
 class Util {
     public log(...args) {
@@ -191,20 +204,21 @@ class Util {
         });
     }
 
-    public valueKindToString(kind: ValueKind): BRSType {
+    public valueKindToBrsType(kind: ValueKind): BrsType {
         switch (kind) {
-            case ValueKind.Boolean: return 'boolean';
-            case ValueKind.Callable: return 'function';
-            case ValueKind.Double: return 'double';
-            case ValueKind.Dynamic: return 'dynamic';
-            case ValueKind.Float: return 'float';
-            case ValueKind.Int32: return 'integer';
-            case ValueKind.Int64: return 'longinteger';
-            case ValueKind.Invalid: return 'invalid';
-            case ValueKind.Object: return 'object';
-            case ValueKind.String: return 'string';
-            case ValueKind.Uninitialized: return 'uninitialized';
-            case ValueKind.Void: return 'void';
+            case ValueKind.Boolean: return new BooleanType();
+            //TODO refine the function type on the outside (I don't think this ValueKind is actually returned)
+            case ValueKind.Callable: return new FunctionType([], new VoidType());
+            case ValueKind.Double: return new DoubleType();
+            case ValueKind.Dynamic: return new DynamicType();
+            case ValueKind.Float: return new FloatType();
+            case ValueKind.Int32: return new IntegerType();
+            case ValueKind.Int64: return new LongIntegerType();
+            case ValueKind.Invalid: return new InvalidType();
+            case ValueKind.Object: return new ObjectType();
+            case ValueKind.String: return new StringType();
+            case ValueKind.Uninitialized: return new UninitializedType();
+            case ValueKind.Void: return new VoidType();
         }
     }
 

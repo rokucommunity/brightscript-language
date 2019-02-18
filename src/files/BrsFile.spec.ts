@@ -6,6 +6,12 @@ import { expect, assert } from 'chai';
 import { CallableArg, Diagnostic, Callable, ExpressionCall, VariableDeclaration } from '../interfaces';
 import util from '../util';
 import { Range, Position, CompletionItemKind } from 'vscode-languageserver';
+import { StringType } from '../types/StringType';
+import { IntegerType } from '../types/IntegerType';
+import { BooleanType } from '../types/BooleanType';
+import { DynamicType } from '../types/DynamicType';
+import { FunctionType } from '../types/FunctionType';
+import { VoidType } from '../types/VoidType';
 
 describe('BrsFile', () => {
     let file: BrsFile;
@@ -194,22 +200,24 @@ describe('BrsFile', () => {
             let callable = file.callables[0];
             expect(callable.params[0]).to.deep.include({
                 name: 'a',
-                type: 'dynamic',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[0].type).instanceof(DynamicType);
+
             expect(callable.params[1]).to.deep.include({
                 name: 'b',
-                type: 'dynamic',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[1].type).instanceof(DynamicType);
+
             expect(callable.params[2]).to.deep.include({
                 name: 'c',
-                type: 'dynamic',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[2].type).instanceof(DynamicType);
         });
 
         it('finds optional parameters', async () => {
@@ -222,10 +230,10 @@ describe('BrsFile', () => {
             let callable = file.callables[0];
             expect(callable.params[0]).to.deep.include({
                 name: 'a',
-                type: 'dynamic',
                 isOptional: true,
                 isRestArgument: false
             });
+            expect(callable.params[0].type).instanceof(DynamicType);
         });
 
         it('finds parameter types', async () => {
@@ -238,22 +246,24 @@ describe('BrsFile', () => {
             let callable = file.callables[0];
             expect(callable.params[0]).to.deep.include({
                 name: 'a',
-                type: 'dynamic',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[0].type).instanceof(DynamicType);
+
             expect(callable.params[1]).to.deep.include({
                 name: 'b',
-                type: 'integer',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[1].type).instanceof(IntegerType);
+
             expect(callable.params[2]).to.deep.include({
                 name: 'c',
-                type: 'string',
                 isOptional: false,
                 isRestArgument: false
             });
+            expect(callable.params[2].type).instanceof(StringType);
         });
     });
 
@@ -269,15 +279,15 @@ describe('BrsFile', () => {
             let args = file.expressionCalls[0].args;
             expect(args.length).to.equal(3);
             expect(args[0]).deep.include(<CallableArg>{
-                type: 'string',
+                type: new StringType(),
                 text: '"name"'
             });
             expect(args[1]).deep.include(<CallableArg>{
-                type: 'integer',
+                type: new IntegerType(),
                 text: '12'
             });
             expect(args[2]).deep.include(<CallableArg>{
-                type: 'boolean',
+                type: new BooleanType(),
                 text: 'true'
             });
         });
@@ -294,15 +304,15 @@ describe('BrsFile', () => {
             `);
             expect(file.expressionCalls.length).to.equal(1);
             expect(file.expressionCalls[0].args[0]).deep.include(<CallableArg>{
-                type: 'dynamic',
+                type: new DynamicType(),
                 text: 'count'
             });
             expect(file.expressionCalls[0].args[1]).deep.include(<CallableArg>{
-                type: 'dynamic',
+                type: new DynamicType(),
                 text: 'name'
             });
             expect(file.expressionCalls[0].args[2]).deep.include(<CallableArg>{
-                type: 'dynamic',
+                type: new DynamicType(),
                 text: 'isAlive'
             });
         });
@@ -352,7 +362,7 @@ describe('BrsFile', () => {
                 file: file,
                 //there's a bug in the brs code computing function line numbers. TODO enable this when the bug is fixed
                 // nameRange: Range.create(1, 25, 0, 36),
-                returnType: 'string',
+                returnType: new StringType(),
                 type: 'function',
                 name: 'DoSomething',
                 params: []
@@ -389,25 +399,27 @@ describe('BrsFile', () => {
                 end sub
             `);
             expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[0].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+            expect(file.functionScopes[0].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 2,
-                name: 'sayHi',
-                type: 'function'
+                name: 'sayHi'
             });
+            expect(file.functionScopes[0].variableDeclarations[0].type.isEquivalentTo(new FunctionType([], new VoidType()))).is.true;
+
 
             expect(file.functionScopes[1].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[1].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+            expect(file.functionScopes[1].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 3,
-                name: 'age',
-                type: 'integer'
+                name: 'age'
             });
+            expect(file.functionScopes[1].variableDeclarations[0].type).instanceof(IntegerType);
+
 
             expect(file.functionScopes[2].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[2].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+            expect(file.functionScopes[2].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 7,
-                name: 'name',
-                type: 'string'
+                name: 'name'
             });
+            expect(file.functionScopes[2].variableDeclarations[0].type).instanceof(StringType);
         });
 
         it('finds value from global return', async () => {
@@ -422,11 +434,11 @@ describe('BrsFile', () => {
             `);
 
             expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[0].variableDeclarations[0]).to.eql(<VariableDeclaration>{
+            expect(file.functionScopes[0].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 2,
-                name: 'myName',
-                type: 'string'
+                name: 'myName'
             });
+            expect(file.functionScopes[0].variableDeclarations[0].type).instanceof(StringType);
         });
 
         it('finds variable type from other variable', async () => {
@@ -438,11 +450,11 @@ describe('BrsFile', () => {
             `);
 
             expect(file.functionScopes[0].variableDeclarations).to.be.length(2);
-            expect(file.functionScopes[0].variableDeclarations[1]).to.eql(<VariableDeclaration>{
+            expect(file.functionScopes[0].variableDeclarations[1]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 3,
-                name: 'nameCopy',
-                type: 'string'
+                name: 'nameCopy'
             });
+            expect(file.functionScopes[0].variableDeclarations[1].type).instanceof(StringType);
         });
 
         it('sets proper range for functions', async () => {
@@ -457,7 +469,6 @@ describe('BrsFile', () => {
             expect(file.functionScopes).to.be.length(2);
             expect(file.functionScopes[0].bodyRange).to.eql(Range.create(2, 0, 5, 16));
             expect(file.functionScopes[1].bodyRange).to.eql(Range.create(3, 0, 4, 20));
-
         });
     });
 

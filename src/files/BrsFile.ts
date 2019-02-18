@@ -1,13 +1,17 @@
 import * as brs from 'brs';
 import * as path from 'path';
 
-import { Callable, ExpressionCall, BRSType, Diagnostic, CallableArg, CallableParam } from '../interfaces';
+import { Callable, ExpressionCall, Diagnostic, CallableArg, CallableParam } from '../interfaces';
 import { Context } from '../Context';
 import util from '../util';
 import { Position, Range, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { FunctionScope } from '../FunctionScope';
 import { outputFile } from 'fs-extra';
 import { diagnosticMessages } from '../DiagnosticMessages';
+import { BrsType } from '../types/BrsType';
+import { DynamicType } from '../types/DynamicType';
+import { StringType } from '../types/StringType';
+import { FunctionType } from '../types/FunctionType';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -149,7 +153,7 @@ export class BrsFile {
                     //TODO update these to use the actual token locations
                     lineIndex: scope.bodyRange.start.line,
                     name: param.name,
-                    type: util.valueKindToString(param.kind)
+                    type: util.valueKindToBrsType(param.kind)
                 });
             }
             //add every variable assignment to the scope
@@ -200,15 +204,19 @@ export class BrsFile {
         return ancestors;
     }
 
-    private getBRSTypeFromAssignment(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BRSType {
+    private getBRSTypeFromAssignment(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BrsType {
         try {
             //function
             if (assignment.value instanceof brs.parser.Expr.Function) {
-                return 'function';
+                let params = [] as BrsType[];
+                for (let argument of assignment.value.parameters) {
+                    params.push(util.valueKindToBrsType(argument.type));
+                }
+                return new FunctionType(params, util.valueKindToBrsType(assignment.value.returns));
 
                 //literal
             } else if (assignment.value instanceof brs.parser.Expr.Literal) {
-                return util.valueKindToString((assignment.value as any).value.kind);
+                return util.valueKindToBrsType((assignment.value as any).value.kind);
 
                 //function call
             } else if (assignment.value instanceof brs.parser.Expr.Call) {
@@ -228,7 +236,7 @@ export class BrsFile {
             //do nothing. Just return dynamic
         }
         //fallback to dynamic
-        return 'dynamic';
+        return new DynamicType();
     }
 
     private getFunctionByName(name: string) {
@@ -255,7 +263,7 @@ export class BrsFile {
             for (let param of statement.func.parameters) {
                 params.push({
                     name: param.name,
-                    type: util.valueKindToString(param.type),
+                    type: util.valueKindToBrsType(param.type),
                     isOptional: !!param.defaultValue,
                     isRestArgument: false
                 });
@@ -263,7 +271,7 @@ export class BrsFile {
 
             this.callables.push({
                 name: statement.name.text,
-                returnType: util.valueKindToString(statement.func.returns),
+                returnType: util.valueKindToBrsType(statement.func.returns),
                 nameRange: util.locationToRange(statement.name.location),
                 file: this,
                 params: params,
@@ -310,7 +318,7 @@ export class BrsFile {
                             args.push({
                                 range: util.locationToRange(arg.location),
                                 //TODO - look up the data type of the actual variable
-                                type: 'dynamic',
+                                type: new DynamicType(),
                                 text: arg.name.text
                             });
                         } else if (arg.value) {
@@ -321,18 +329,18 @@ export class BrsFile {
                             }
                             let callableArg = {
                                 range: util.locationToRange(arg.location),
-                                type: util.valueKindToString(arg.value.kind),
+                                type: util.valueKindToBrsType(arg.value.kind),
                                 text: text
                             };
                             //wrap the value in quotes because that's how it appears in the code
-                            if (callableArg.type === "string") {
+                            if (callableArg.type instanceof StringType) {
                                 callableArg.text = '"' + callableArg.text + '"';
                             }
                             args.push(callableArg);
                         } else {
                             args.push({
                                 range: util.locationToRange(arg.location),
-                                type: 'dynamic',
+                                type: new DynamicType(),
                                 //TODO get text from other types of args
                                 text: ''
                             });
@@ -391,7 +399,7 @@ export class BrsFile {
         for (let variable of variables) {
             results.push({
                 label: variable.name,
-                kind: variable.type === 'function' ? CompletionItemKind.Function : CompletionItemKind.Variable
+                kind: variable.type instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
             });
         }
         return results;

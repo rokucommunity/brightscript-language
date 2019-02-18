@@ -2,6 +2,7 @@ import { XmlFile } from './files/XmlFile';
 import { Position, Range } from 'vscode-languageserver';
 import { BrsFile } from './files/BrsFile';
 import { Context } from './Context';
+import { BrsType } from './types/BrsType';
 
 export interface Diagnostic {
     severity: 'hint' | 'information' | 'warning' | 'error';
@@ -30,7 +31,7 @@ export interface Callable {
      * A more lengthy explanation of the callable. This is parsed as markdown
      */
     documentation?: string;
-    returnType: BRSType;
+    returnType: BrsType;
     params: CallableParam[];
     nameRange?: Range;
     bodyRange?: Range;
@@ -51,20 +52,19 @@ export interface ExpressionCall {
  */
 export interface CallableArg {
     text: string;
-    type: BRSType;
+    type: BrsType;
     range: Range;
 }
 
 export interface CallableParam {
     name: string;
-    type: BRSType;
+    type: BrsType;
     isOptional?: boolean;
     /**
      * Indicates that an unlimited number of arguments can be passed in
      */
     isRestArgument?: boolean;
 }
-export type BRSType = 'boolean' | 'integer' | 'longinteger' | 'float' | 'double' | 'string' | 'string[]' | 'object' | 'function' | 'interface' | 'invalid' | 'dynamic' | 'uninitialized' | 'void';
 
 export interface FileObj {
     src: string;
@@ -110,7 +110,7 @@ export interface File {
 
 export interface VariableDeclaration {
     name: string;
-    type: BRSType;
+    type: BrsType;
     /**
      * Since only one variable can be declared at a time, 
      * we only need to know the line index

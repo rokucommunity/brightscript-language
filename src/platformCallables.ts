@@ -2,6 +2,9 @@ import { Callable } from './interfaces';
 import { BrsFile } from './files/BrsFile';
 import { platform } from 'os';
 import { Range } from 'vscode-languageserver';
+import { FloatType } from './types/FloatType';
+import { StringType } from './types/StringType';
+import { ObjectType } from './types/ObjectType';
 
 export let platformFile = new BrsFile('platform', 'platform');
 
@@ -9,28 +12,28 @@ let mathFunctions = [{
     name: 'Abs',
     shortDescription: 'Returns the absolute value of the argument.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Atn',
     shortDescription: 'Returns the arctangent (in radians) of the argument.',
     documentation: '`ATN(X)` returns "the angle whose tangent is X". To get arctangent in degrees, multiply `ATN(X)` by `57.29578`.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Cdbl',
     shortDescription: 'Returns a single precision float representation of the argument. Someday may return double.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
@@ -44,23 +47,23 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Cos',
     shortDescription: 'Returns the cosine of the argument (argument must be in radians). To obtain the cosine of X when X is in degrees, use CGS(X*.01745329).',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Csng',
     shortDescription: 'Returns a single-precision float representation of the argument.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
@@ -70,11 +73,11 @@ let mathFunctions = [{
     name: 'Exp',
     shortDescription: 'Returns the "natural exponential" of X, that is, ex. This is the inverse of the LOG function, so X=EXP(LOG(X)).',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Fix',
@@ -84,7 +87,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Int',
@@ -94,17 +97,17 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Log',
     shortDescription: 'Returns the natural logarithm of the argument, that is, loge(x) or ln(x). This is the inverse of the EXP function, so LOG(EXP(X)) = X. To find the logarithm of a number to another base b, use the formula logb(X) = loge(X) / loge(b). For example, LOG(32767) / LOG(2) returns the logarithm to base 2 of 32767.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Rnd',
@@ -120,7 +123,7 @@ let mathFunctions = [{
     name: 'Rnd',
     shortDescription: 'Generates a pseudo-random number using the current pseudo-random "seed number" (generated internally and not accessible to user). Returns a float value between 0 and 1.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: '0',
@@ -134,7 +137,7 @@ let mathFunctions = [{
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Sgn',
@@ -150,31 +153,31 @@ let mathFunctions = [{
     name: 'Sin',
     shortDescription: 'Returns the sine of the argument (argument must be in radians). To obtain the sine of X when X is in degrees, use SIN(X*.01745329).',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Sqr',
     shortDescription: 'Returns the square root of the argument. SQR(X) is the same as X ^ (1/2), only faster.',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }, {
     name: 'Tan',
     shortDescription: 'Returns the tangent of the argument (argument must be in radians). To obtain the tangent of X when X is in degrees, use TAN(X*.01745329).',
     type: 'function',
-    returnType: 'float',
+    returnType: new FloatType(),
     file: platformFile,
     params: [{
         name: 'x',
-        type: 'float'
+        type: new FloatType()
     }]
 }] as Callable[];
 
@@ -182,42 +185,42 @@ let runtimeFunctions = [{
     name: 'CreateObject',
     shortDescription: 'Creates a BrightScript Component of class classname specified. Return invalid if the object creation fails. Some Objects have optional parameters in their constructor that are passed after name.',
     type: 'function',
-    returnType: 'object',
+    returnType: new ObjectType(),
     file: platformFile,
     params: [{
         name: 'name',
-        type: 'string'
+        type: new StringType()
     }, {
         name: 'parameters',
-        type: 'object',
+        type: new ObjectType(),
         isOptional: true
     }]
 }, {
     name: 'Type',
     shortDescription: 'Returns the type of a variable and/or object. See the BrightScript Component specification for a list of types.',
     type: 'function',
-    returnType: 'object',
+    returnType: new ObjectType(),
     file: platformFile,
     params: [{
         name: 'variable',
-        type: 'object'
+        type: new ObjectType()
     }, {
         name: 'version',
-        type: 'string',
+        type: new StringType(),
         isOptional: true
     }]
 }, {
     name: 'GetGlobalAA',
     shortDescription: 'Each script has a global Associative Array. It can be fetched with this function. ',
     type: 'function',
-    returnType: 'object',
+    returnType: new ObjectType(),
     file: platformFile,
     params: []
 }, {
     name: 'Box',
     shortDescription: 'Box() will return an object version of an intrinsic type, or pass through an object if given one.',
     type: 'function',
-    returnType: 'object',
+    returnType: new ObjectType(),
     file: platformFile,
     params: [{
         name: 'x',
@@ -231,7 +234,7 @@ let runtimeFunctions = [{
     file: platformFile,
     params: [{
         name: 'filename',
-        type: 'string'
+        type: new StringType()
     }, {
         name: "arg",
         type: 'dynamic',
@@ -260,13 +263,13 @@ let runtimeFunctions = [{
     isDepricated: true,
     params: [{
         name: 'code',
-        type: 'string'
+        type: new StringType()
     }]
 }, {
     name: 'GetLastRunCompileError',
     shortDescription: 'Returns an roList of compile errors, or invalid if no errors. Each list entry is an roAssociativeArray with the keys: ERRNO, ERRSTR, FILESPEC, and LINENO.',
     type: 'function',
-    returnType: 'object',
+    returnType: new ObjectType(),
     file: platformFile,
     params: []
 }, {
@@ -293,14 +296,14 @@ let globalUtilityFunctions = [
         name: 'Wait',
         shortDescription: 'This function waits on objects that are "waitable" (those that have a MessagePort interface). Wait() returns the event object that was posted to the message port. If timeout is zero, "wait" will wait for ever. Otherwise, Wait will return after timeout milliseconds if no messages are received. In this case, Wait returns a type "invalid".',
         type: 'function',
-        returnType: 'object',
+        returnType: new ObjectType(),
         file: platformFile,
         params: [{
             name: 'timeout',
             type: 'integer'
         }, {
             name: 'port',
-            type: 'object'
+            type: new ObjectType()
         }]
     }, {
         name: 'GetInterface',
@@ -310,10 +313,10 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'object',
-            type: 'object'
+            type: new ObjectType()
         }, {
             name: 'ifname',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'FindMemberFunction',
@@ -323,16 +326,16 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'object',
-            type: 'object'
+            type: new ObjectType()
         }, {
             name: 'functionName',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'UpTime',
         shortDescription: 'Returns the uptime of the system since the last reboot in seconds.',
         type: 'function',
-        returnType: 'float',
+        returnType: new FloatType(),
         file: platformFile,
         params: [{
             name: 'dummy',
@@ -349,21 +352,21 @@ let globalUtilityFunctions = [
         name: 'ListDir',
         shortDescription: 'Returns a List object containing the contents of the directory path specified.',
         type: 'function',
-        returnType: 'object',
+        returnType: new ObjectType(),
         file: platformFile,
         params: [{
             name: 'path',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'ReadAsciiFile',
         shortDescription: 'This function reads the specified file and returns the data as a string.\nThe file can be encoded as either UTF-8 (which includes the 7-bit ASCII subset) or UTF-16.\nAn empty string is returned if the file can not be read.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'filePath',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'WriteAsciiFile',
@@ -373,10 +376,10 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'filePath',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'text',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'CopyFile',
@@ -386,10 +389,10 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'source',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'destination',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'MoveFile',
@@ -399,10 +402,10 @@ let globalUtilityFunctions = [
         file: platformFile,
         params: [{
             name: 'source',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'destination',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'MatchFiles',
@@ -423,10 +426,10 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'path',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'pattern_in',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'DeleteFile',
@@ -436,7 +439,7 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'file',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'DeleteDirectory',
@@ -446,7 +449,7 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'dir',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'CreateDirectory',
@@ -456,7 +459,7 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'dir',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'FormatDrive',
@@ -466,10 +469,10 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'drive',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'fs_type',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'StrToI',
@@ -479,13 +482,13 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
         file: platformFile,
         params: [{
             name: 'str',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'RunGarbageCollector',
         shortDescription: `This function runs the garbage collector. It returns and Associative Array with some statistics regarding the garbage collection. \nSee the Garbage Collection section of the manual for more detail. You don't normally need to call this function.`,
         type: 'function',
-        returnType: 'object',
+        returnType: new ObjectType(),
         file: platformFile,
         params: []
     }, {
@@ -496,11 +499,11 @@ The characters '?', '*' and '[' lose their special meaning if preceded by a sing
 Any roAssociativeArray objects in the returned objects will be case sensitive.
 An error will be returned if arrays/associative arrays are nested more than 256 levels deep.`,
         type: 'function',
-        returnType: 'object',
+        returnType: new ObjectType(),
         file: platformFile,
         params: [{
             name: 'jsonString',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'FormatJson',
@@ -519,10 +522,10 @@ Normally non-ASCII characters are escaped in the output string as "\\uXXXX" wher
         file: platformFile,
         params: [{
             name: 'object',
-            type: 'object'
+            type: new ObjectType()
         }, {
             name: 'flags',
-            type: 'string',
+            type: new StringType(),
             isOptional: true
         }]
     }, {
@@ -533,11 +536,11 @@ Normally non-ASCII characters are escaped in the output string as "\\uXXXX" wher
 In some cases you may want to include a placeholder marker in a localizable string that gets dynamically substituted with a value at runtime. 
 One way to accomplish that is to use the Replace method on the string value returned from the Tr() lookup.`,
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'source',
-            type: 'string'
+            type: new StringType()
         }]
     }
 ] as Callable[];
@@ -547,21 +550,21 @@ let globalStringFunctions = [
         name: 'UCase',
         shortDescription: 'Converts the string to all upper case.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'LCase',
         shortDescription: 'Converts the string to all lower case.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Asc',
@@ -571,7 +574,7 @@ let globalStringFunctions = [
         file: platformFile,
         params: [{
             name: 'letter',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Chr',
@@ -584,7 +587,7 @@ By using Chr, you can create strings containing characters which cannot be conta
 
  print (Chr(34) + "hello" + Chr(34))  ' prints: "hello"`,
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'ch',
@@ -601,10 +604,10 @@ By using Chr, you can create strings containing characters which cannot be conta
             type: 'integer'
         }, {
             name: 'text',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'substring',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Left',
@@ -614,7 +617,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Len',
@@ -624,17 +627,17 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Mid',
         shortDescription: 'Returns a substring of s with length n and starting at position p.\nn may be omitted, in which case the string starting at p and ending at the end of the string is returned.\nUnlike the ifString.Mid() method, the first character in the string is position 1.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'p',
             description: '1-based position',
@@ -648,7 +651,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         name: 'Right',
         shortDescription: 'Returns the last n characters of s.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 's',
@@ -661,17 +664,17 @@ By using Chr, you can create strings containing characters which cannot be conta
         name: 'Str',
         shortDescription: 'Converts a value to a string. Str(A), for example, returns a string equal to the decimal representation of the numeric value of A.\nNote: for non-negative numbers, a leading blank is inserted before the value string as a sign placeholder.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'value',
-            type: 'float'
+            type: new FloatType()
         }]
     }, {
         name: 'StrI',
         shortDescription: 'Converts a value to a string. Str(A), for example, returns a string equal to the decimal representation of the numeric value of A.\nNote: for non-negative numbers, a leading blank is inserted before the value string as a sign placeholder.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'value',
@@ -681,7 +684,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         name: 'StrI',
         shortDescription: 'Converts the integer value into a string representation using the given radix.\nIf radix is not 2 .. 36 then an empty string is returned.\nNote that the returned string does not include a base prefix and uses lowercase letters to represent those digits in bases greater than 10.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'value',
@@ -691,17 +694,17 @@ By using Chr, you can create strings containing characters which cannot be conta
             type: 'integer'
         }]
     }, {
-        name: 'String',
+        name: 'string',
         shortDescription: 'Returns a string composed of n copies of the second argument concatenated together.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'n',
             type: 'integer'
         }, {
             name: 'str',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'StringI',
@@ -720,11 +723,11 @@ By using Chr, you can create strings containing characters which cannot be conta
         name: 'Val',
         shortDescription: 'Performs the inverse of the STR function: returns the number represented by the characters in a string argument.\nFor example, if A$="12" and B$="34" then VAL(A$+ "."+B$) returns the number 12.34.',
         type: 'function',
-        returnType: 'float',
+        returnType: new FloatType(),
         file: platformFile,
         params: [{
             name: 's',
-            type: 'string'
+            type: new StringType()
         }]
     }, {
         name: 'Val',
@@ -734,7 +737,7 @@ By using Chr, you can create strings containing characters which cannot be conta
         file: platformFile,
         params: [{
             name: 'str',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'radix',
             type: 'integer'
@@ -743,23 +746,23 @@ By using Chr, you can create strings containing characters which cannot be conta
         name: 'Substitute',
         shortDescription: 'Replaces all instances of {0} or ^0 in str with arg0.  Similarly, replaces all instances of {1} or ^1 with arg1, {2} or ^2 with arg2, and {3} or ^3 with arg3.',
         type: 'function',
-        returnType: 'string',
+        returnType: new StringType(),
         file: platformFile,
         params: [{
             name: 'str',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'arg0',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'arg1',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'arg2',
-            type: 'string'
+            type: new StringType()
         }, {
             name: 'arg3',
-            type: 'string'
+            type: new StringType()
         }]
     }
 ] as Callable[];
