@@ -261,6 +261,7 @@ export class Context {
             let contextFile = this.files[key];
             this.diagnosticDetectCallsToUnknownFunctions(contextFile.file, callableContainersByLowerName);
             this.diagnosticDetectFunctionCallsWithWrongParamCount(contextFile.file, callableContainersByLowerName);
+            this.diagnosticDetectShadowedLocalVars(contextFile.file, callableContainersByLowerName);
         }
 
         this.isValidated = false;
@@ -301,6 +302,37 @@ export class Context {
                         //TODO detect end of expression call
                         file: file,
                         severity: 'error'
+                    });
+                }
+            }
+        }
+    }
+
+    /**
+     * Detect local variables (function scope) that have the same name as context calls
+     * @param file 
+     * @param callablesByLowerName 
+     */
+    private diagnosticDetectShadowedLocalVars(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
+        //loop through every function scope
+        for (let scope of file.functionScopes) {
+            //every var declaration in this scope
+            for (let varDeclaration of scope.variableDeclarations) {
+                let globalCallableContainer = callablesByLowerName[varDeclaration.name.toLowerCase()];
+                //if we found a collision
+                if (globalCallableContainer && globalCallableContainer.length > 0) {
+                    let globalCallable = globalCallableContainer[0];
+
+                    this._diagnostics.push({
+                        message: util.stringFormat(
+                            diagnosticMessages.Local_var_shadows_global_function_1011.message,
+                            varDeclaration.name,
+                            globalCallable.callable.file.pkgPath
+                        ),
+                        code: diagnosticMessages.Local_var_shadows_global_function_1011.code,
+                        location: varDeclaration.nameRange,
+                        file: file,
+                        severity: 'warning'
                     });
                 }
             }

@@ -48,8 +48,8 @@ export var diagnosticMessages = {
         message: 'Function "{0}" included in "{1}" shadows function in "{2}" included in "{3}"',
         code: 1010
     },
-    Local_function_shadows_global_function_1011: {
-        message: 'Local function "{0}" has same name as global function in "{1}" and will never be called',
+    Local_var_shadows_global_function_1011: {
+        message: 'Local var "{0}" has same name as global function in "{1}" and will never be called',
         code: 1011
     }
 }

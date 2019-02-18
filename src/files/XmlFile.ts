@@ -38,6 +38,8 @@ export class XmlFile {
     //TODO implement the xml CDATA parsing, which would populate this list
     public functionCalls = [] as ExpressionCall[];
 
+    public functionScopes = [] as FunctionScope[];
+
     /**
      * The name of the component that this component extends
      */

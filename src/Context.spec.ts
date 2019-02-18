@@ -123,7 +123,7 @@ describe('Context', () => {
             expect(program.getDiagnostics()).to.be.lengthOf(0);
         });
 
-        it.skip('detects local functions with same name as global', async () => {
+        it('detects local functions with same name as global', async () => {
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub Main()
                     SayHi = sub()
@@ -137,7 +137,7 @@ describe('Context', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Local_function_shadows_global_function_1011.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Local_var_shadows_global_function_1011.code);
         });
 
         it('detects duplicate callables', async () => {
