@@ -51,5 +51,9 @@ export var diagnosticMessages = {
     Local_var_shadows_global_function_1011: {
         message: 'Local var "{0}" has same name as global function in "{1}" and will never be called',
         code: 1011
+    },
+    Script_import_case_mismatch_1012: {
+        message: 'Script import path does not match casing of actual file path "{0}"',
+        code: 1012
     }
 }

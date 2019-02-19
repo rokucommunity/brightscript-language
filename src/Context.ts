@@ -462,7 +462,7 @@ export class Context {
      */
     protected getFileByRelativePath(relativePath: string) {
         for (let key in this.files) {
-            if (this.files[key].file.pkgPath === relativePath) {
+            if (this.files[key].file.pkgPath.toLowerCase() === relativePath.toLowerCase()) {
                 return this.files[key];
             }
         }

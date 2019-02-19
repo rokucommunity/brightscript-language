@@ -161,6 +161,25 @@ export class XmlContext extends Context {
                     file: this.xmlFile,
                     severity: 'error',
                 });
+            } else {
+                //if the script import path is not identical in case to the actual path, add a warning
+                if (scriptImport.pkgPath !== referencedFile.file.pkgPath) {
+                    this._diagnostics.push({
+                        message: util.stringFormat(
+                            diagnosticMessages.Script_import_case_mismatch_1012.message,
+                            referencedFile.file.pkgPath
+                        ),
+                        code: diagnosticMessages.Script_import_case_mismatch_1012.code,
+                        location: Range.create(
+                            scriptImport.lineIndex,
+                            scriptImport.columnIndexBegin,
+                            scriptImport.lineIndex,
+                            scriptImport.columnIndexEnd
+                        ),
+                        file: this.xmlFile,
+                        severity: 'warning'
+                    });
+                }
             }
         }
     }

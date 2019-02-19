@@ -24,6 +24,8 @@ import chalk from 'chalk';
 
 class Util {
     public log(...args) {
+        //print an empty line 
+        console.log('');
         let timestamp = '[' + chalk.grey(moment().format('hh:mm:ss A')) + ']';
         console.log.apply(console.log, [timestamp, ...args]);
         //print an empty line 

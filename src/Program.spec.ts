@@ -384,6 +384,25 @@ describe('Program', () => {
                 severity: 'error'
             });
         });
+
+        it('adds warning instead of error on mismatched upper/lower case script import', async () => {
+            let xmlPath = path.resolve(`${rootDir}/components/component1.xml`);
+            await program.addOrReplaceFile(xmlPath, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="HeroScene" extends="Scene" >');
+                    <script type="text/brightscript" uri="pkg:/components/component1.brs" />
+                </component>
+            `);
+            let brsPath = path.resolve(`${rootDir}/components/COMPONENT1.brs`);
+            await program.addOrReplaceFile(brsPath, '');
+
+            let context = program.contexts[`components${path.sep}component1.xml`];
+            //validate
+            await program.validate();
+            let diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_import_case_mismatch_1012.code);
+        });
     });
 
     describe('reloadFile', () => {
