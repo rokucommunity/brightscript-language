@@ -164,7 +164,8 @@ class Util {
         //use default options from rokuDeploy
         config.files = config.files ? config.files : rokuDeploy.getOptions().files;
         config.skipPackage = config.skipPackage === true ? true : false;
-        config.outFile = config.outFile ? config.outFile : 'out/package.zip';
+        let rootFolderName = path.basename(process.cwd());
+        config.outFile = config.outFile ? config.outFile : `./out/${rootFolderName}.zip`;
         config.username = config.username ? config.username : 'rokudev';
         config.watch = config.watch === true ? true : false;
         config.ignoreErrorCodes = config.ignoreErrorCodes ? config.ignoreErrorCodes : [];
