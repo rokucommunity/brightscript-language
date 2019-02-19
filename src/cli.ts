@@ -15,6 +15,7 @@ let args = [
     { name: 'username', type: String, description: 'The username for deploying to a Roku. Defaults to "rokudev".' },
     { name: 'password', type: String, description: 'The password for deploying to a Roku.' },
     { name: 'ignore-error-codes', type: Number, multiple: true, description: ' A list of error codes that the compiler should NOT emit, even if encountered.' },
+    { name: 'emit-full-paths', type: Boolean, description: 'Emit full paths to files when encountering diagnostics. Defaults to false' },
     { name: 'help', type: Boolean, description: 'View help information about this tool.' }
 ]
 const options = commandLineArgs(args, { camelCase: true });

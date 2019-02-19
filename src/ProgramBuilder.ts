@@ -1,4 +1,4 @@
-import * as chokidar from 'chokidar';
+import chalk from 'chalk';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
 import * as debounce from 'debounce-promise';
@@ -8,7 +8,7 @@ import { Watcher } from './Watcher';
 import { Program } from './Program';
 
 import * as ts from 'typescript';
-import { FileObj } from './interfaces';
+import { FileObj, Diagnostic } from './interfaces';
 
 /**
  * A runner class that handles
@@ -26,7 +26,7 @@ export class ProgramBuilder {
     /**
      * The list of errors found in the program.
      */
-    private get errors() {
+    private get diagnostics() {
         return this.program.getDiagnostics();
     }
 
@@ -36,7 +36,7 @@ export class ProgramBuilder {
         }
         this.options = await util.normalizeAndResolveConfig(options);
 
-        this.program = new Program(this.options );
+        this.program = new Program(this.options);
         //parse every file in the entire project
         await this.loadAllFilesAST();
 
@@ -60,23 +60,21 @@ export class ProgramBuilder {
         let fileObjects = rokuDeploy.normalizeFilesOption(this.options.files ? this.options.files : []);
 
         //add each set of files to the file watcher
-        let fileObjectPromises = fileObjects.map(async (fileObject) => {
-            await this.watcher.watch(fileObject.src);
-        });
-
-        //wait for all watchers to be ready
-        await Promise.all(fileObjectPromises);
+        for (let fileObject of fileObjects) {
+            this.watcher.watch(fileObject.src);
+        }
 
         util.log('Watching for file changes...');
 
         let debouncedRunOnce = debounce(async () => {
+            util.log('File change detected. Starting incremental compilation...');
             await this.runOnce();
-            let errorCount = this.errors.length;
+            let errorCount = this.diagnostics.length;
             util.log(`Found ${errorCount} errors. Watching for file changes.`);
         }, 50);
         //on any file watcher event
         this.watcher.on('all', (event: string, path: string) => {
-            console.log(event, path);
+            // console.log(event, path);
             if (event === 'add' || event === 'change') {
                 this.program.addOrReplaceFile(path);
             } else if (event === 'unlink') {
@@ -97,6 +95,8 @@ export class ProgramBuilder {
      * Run the entire process exactly one time.
      */
     private runOnce() {
+        //clear the console
+        util.clearConsole();
         let cancellationToken = { isCanceled: false };
         let isCompleted = false;
         //wait for the previous run to complete
@@ -104,15 +104,15 @@ export class ProgramBuilder {
             //start the new run
             return this._runOnce(cancellationToken);
         }).then((result) => {
-            this.logErrors();
+            this.printDiagnostics();
             //track if the run completed
             isCompleted = true;
             return result;
-        }, (err) => {
-            this.logErrors();
+        }, async (err) => {
+            await this.printDiagnostics();
             //track if the run completed
             isCompleted = true;
-            return Promise.reject(err);
+            throw err;
         });
 
         //a function used to cancel this run
@@ -123,10 +123,76 @@ export class ProgramBuilder {
         return runPromise;
     }
 
-    private logErrors() {
-        let errors = this.errors;
-        for (let error of this.errors) {
-            console.log(error.message);
+    private async printDiagnostics() {
+        let diagnostics = this.diagnostics;
+
+        //group the diagnostics by file
+        let diagnosticsByFile = {} as { [pathAbsolute: string]: Diagnostic[] };
+        for (let diagnostic of diagnostics) {
+            if (!diagnosticsByFile[diagnostic.file.pathAbsolute]) {
+                diagnosticsByFile[diagnostic.file.pathAbsolute] = [];
+            }
+            diagnosticsByFile[diagnostic.file.pathAbsolute].push(diagnostic);
+        }
+
+        let cwd = this.options.cwd ? this.options.cwd : process.cwd();
+
+        let pathsAbsolute = Object.keys(diagnosticsByFile).sort();
+        for (let pathAbsolute of pathsAbsolute) {
+            let diagnosticsForFile = diagnosticsByFile[pathAbsolute];
+            //sort the diagnostics in line and column order
+            let sortedDiagnostics = diagnosticsForFile.sort((a, b) => {
+                return (
+                    a.location.start.line - b.location.start.line ||
+                    a.location.start.character - b.location.start.character
+                );
+            });
+            let filePath = pathAbsolute;
+            let typeColor = {
+                information: chalk.blue,
+                hint: chalk.green,
+                warning: chalk.yellow,
+                error: chalk.red,
+
+            };
+            if (this.options.emitFullPaths !== true) {
+                filePath = path.relative(cwd, filePath);
+            }
+            //load the file text
+            let fileText = await util.getFileContents(pathAbsolute);
+            //split the file on newline
+            let lines = util.getLines(fileText);
+            for (let diagnostic of sortedDiagnostics) {
+                console.log('');
+                console.log(
+                    chalk.cyan(filePath) +
+                    ':' +
+                    chalk.yellow(
+                        (diagnostic.location.start.line + 1) +
+                        ':' +
+                        (diagnostic.location.start.character + 1)
+                    ) +
+                    ' - ' +
+                    typeColor[diagnostic.severity](diagnostic.severity) +
+                    ' ' +
+                    chalk.grey('BRS' + diagnostic.code) +
+                    ': ' +
+                    chalk.white(diagnostic.message)
+                );
+                console.log('');
+
+                //print the line
+                let diagnosticLine = lines[diagnostic.location.start.line];
+                let lineNumberText = chalk.bgWhite(' ' + chalk.black((diagnostic.location.start.line + 1).toString()) + ' ') + ' ';
+                console.log(lineNumberText + diagnosticLine);
+                console.log(lineNumberText +
+                    typeColor[diagnostic.severity](
+                        util.padLeft('', diagnostic.location.start.character, ' ') +
+                        util.padLeft('', diagnostic.location.end.character - diagnostic.location.start.character, '~')
+                    )
+                );
+                console.log('');
+            }
         }
     }
 
@@ -176,7 +242,7 @@ export class ProgramBuilder {
     private async deployPackageIfEnabled() {
         //deploy the project if configured to do so
         if (this.options.deploy) {
-            util.log(`Deploying package to ${this.options.host}}`);
+            util.log(`Deploying package to ${this.options.host}`);
             await rokuDeploy.publish({
                 ...this.options,
                 outDir: path.dirname(this.options.outFile),
@@ -353,4 +419,9 @@ export interface BRSConfig {
      * A list of error codes the compiler should NOT emit, even if encountered.
      */
     ignoreErrorCodes?: number[];
+
+    /**
+     * Emit full paths to files when printing diagnostics to the console. Defaults to false
+     */
+    emitFullPaths?: boolean;
 }

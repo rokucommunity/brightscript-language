@@ -20,15 +20,17 @@ import { StringType } from './types/StringType';
 import { UninitializedType } from './types/UninitializedType';
 import { VoidType } from './types/VoidType';
 import { BrsType } from './types/BrsType';
+import chalk from 'chalk';
 
 class Util {
     public log(...args) {
-        let timestamp = `[${moment().format('hh:mm:ss A')}]`;
+        let timestamp = '[' + chalk.grey(moment().format('hh:mm:ss A')) + ']';
         console.log.apply(console.log, [timestamp, ...args]);
+        //print an empty line 
+        console.log('');
     }
     public clearConsole() {
-        //TODO re-enable this maybe?
-        // process.stdout.write('\x1B[2J\x1B[0f');
+        process.stdout.write("\x1Bc");
     }
 
     /**
@@ -169,6 +171,7 @@ class Util {
         config.username = config.username ? config.username : 'rokudev';
         config.watch = config.watch === true ? true : false;
         config.ignoreErrorCodes = config.ignoreErrorCodes ? config.ignoreErrorCodes : [];
+        config.emitFullPaths = config.emitFullPaths === true ? true : false;
         return config;
     }
 
@@ -481,6 +484,11 @@ class Util {
             argument.location.start.line - 1,
             argument.location.start.column + argument.name.length
         );
+    }
+
+    public padLeft(subject: string, totalLength: number, char: string) {
+        while (subject.length < totalLength) subject = char + subject;
+        return subject;
     }
 
 }

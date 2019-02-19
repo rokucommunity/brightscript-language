@@ -78,6 +78,7 @@
   },
   "dependencies": {
     "brs": "github:twitchbronbron/brs#caf8c4f",
+    "chalk": "^2.4.2",
     "chokidar": "^2.0.4",
     "clear": "^0.1.0",
     "command-line-args": "^5.0.2",
