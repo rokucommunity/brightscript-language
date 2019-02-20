@@ -55,5 +55,9 @@ export var diagnosticMessages = {
     Script_import_case_mismatch_1012: {
         message: 'Script import path does not match casing of actual file path "{0}"',
         code: 1012
+    },
+    Script_not_loaded_by_any_file_1013: {
+        message: 'Script is not loaded by any component or script in the project',
+        code: 1013
     }
 }

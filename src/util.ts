@@ -506,6 +506,14 @@ class Util {
             return path.normalize(path.join(cwd, path.dirname(options.outFile)));
         }
     }
+
+    /**
+     * Get paths to all files on disc that match this project's source list
+     */
+    public async getFilePaths(options: BRSConfig) {
+        let files = await rokuDeploy.getFilePaths(options.files, path.dirname(options.outFile), options.rootDir);
+        return files;
+    }
 }
 
 export default new Util();

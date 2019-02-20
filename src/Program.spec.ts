@@ -76,6 +76,19 @@ describe('Program', () => {
         });
     });
     describe('validate', () => {
+        it('detects scripts not loaded by any file', async () => {
+            //add a main file for sanity check
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, '');
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(0);
+
+            //add the orphaned file
+            await program.addOrReplaceFile(`${rootDir}/components/lib.brs`, '');
+            await program.validate();
+            var diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_not_loaded_by_any_file_1013.code);
+        });
         it('does not throw errors on shadowed init functions in components', async () => {
             await program.addOrReplaceFile(`${rootDir}/lib.brs`, `
                 function DoSomething()
@@ -407,6 +420,7 @@ describe('Program', () => {
 
     describe('reloadFile', () => {
         it('picks up new files in a context when an xml file is loaded', async () => {
+            program.options.ignoreErrorCodes.push(1013);
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
             await program.addOrReplaceFile(xmlPath, `
                 <?xml version="1.0" encoding="utf-8" ?>
@@ -455,6 +469,7 @@ describe('Program', () => {
         });
 
         it('reloads referenced fles when xml file changes', async () => {
+            program.options.ignoreErrorCodes.push(1013);
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
             let brsFile = await program.addOrReplaceFile(brsPath, '');
 
@@ -646,7 +661,7 @@ describe('Program', () => {
             await program.validate();
             expect(program.getDiagnostics()).to.be.lengthOf(2);
 
-            program.config.ignoreErrorCodes = [
+            program.options.ignoreErrorCodes = [
                 diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
             ];
 

@@ -6,26 +6,27 @@ import util from './util';
 import { BRSConfig } from './ProgramBuilder';
 import { XmlFile } from './files/XmlFile';
 import { textChangeRangeIsUnchanged } from 'typescript';
-import { Position } from 'vscode-languageserver';
+import { Position, Location, Range } from 'vscode-languageserver';
 import { XmlContext } from './XmlContext';
 import { platformCallables, platformFile } from './platformCallables';
 import { EventEmitter } from 'events';
+import { diagnosticMessages } from './DiagnosticMessages';
 
 export class Program {
     constructor(
         /**
          * The root directory for this program
          */
-        public config: BRSConfig
+        public options: BRSConfig
     ) {
-        this.config = util.normalizeConfig(config);
+        this.options = util.normalizeConfig(options);
 
         //normalize the root dir path
-        this.rootDir = util.getRootDir(config);
+        this.rootDir = util.getRootDir(options);
 
         //create the 'platform' context
         this.platformContext = new Context('platform', (file) => false);
-        
+
         //add all platform callables
         this.platformContext.addOrReplaceFile(platformFile);
         platformFile.program = this;
@@ -54,11 +55,17 @@ export class Program {
     private rootDir: string;
 
     /**
+     * A set of diagnostics. This does not include any of the context diagnostics.
+     * Should only be set from `this.validate()`
+     */
+    private _diagnostics = [] as Diagnostic[];
+
+    /**
      * Get the list of errors for the entire program. It's calculated on the fly
      * by walking through every file, so call this sparingly.
      */
     public getDiagnostics() {
-        let errorLists = [] as Diagnostic[][];
+        let errorLists = [this._diagnostics.slice()];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             errorLists.push(context.getDiagnostics());
@@ -66,8 +73,8 @@ export class Program {
         let result = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
 
         //if we have a list of error codes to ignore, throw them out
-        if (this.config.ignoreErrorCodes.length > 0) {
-            result = result.filter(x => this.config.ignoreErrorCodes.indexOf(x.code) === -1);
+        if (this.options.ignoreErrorCodes.length > 0) {
+            result = result.filter(x => this.options.ignoreErrorCodes.indexOf(x.code) === -1);
         }
         return result;
     }
@@ -264,9 +271,28 @@ export class Program {
      * Traverse the entire project, and validate all contexts
      */
     public async validate() {
+        this._diagnostics = [];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             context.validate();
+        }
+
+        //find any files NOT loaded into a context
+        outer: for (let filePath in this.files) {
+            let file = this.files[filePath];
+            for (let contextName in this.contexts) {
+                if (this.contexts[contextName].hasFile(file)) {
+                    continue outer;
+                }
+            }
+            //if we got here, the file is not loaded in any context
+            this._diagnostics.push({
+                file: file,
+                location: Range.create(0, 0, 0, Number.MAX_VALUE),
+                severity: 'warning',
+                code: diagnosticMessages.Script_not_loaded_by_any_file_1013.code,
+                message: diagnosticMessages.Script_not_loaded_by_any_file_1013.message
+            });
         }
     }
 

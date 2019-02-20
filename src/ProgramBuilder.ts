@@ -2,13 +2,13 @@ import chalk from 'chalk';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
 import * as debounce from 'debounce-promise';
+import Uri from 'vscode-uri';
 
 import util from './util';
 import { Watcher } from './Watcher';
 import { Program } from './Program';
-
-import * as ts from 'typescript';
 import { FileObj, Diagnostic } from './interfaces';
+import { FileEvent, FileChangeType } from 'vscode-languageserver';
 
 /**
  * A runner class that handles
@@ -252,19 +252,11 @@ export class ProgramBuilder {
     }
 
     /**
-     * Get paths to all files on disc that match this project's source list
-     */
-    public async getFilePaths() {
-        let files = await rokuDeploy.getFilePaths(this.options.files, path.dirname(this.options.outFile), this.options.rootDir);
-        return files;
-    }
-
-    /**
      * Parse and load the AST for every file in the project
      */
     private async loadAllFilesAST() {
         let errorCount = 0;
-        let files = await this.getFilePaths();
+        let files = await util.getFilePaths(this.options);
         //parse every file
         await Promise.all(
             files.map(async (file) => {
@@ -285,50 +277,56 @@ export class ProgramBuilder {
         return errorCount;
     }
 
+
     /**
-     * Find all added, deleted, and existing files
-     * relative to the current program
+     * This only operates on files that match the specified files globs, so it is safe to throw 
+     * any file changes you receive with no unexpected side-effects
+     * @param changes 
      */
-    private async getFileSyncStatus() {
-        let expectedProjectFiles = await this.getFilePaths();
-        let result = {
-            added: [] as FileObj[],
-            deleted: [] as FileObj[],
-            existing: [] as FileObj[]
-        };
-
-        //find all added files
-        let remainingFilesByPath = new Map<string, FileObj>();
-        for (let fileObj of expectedProjectFiles) {
-            if (this.program.hasFile(fileObj.src) === false) {
-                result.added.push(fileObj);
-            } else {
-                remainingFilesByPath.set(fileObj.src, fileObj);
+    public async handleFileChanges(changes: FileEvent[]) {
+        //lazy-load the list of file paths, and only once for this function call
+        let _matchingFilePathsPromise: Promise<string[]>;
+        let getMatchingFilePaths = () => {
+            if (!_matchingFilePathsPromise) {
+                _matchingFilePathsPromise = util.getFilePaths(this.options).then((fileObjects) => {
+                    return fileObjects.map(obj => obj.src);
+                });
+            }
+            return _matchingFilePathsPromise;
+        }
+        //this loop assumes paths are both file paths and folder paths,
+        //Which eliminates the need to detect. All functions below can handle being given
+        //a file path AND a folder path, and will only operate on the one they are looking for
+        for (let change of changes) {
+            let pathAbsolute = path.normalize(Uri.parse(change.uri).fsPath);
+            //remove all files from any removed folder
+            if (change.type === FileChangeType.Deleted) {
+                //try to act on this path as a directory
+                this.removeFilesInFolder(pathAbsolute)
+                //if this is a file loaded in the program, remove it
+                if (this.program.hasFile(pathAbsolute)) {
+                    this.program.removeFile(pathAbsolute);
+                }
+            } else if (change.type === FileChangeType.Created) {
+                //load all matching missing files from this path (if it's a directory)
+                await this.loadMissingFilesFromFolder(pathAbsolute);
+                let filePaths = await getMatchingFilePaths();
+                //if our program wants this file, then load it
+                if (filePaths.indexOf(pathAbsolute)) {
+                    this.program.addOrReplaceFile(pathAbsolute);
+                }
+            } else /*changed*/ {
+                if (this.program.hasFile(pathAbsolute)) {
+                    //sometimes "changed" events are emitted on files that were actually deleted, 
+                    //so determine file existance and act accordingly
+                    if (await util.fileExists(pathAbsolute)) {
+                        await this.program.addOrReplaceFile(pathAbsolute);
+                    } else {
+                        await this.program.removeFile(pathAbsolute);
+                    }
+                }
             }
         }
-
-        //find all deleted files
-        for (let filePath in this.program.files) {
-            let file = this.program.files[filePath];
-            //the file exists in the program, but does NOT exist in the expected files list
-            if (remainingFilesByPath.has(filePath) === false) {
-                let deletedFileObj = {
-                    src: file.pathAbsolute,
-                    dest: path.normalize(
-                        path.join(
-                            util.getOutDir(this.options),
-                            file.pkgPath
-                        )
-                    )
-                } as FileObj;
-                result.deleted.push(deletedFileObj);
-                remainingFilesByPath.delete(filePath);
-            }
-        }
-
-        //the remaining files are existing files
-        result.existing = [...remainingFilesByPath.values()];
-        return result;
     }
 
     /**
@@ -352,7 +350,7 @@ export class ProgramBuilder {
      */
     public async loadMissingFilesFromFolder(folderPathAbsolute: string) {
         folderPathAbsolute = path.normalize(folderPathAbsolute);
-        let allFilesObjects = await this.getFilePaths();
+        let allFilesObjects = await util.getFilePaths(this.options);
 
         let promises = [] as Promise<any>[];
         //for every matching file
@@ -367,34 +365,6 @@ export class ProgramBuilder {
             }
         }
         await Promise.all(promises);
-    }
-
-    /**
-     * Given a list of file paths:
-     *  - remove any files that are no longer on disc,
-     *  - add any files that are on disc but weren't in the project,
-     *  - update any files that are in the project (assume they have changed on disc)
-     * @param filePaths 
-     */
-    public async syncFiles(filePaths: string[]) {
-        let syncStatus = await this.getFileSyncStatus();
-
-        let addedOrExistingPaths = [...syncStatus.added, ...syncStatus.existing].filter((fileObj) => {
-            return filePaths.indexOf(fileObj.src) > -1;
-        }).map((fileObj) => {
-            return fileObj.src;
-        });
-
-        let reloadPromise = this.program.addOrReplaceFiles(addedOrExistingPaths)
-
-        for (let fileObj of syncStatus.deleted) {
-            //only remove the files in the whitelist parameter
-            if (filePaths.indexOf(fileObj.src) > -1) {
-                this.program.removeFile(fileObj.src);
-            }
-        }
-        //wait for the files to reload
-        await reloadPromise;
     }
 
     /**
