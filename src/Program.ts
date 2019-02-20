@@ -354,4 +354,15 @@ export class Program {
 
         return file.getHover(position);
     }
+
+    public dispose() {
+        this.emitter.removeAllListeners();
+        for (let filePath in this.files) {
+            this.files[filePath].dispose();
+        }
+        for (let name in this.contexts) {
+            this.contexts[name].dispose();
+        }
+        this.platformContext.dispose();
+    }
 }

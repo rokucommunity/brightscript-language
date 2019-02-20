@@ -61,4 +61,10 @@ export class Watcher {
             }
         };
     }
+
+    public dispose() {
+        for (let watcher of this.watchers) {
+            watcher.removeAllListeners();
+        }
+    }
 }

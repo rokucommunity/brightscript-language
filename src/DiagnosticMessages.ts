@@ -57,7 +57,7 @@ export var diagnosticMessages = {
         code: 1012
     },
     File_not_referenced_by_any_file_1013: {
-        message: 'This file is not referenced by any other file in this project.',
+        message: 'This file is not referenced by any other file in the project.',
         code: 1013
     }
 }

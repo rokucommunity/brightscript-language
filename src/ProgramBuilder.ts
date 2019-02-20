@@ -382,6 +382,11 @@ export class ProgramBuilder {
     private async validateProject() {
         await this.program.validate();
     }
+
+    public dispose() {
+        this.watcher.dispose();
+        this.program.dispose();
+    }
 }
 
 export interface BRSConfig {

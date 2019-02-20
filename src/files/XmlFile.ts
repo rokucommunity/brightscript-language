@@ -356,4 +356,8 @@ export class XmlFile {
         //TODO implement
         return null;
     }
+
+    public dispose() {
+        this.emitter.removeAllListeners();
+    }
 }

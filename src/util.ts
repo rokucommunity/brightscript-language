@@ -21,6 +21,8 @@ import { UninitializedType } from './types/UninitializedType';
 import { VoidType } from './types/VoidType';
 import { BrsType } from './types/BrsType';
 import chalk from 'chalk';
+import Uri from 'vscode-uri';
+import { utils } from 'mocha';
 
 class Util {
     public log(...args) {
@@ -494,6 +496,10 @@ class Util {
         return subject;
     }
 
+    public getPathFromUri(uri: string) {
+        return path.normalize(Uri.parse(uri).fsPath);
+    }
+
     /**
      * Get the outDir from options, taking into account cwd and absolute outFile paths
      * @param options 
@@ -512,7 +518,9 @@ class Util {
      * Get paths to all files on disc that match this project's source list
      */
     public async getFilePaths(options: BRSConfig) {
-        let files = await rokuDeploy.getFilePaths(options.files, path.dirname(options.outFile), options.rootDir);
+        let rootDir = this.getRootDir(options);
+
+        let files = await rokuDeploy.getFilePaths(options.files, path.dirname(options.outFile), rootDir);
         return files;
     }
 }

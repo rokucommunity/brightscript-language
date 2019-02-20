@@ -1,4 +1,3 @@
-import * as rpc from 'vscode-jsonrpc';
 import * as path from 'path';
 import {
     CompletionItem,
@@ -15,21 +14,28 @@ import {
     DidChangeConfigurationParams,
     DidChangeWatchedFilesParams,
     ServerCapabilities,
+    WorkspaceFolder,
+    Hover,
 } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
 import { ProgramBuilder } from './ProgramBuilder';
-import { Program } from './Program';
 import util from './util';
+import { Program } from './Program';
 
 export class LanguageServer {
     constructor() {
 
     }
     private connection: Connection;
-    private brsProgramBuilder = new ProgramBuilder();
+
+    private workspaces = [] as {
+        firstRunPromise: Promise<any>;
+        builder: ProgramBuilder;
+        workspacePath: string;
+    }[];
+
     private hasConfigurationCapability = false;
-    private serverFinishedFirstRunPromise: Promise<any>;
 
     /**
      * Indicates whether the client supports workspace folders
@@ -111,15 +117,13 @@ export class LanguageServer {
         //start up a new BrightScript program builder in watch mode,
         //disable all output file generation and deployments, as this
         //is purely for the language server options
-
-        this.serverFinishedFirstRunPromise = this.brsProgramBuilder.run({
-            cwd: <string>params.rootPath,
-            watch: false,
-            skipPackage: true,
-            deploy: false
-        }).catch((err) => {
-            //do nothing with the error...hope it's just a fluke
+        let workspacePaths = params.workspaceFolders.map(x => {
+            return util.getPathFromUri(x.uri);
         });
+        if (workspacePaths.length === 0) {
+            workspacePaths.push(util.getPathFromUri(params.rootUri));
+        }
+        this.createWorkspaces(workspacePaths);
 
         let clientCapabilities = params.capabilities;
 
@@ -155,13 +159,22 @@ export class LanguageServer {
         }
         if (this.clientHasWorkspaceFolderCapability) {
             this.connection.workspace.onDidChangeWorkspaceFolders((evt) => {
+                for (let removed of evt.removed) {
+                    let workspacePath = util.getPathFromUri(removed.uri);
+                    let workspace = this.workspaces.find(x => x.workspacePath === workspacePath);
+                    if (workspace) {
+                        workspace.builder.dispose();
+                        this.workspaces.splice(this.workspaces.indexOf(workspace), 1);
+                    }
+                }
+                this.createWorkspaces(evt.added.map(x => util.getPathFromUri(x.uri)));
                 this.connection.console.log('Workspace folder change event received.');
             });
         }
         //send all diagnostics
         //send all of the initial diagnostics for the whole project
         try {
-            await this.serverFinishedFirstRunPromise;
+            await this.waitAllProgramFirstRuns();
             this.connection.sendNotification('build-status', `success`);
         } catch (e) {
             //send a message explaining what went wrong
@@ -171,16 +184,58 @@ export class LanguageServer {
     }
 
     /**
+     * Wait for all programs' first run to complete
+     */
+    private async waitAllProgramFirstRuns() {
+        await Promise.all(this.workspaces.map(x => x.firstRunPromise));
+    }
+
+
+    /**
+     * Create project for each new workspace. If the workspace is already known,
+     * it is skipped.
+     * @param workspaceFolders 
+     */
+    private createWorkspaces(workspacePaths: string[]) {
+        debugger;
+        for (let workspacePath of workspacePaths) {
+            let workspace = this.workspaces.find(x => x.workspacePath === workspacePath);
+            //skip this workspace if we already have it
+            if (workspace) {
+                continue;
+            }
+            let builder = new ProgramBuilder();
+            let firstRunPromise = builder.run({
+                cwd: <string>workspacePath,
+                watch: false,
+                skipPackage: true,
+                deploy: false
+            }).catch((err) => {
+                console.error(err);
+            });
+            this.workspaces.push({
+                builder: builder,
+                firstRunPromise: firstRunPromise,
+                workspacePath: workspacePath
+            });
+        }
+    }
+
+    /**
      * Provide a list of completion items based on the current cursor position
      * @param textDocumentPosition
      */
     private async onCompletion(textDocumentPosition: TextDocumentPositionParams) {
         //wait for the program to load
-        await this.serverFinishedFirstRunPromise;
+        await this.waitAllProgramFirstRuns();
+        let filePath = util.getPathFromUri(textDocumentPosition.textDocument.uri);
 
-        let completions = this.brsProgramBuilder.program.getCompletions(
-            this.getPathFromUri(textDocumentPosition.textDocument.uri),
-            textDocumentPosition.position
+        let completions = Array.prototype.concat.apply([],
+            this.workspaces.map((x) => {
+                if (x.builder.program.hasFile(filePath)) {
+                    return x.builder.program.getCompletions(filePath, textDocumentPosition.position);
+                }
+            })
         ) as CompletionItem[];
 
         let result = [] as CompletionItem[];
@@ -231,10 +286,14 @@ export class LanguageServer {
     private async onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
         this.connection.sendNotification('build-status', 'building');
 
-        await this.brsProgramBuilder.handleFileChanges(params.changes);
+        await Promise.all(
+            this.workspaces.map(x => x.builder.handleFileChanges(params.changes))
+        );
 
         //revalidate the program
-        await this.brsProgramBuilder.program.validate();
+        await Promise.all(
+            this.workspaces.map(x => x.builder.program.validate())
+        );
 
         //send all diagnostics to the client
         this.sendDiagnostics();
@@ -242,8 +301,13 @@ export class LanguageServer {
     }
 
     private onHover(params: TextDocumentPositionParams) {
-        let pathAbsolute = this.getPathFromUri(params.textDocument.uri);
-        var hover = this.brsProgramBuilder.program.getHover(pathAbsolute, params.position);
+        let pathAbsolute = util.getPathFromUri(params.textDocument.uri);
+        var hovers = Array.prototype.concat.call([],
+            this.workspaces.map(x => x.builder.program.getHover(pathAbsolute, params.position))
+        ) as Hover[];
+
+        //for now, just return the first hover found. TODO handle multiple hover results
+        let hover = hovers[0];
 
         //TODO improve this to support more than just .brs files
         if (hover && hover.contents) {
@@ -257,13 +321,24 @@ export class LanguageServer {
         this.connection.sendNotification('build-status', 'building');
 
         //make sure the server has finished loading
-        await this.serverFinishedFirstRunPromise;
+        await this.waitAllProgramFirstRuns();
         let filePath = Uri.parse(textDocument.uri).fsPath;
-        await this.brsProgramBuilder.program.addOrReplaceFile(filePath, textDocument.getText());
-        await this.brsProgramBuilder.program.validate();
+        let documentText = textDocument.getText();
+        await Promise.all(
+            this.workspaces.map((x) => {
+                //only add or replace existing files. All of the files in the project should
+                //have already been loaded by other means
+                if (x.builder.program.hasFile(filePath)) {
+                    x.builder.program.addOrReplaceFile(filePath, documentText)
+                }
+            })
+        );
+
+        await Promise.all(
+            this.workspaces.map(x => x.builder.program.validate())
+        )
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
-
     }
 
     /**
@@ -276,12 +351,17 @@ export class LanguageServer {
         let issuesByFile = {} as { [key: string]: Diagnostic[] };
         // let uri = Uri.parse(textDocument.uri);
 
-        //make a bucket for every file in the project
-        for (let filePath in this.brsProgramBuilder.program.files) {
-            issuesByFile[filePath] = [];
+        //make a bucket for every file in every project
+        for (let workspace of this.workspaces) {
+            for (let filePath in workspace.builder.program.files) {
+                issuesByFile[filePath] = [];
+            }
         }
 
-        let diagnostics = this.brsProgramBuilder.program.getDiagnostics();
+        let diagnostics = Array.prototype.concat.apply([],
+            this.workspaces.map(x => x.builder.program.getDiagnostics())
+        );
+
         for (let diagnostic of diagnostics) {
             issuesByFile[diagnostic.file.pathAbsolute].push({
                 severity: util.severityToDiagnostic(diagnostic.severity),
@@ -314,10 +394,6 @@ export class LanguageServer {
 
         //save the new list of diagnostics
         this.latestDiagnosticsByFile = issuesByFile;
-    }
-
-    getPathFromUri(uri: string) {
-        return path.normalize(Uri.parse(uri).fsPath);
     }
 }
 

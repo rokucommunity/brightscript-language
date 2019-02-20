@@ -493,4 +493,7 @@ export class BrsFile {
             }
         }
     }
+
+    public dispose() {
+    }
 }
