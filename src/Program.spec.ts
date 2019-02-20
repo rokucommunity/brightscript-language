@@ -87,7 +87,7 @@ describe('Program', () => {
             await program.validate();
             var diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_not_loaded_by_any_file_1013.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013.code);
         });
         it('does not throw errors on shadowed init functions in components', async () => {
             await program.addOrReplaceFile(`${rootDir}/lib.brs`, `

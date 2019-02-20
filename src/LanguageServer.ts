@@ -2,26 +2,19 @@ import * as rpc from 'vscode-jsonrpc';
 import * as path from 'path';
 import {
     CompletionItem,
-    CompletionItemKind,
     Connection,
     createConnection,
     Diagnostic,
-    DiagnosticSeverity,
     DidChangeConfigurationNotification,
     InitializeParams,
-    Position,
     ProposedFeatures,
     TextDocument,
     TextDocumentPositionParams,
     TextDocuments,
-    DocumentSymbol,
     InitializedParams,
     DidChangeConfigurationParams,
     DidChangeWatchedFilesParams,
-    FileChangeType,
-    FileEvent,
     ServerCapabilities,
-    Hover,
 } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 

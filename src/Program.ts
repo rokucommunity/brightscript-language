@@ -65,7 +65,7 @@ export class Program {
      * by walking through every file, so call this sparingly.
      */
     public getDiagnostics() {
-        let errorLists = [this._diagnostics.slice()];
+        let errorLists = [this._diagnostics];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             errorLists.push(context.getDiagnostics());
@@ -290,8 +290,8 @@ export class Program {
                 file: file,
                 location: Range.create(0, 0, 0, Number.MAX_VALUE),
                 severity: 'warning',
-                code: diagnosticMessages.Script_not_loaded_by_any_file_1013.code,
-                message: diagnosticMessages.Script_not_loaded_by_any_file_1013.message
+                code: diagnosticMessages.File_not_referenced_by_any_file_1013.code,
+                message: diagnosticMessages.File_not_referenced_by_any_file_1013.message
             });
         }
     }

@@ -26,7 +26,7 @@ export class ProgramBuilder {
     /**
      * The list of errors found in the program.
      */
-    private get diagnostics() {
+    private getDiagnostics() {
         return this.program.getDiagnostics();
     }
 
@@ -69,7 +69,7 @@ export class ProgramBuilder {
         let debouncedRunOnce = debounce(async () => {
             util.log('File change detected. Starting incremental compilation...');
             await this.runOnce();
-            let errorCount = this.diagnostics.length;
+            let errorCount = this.getDiagnostics().length;
             util.log(`Found ${errorCount} errors. Watching for file changes.`);
         }, 50);
         //on any file watcher event
@@ -89,7 +89,7 @@ export class ProgramBuilder {
      * A method that is used to cancel a previous run task.
      * Does nothing if previous run has completed or was already canceled
      */
-    private cancelLastRun = () => { return Promise.resolve(0); };
+    private cancelLastRun = () => { return Promise.resolve(); };
 
     /**
      * Run the entire process exactly one time.
@@ -103,11 +103,10 @@ export class ProgramBuilder {
         let runPromise = this.cancelLastRun().then(() => {
             //start the new run
             return this._runOnce(cancellationToken);
-        }).then((result) => {
+        }).then(() => {
             this.printDiagnostics();
             //track if the run completed
             isCompleted = true;
-            return result;
         }, async (err) => {
             await this.printDiagnostics();
             //track if the run completed
@@ -124,7 +123,7 @@ export class ProgramBuilder {
     }
 
     private async printDiagnostics() {
-        let diagnostics = this.diagnostics;
+        let diagnostics = this.getDiagnostics();
 
         //group the diagnostics by file
         let diagnosticsByFile = {} as { [pathAbsolute: string]: Diagnostic[] };
@@ -183,12 +182,19 @@ export class ProgramBuilder {
 
                 //print the line
                 let diagnosticLine = lines[diagnostic.location.start.line];
+
+                //if the squiggly length is longer than the line, concat to end of line
+                var squigglyLength = diagnostic.location.end.character - diagnostic.location.start.character;
+                if (squigglyLength > diagnosticLine.length - diagnostic.location.start.character) {
+                    squigglyLength = diagnosticLine.length - diagnostic.location.end.character;
+                }
                 let lineNumberText = chalk.bgWhite(' ' + chalk.black((diagnostic.location.start.line + 1).toString()) + ' ') + ' ';
                 console.log(lineNumberText + diagnosticLine);
                 console.log(lineNumberText +
                     typeColor[diagnostic.severity](
                         util.padLeft('', diagnostic.location.start.character, ' ') +
-                        util.padLeft('', diagnostic.location.end.character - diagnostic.location.start.character, '~')
+                        //print squigglies 
+                        util.padLeft('', squigglyLength, '~')
                     )
                 );
                 console.log('');
@@ -206,7 +212,9 @@ export class ProgramBuilder {
         if (cancellationToken.isCanceled === true) { return -1; }
 
         //validate program
-        let errorCount = await this.validateProject();
+        await this.validateProject();
+
+        let errorCount = this.getDiagnostics().length;
 
         //maybe cancel?
         if (cancellationToken.isCanceled === true) { return -1; }
@@ -373,7 +381,6 @@ export class ProgramBuilder {
      */
     private async validateProject() {
         await this.program.validate();
-        return this.program.getDiagnostics().length;
     }
 }
 
