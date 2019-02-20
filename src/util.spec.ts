@@ -210,4 +210,10 @@ describe('util', () => {
             expect(results[2].value.id).to.eql(4);
         });
     });
+
+    describe('padLeft', () => {
+        it('stops at an upper limit to prevent terrible memory explosions', () => {
+            expect(util.padLeft('', Number.MAX_VALUE, ' ')).to.be.lengthOf(1000);
+        });
+    });
 });

@@ -489,6 +489,7 @@ class Util {
     }
 
     public padLeft(subject: string, totalLength: number, char: string) {
+        totalLength = totalLength > 1000 ? 1000 : totalLength;
         while (subject.length < totalLength) subject = char + subject;
         return subject;
     }
