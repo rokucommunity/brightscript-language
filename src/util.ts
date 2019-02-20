@@ -493,6 +493,19 @@ class Util {
         return subject;
     }
 
+    /**
+     * Get the outDir from options, taking into account cwd and absolute outFile paths
+     * @param options 
+     */
+    public getOutDir(options: BRSConfig) {
+        options = this.normalizeConfig(options);
+        let cwd = path.normalize(options.cwd ? options.cwd : process.cwd());
+        if (path.isAbsolute(options.outFile)) {
+            return path.dirname(options.outFile);
+        } else {
+            return path.normalize(path.join(cwd, path.dirname(options.outFile)));
+        }
+    }
 }
 
 export default new Util();

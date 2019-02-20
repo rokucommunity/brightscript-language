@@ -233,7 +233,7 @@ export class ProgramBuilder {
             util.log(`Creating package at ${this.options.outFile}`);
             await rokuDeploy.createPackage({
                 ...this.options,
-                outDir: path.dirname(this.options.outFile),
+                outDir: util.getOutDir(this.options),
                 outFile: path.basename(this.options.outFile)
             });
         }
@@ -245,7 +245,7 @@ export class ProgramBuilder {
             util.log(`Deploying package to ${this.options.host}`);
             await rokuDeploy.publish({
                 ...this.options,
-                outDir: path.dirname(this.options.outFile),
+                outDir: util.getOutDir(this.options),
                 outFile: path.basename(this.options.outFile)
             });
         }
@@ -309,9 +309,19 @@ export class ProgramBuilder {
 
         //find all deleted files
         for (let filePath in this.program.files) {
+            let file = this.program.files[filePath];
             //the file exists in the program, but does NOT exist in the expected files list
             if (remainingFilesByPath.has(filePath) === false) {
-                result.deleted.push(remainingFilesByPath.get(filePath));
+                let deletedFileObj = {
+                    src: file.pathAbsolute,
+                    dest: path.normalize(
+                        path.join(
+                            util.getOutDir(this.options),
+                            file.pkgPath
+                        )
+                    )
+                } as FileObj;
+                result.deleted.push(deletedFileObj);
                 remainingFilesByPath.delete(filePath);
             }
         }
@@ -319,6 +329,44 @@ export class ProgramBuilder {
         //the remaining files are existing files
         result.existing = [...remainingFilesByPath.values()];
         return result;
+    }
+
+    /**
+     * Remove all files from the program that are in the specified folder path
+     * @param folderPathAbsolute 
+     */
+    public async removeFilesInFolder(folderPathAbsolute: string) {
+        for (let filePath in this.program.files) {
+            //if the file path starts with the parent path and the file path does not exactly match the folder path
+            if (filePath.indexOf(folderPathAbsolute) === 0 && filePath !== folderPathAbsolute) {
+                this.program.removeFile(filePath);
+            }
+        }
+    }
+
+    /**
+     * Load any files from the given folder that are not already loaded into the program.
+     * This is mainly used when folders get moved, but we also have some active changes in
+     * some of the files from the new location already
+     * @param folderPathAbsolute 
+     */
+    public async loadMissingFilesFromFolder(folderPathAbsolute: string) {
+        folderPathAbsolute = path.normalize(folderPathAbsolute);
+        let allFilesObjects = await this.getFilePaths();
+
+        let promises = [] as Promise<any>[];
+        //for every matching file
+        for (let fileObj of allFilesObjects) {
+            if (
+                //file path starts with folder path
+                fileObj.src.indexOf(folderPathAbsolute) === 0 &&
+                //paths are not identical (solves problem when passing file path into this method instead of folder path)
+                fileObj.src != folderPathAbsolute &&
+                this.program.hasFile(fileObj.src) === false) {
+                promises.push(this.program.addOrReplaceFile(fileObj.src));
+            }
+        }
+        await Promise.all(promises);
     }
 
     /**

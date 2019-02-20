@@ -241,6 +241,20 @@ export class LanguageServer {
             return path.normalize(Uri.parse(change.uri).fsPath);
         });
 
+        //since we can't know if a change is a dir or a file,
+        //just treat every change like a dir change. The actual directories
+        //will work properly, and the files will have no effect.
+        for (let change of params.changes) {
+            let pathAbsolute = path.normalize(Uri.parse(change.uri).fsPath);
+            //remove all files from any removed folder
+            if (change.type === FileChangeType.Deleted) {
+                this.brsProgramBuilder.removeFilesInFolder(pathAbsolute)
+            } else if (change.type === FileChangeType.Created) {
+                //load all matching files from the directory that are not already loaded
+                await this.brsProgramBuilder.loadMissingFilesFromFolder(pathAbsolute);
+            }
+        }
+
         //sync the program with this list of files
         await this.brsProgramBuilder.syncFiles(filePaths);
 
@@ -311,6 +325,19 @@ export class LanguageServer {
                 diagnostics: issuesByFile[filePath]
             });
         }
+
+        //clear any diagnostics for files that are no longer present
+        let currentFilePaths = Object.keys(issuesByFile);
+        for (let filePath in this.latestDiagnosticsByFile) {
+            if (currentFilePaths.indexOf(filePath) === -1) {
+                this.connection.sendDiagnostics({
+                    uri: Uri.file(filePath).toString(),
+                    diagnostics: []
+                });
+            }
+        }
+
+        //save the new list of diagnostics
         this.latestDiagnosticsByFile = issuesByFile;
     }
 
