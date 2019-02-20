@@ -24,15 +24,15 @@ export var diagnosticMessages = {
         code: 1004
     },
     Xml_component_missing_component_declaration_1005: {
-        message: 'Missing a component declaration',
+        message: 'Missing a component declaration.',
         code: 1005
     },
     Component_missing_name_attribute_1006: {
-        message: 'Component must have a name attribute',
+        message: 'Component must have a name attribute.',
         code: 1006
     },
     Component_missing_extends_attribute_1007: {
-        message: 'Component must have an extends attribute',
+        message: 'Component must have an extends attribute.',
         code: 1007
     },
     Xml_parse_error_1008: {
@@ -41,23 +41,23 @@ export var diagnosticMessages = {
         code: 1008
     },
     Unnecessary_script_import_in_child_from_parent_1009: {
-        message: 'Unnecessary script import: Script is already imported in ancestor component "{0}"',
+        message: 'Unnecessary script import: Script is already imported in ancestor component "{0}".',
         code: 1009
     },
     Shadows_ancestor_function_1010: {
-        message: 'Function "{0}" included in "{1}" shadows function in "{2}" included in "{3}"',
+        message: 'Function "{0}" included in "{1}" shadows function in "{2}" included in "{3}".',
         code: 1010
     },
     Local_var_shadows_global_function_1011: {
-        message: 'Local var "{0}" has same name as global function in "{1}" and will never be called',
+        message: 'Local var "{0}" has same name as global function in "{1}" and will never be called.',
         code: 1011
     },
     Script_import_case_mismatch_1012: {
-        message: 'Script import path does not match casing of actual file path "{0}"',
+        message: 'Script import path does not match casing of actual file path "{0}".',
         code: 1012
     },
-    Script_not_loaded_by_any_file_1013: {
-        message: 'Script is not loaded by any component or script in the project',
+    File_not_referenced_by_any_file_1013: {
+        message: 'This file is not referenced by any other file in this project.',
         code: 1013
     }
 }
