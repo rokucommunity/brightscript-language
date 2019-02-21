@@ -477,19 +477,6 @@ class Util {
         };
     }
 
-    /**
-     * 
-     * @param argument 
-     */
-    public argumentToRange(argument: brs.types.Argument) {
-        return Range.create(
-            argument.location.start.line - 1,
-            argument.location.start.column,
-            argument.location.start.line - 1,
-            argument.location.start.column + argument.name.length
-        );
-    }
-
     public padLeft(subject: string, totalLength: number, char: string) {
         totalLength = totalLength > 1000 ? 1000 : totalLength;
         while (subject.length < totalLength) subject = char + subject;

@@ -169,9 +169,9 @@ export class BrsFile {
             //add every parameter
             for (let param of func.parameters) {
                 scope.variableDeclarations.push({
-                    nameRange: util.argumentToRange(param),
+                    nameRange: util.locationToRange(param.name.location),
                     lineIndex: scope.bodyRange.start.line,
-                    name: param.name,
+                    name: param.name.text,
                     //TODO which is it? `type` or `kind`?
                     type: util.valueKindToBrsType(param.type || (param as any).kind)
                 });
@@ -239,7 +239,7 @@ export class BrsFile {
                 for (let argument of assignment.value.parameters) {
                     let isRequired = !argument.defaultValue;
                     //TODO compute optional parameters
-                    functionType.addParameter(argument.name, util.valueKindToBrsType(argument.type), isRequired)
+                    functionType.addParameter(argument.name.text, util.valueKindToBrsType(argument.type.kind), isRequired)
                 }
                 return functionType;
 
@@ -298,8 +298,8 @@ export class BrsFile {
             let params = [] as CallableParam[];
             for (let param of statement.func.parameters) {
                 let callableParam = {
-                    name: param.name,
-                    type: util.valueKindToBrsType(param.type),
+                    name: param.name.text,
+                    type: util.valueKindToBrsType(param.type.kind),
                     isOptional: !!param.defaultValue,
                     isRestArgument: false
                 };
