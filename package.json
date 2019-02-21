@@ -12,7 +12,8 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "./brsconfig.schema.json"
   ],
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
