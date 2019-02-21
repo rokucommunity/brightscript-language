@@ -3,7 +3,7 @@ import { BrsFile } from './files/BrsFile';
 import { Context } from './Context';
 import * as path from 'path';
 import util from './util';
-import { BRSConfig } from './ProgramBuilder';
+import { BrsConfig } from './BrsConfig';
 import { XmlFile } from './files/XmlFile';
 import { textChangeRangeIsUnchanged } from 'typescript';
 import { Position, Location, Range } from 'vscode-languageserver';
@@ -17,7 +17,7 @@ export class Program {
         /**
          * The root directory for this program
          */
-        public options: BRSConfig
+        public options: BrsConfig
     ) {
         this.options = util.normalizeConfig(options);
 

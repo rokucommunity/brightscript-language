@@ -1,7 +1,7 @@
 import * as moment from 'moment';
 import * as fsExtra from 'fs-extra';
 import * as path from 'path';
-import { BRSConfig } from './ProgramBuilder';
+import { BrsConfig } from './BrsConfig';
 import * as rokuDeploy from 'roku-deploy';
 import { ValueKind, CallableContainer, Callable } from './interfaces';
 import * as xml2js from 'xml2js';
@@ -102,12 +102,12 @@ class Util {
             }
             //load the project file
             let projectFileContents = await this.getFileContents(configFilePath);
-            let projectConfig = JSON.parse(projectFileContents) as BRSConfig;
+            let projectConfig = JSON.parse(projectFileContents) as BrsConfig;
 
             //set working directory to the location of the project file
             process.chdir(path.dirname(configFilePath));
 
-            let result: BRSConfig;
+            let result: BrsConfig;
             //if the project has a base file, load it
             if (projectConfig && typeof projectConfig.extends === 'string') {
                 let baseProjectConfig = await this.loadConfigFile(projectConfig.extends, [...parentProjectPaths, configFilePath]);
@@ -135,11 +135,11 @@ class Util {
     }
 
     /**
-     * Given a BRSConfig object, start with defaults,
+     * Given a BrsConfig object, start with defaults,
      * merge with brsconfig.json and the provided options.
      * @param config
      */
-    public async normalizeAndResolveConfig(config: BRSConfig) {
+    public async normalizeAndResolveConfig(config: BrsConfig) {
         let result = this.normalizeConfig({});
 
         //if no options were provided, try to find a brsconfig.json file
@@ -164,8 +164,8 @@ class Util {
      * Set defaults for any missing items
      * @param config 
      */
-    public normalizeConfig(config: BRSConfig) {
-        config = config ? config : {} as BRSConfig;
+    public normalizeConfig(config: BrsConfig) {
+        config = config ? config : {} as BrsConfig;
         config.deploy = config.deploy === true ? true : false;
         //use default options from rokuDeploy
         config.files = config.files ? config.files : rokuDeploy.getOptions().files;
@@ -185,7 +185,7 @@ class Util {
      * Falls back to process.cwd
      * @param options
      */
-    public getRootDir(options: BRSConfig) {
+    public getRootDir(options: BrsConfig) {
         let originalProcessCwd = process.cwd();
 
         let cwd = options.cwd;
@@ -491,7 +491,7 @@ class Util {
      * Get the outDir from options, taking into account cwd and absolute outFile paths
      * @param options 
      */
-    public getOutDir(options: BRSConfig) {
+    public getOutDir(options: BrsConfig) {
         options = this.normalizeConfig(options);
         let cwd = path.normalize(options.cwd ? options.cwd : process.cwd());
         if (path.isAbsolute(options.outFile)) {
@@ -504,7 +504,7 @@ class Util {
     /**
      * Get paths to all files on disc that match this project's source list
      */
-    public async getFilePaths(options: BRSConfig) {
+    public async getFilePaths(options: BrsConfig) {
         let rootDir = this.getRootDir(options);
 
         let files = await rokuDeploy.getFilePaths(options.files, path.dirname(options.outFile), rootDir);

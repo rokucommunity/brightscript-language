@@ -1,5 +1,5 @@
 import * as chokidar from 'chokidar';
-import { BRSConfig } from './ProgramBuilder';
+import { BrsConfig } from './BrsConfig';
 import { watch } from 'fs';
 
 /**
@@ -7,7 +7,7 @@ import { watch } from 'fs';
  */
 export class Watcher {
     constructor(
-        private options: BRSConfig
+        private options: BrsConfig
     ) {
 
     }
