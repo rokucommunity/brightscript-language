@@ -197,7 +197,6 @@ export class LanguageServer {
      * @param workspaceFolders 
      */
     private createWorkspaces(workspacePaths: string[]) {
-        debugger;
         for (let workspacePath of workspacePaths) {
             let workspace = this.workspaces.find(x => x.workspacePath === workspacePath);
             //skip this workspace if we already have it
