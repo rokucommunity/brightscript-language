@@ -27,6 +27,65 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not error with `stop` as object key', async () => {
+            await file.parse(`
+                function GetObject()
+                    obj = {
+                        stop: function() as void
+                
+                        end function
+                    }
+                    return obj
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('does not error with `run` as object key', async () => {
+            await file.parse(`
+                function GetObject()
+                    obj = {
+                        run: function() as void
+                
+                        end function
+                    }
+                    return obj
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports assignment operators', async () => {
+            await file.parse(`
+                function Main()
+                    x = 1
+                    x += 1
+                    x += 2
+                    x -= 1
+                    x /= 2
+                    x = 9
+                    x \= 2
+                    x *= 3
+                    x -= 1
+                    print x
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        //skipped until `brs` supports this
+        it.skip('supports bitshift assignment operators', async () => {
+            await file.parse(`
+                function Main()
+                    x = 1
+                    x <<= 8
+                    x >>= 4
+                    print x
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('succeeds when finding variables with "sub" in them', async () => {
             await file.parse(`
                 function DoSomething()
