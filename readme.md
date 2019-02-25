@@ -9,19 +9,11 @@ A compiler and language server for Roku's BrightScript language.
 
 ## Installation
 
-Since this is a work in progress, there is not yet an npm package. However, you can install directly from github using `npm` by running the following command:
+### npm
 
 ```bash
-npm install -g github:twitchbronbron/brightscript
+npm install brightscript-language -g
 ```
-
-or, lock in a specific commit:
-
-```bash
-npm install -g "github:twitchbronbron/brightscript#98cc399"
-```
-
-The installation instructions will be updaed once the project reaches a more stable point.
 
 ## Usage
 
