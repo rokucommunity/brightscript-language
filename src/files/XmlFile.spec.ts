@@ -23,6 +23,48 @@ describe('XmlFile', () => {
     });
 
     describe('parse', () => {
+        it('does not include commented-out script imports', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="Scene">
+                <script type="text/brightscript" uri="ChildScene.brs" />
+                <!--
+                        <script type="text/brightscript" uri="ChildScene.brs" />
+                    -->
+                </component>
+            `);
+            expect(file.ownScriptImports).to.be.lengthOf(1);
+        });
+
+        it('finds scripts when more than one per line', async () => {
+            let file = new XmlFile('abs', 'rel', null);
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="Scene">
+                    <script type="text/brightscript" uri="ChildScene1.brs" /> <script type="text/brightscript" uri="ChildScene2.brs" /> <script type="text/brightscript" uri="ChildScene3.brs" />
+                </component>
+            `);
+            expect(file.ownScriptImports).to.be.lengthOf(3);
+            expect(file.ownScriptImports[0]).to.deep.include(<FileReference>{
+                lineIndex: 3,
+                text: 'ChildScene1.brs',
+                columnIndexBegin: 58,
+                columnIndexEnd: 73
+            });
+            expect(file.ownScriptImports[1]).to.deep.include(<FileReference>{
+                lineIndex: 3,
+                text: 'ChildScene2.brs',
+                columnIndexBegin: 116,
+                columnIndexEnd: 131
+            });
+            expect(file.ownScriptImports[2]).to.deep.include(<FileReference>{
+                lineIndex: 3,
+                text: 'ChildScene3.brs',
+                columnIndexBegin: 174,
+                columnIndexEnd: 189
+            });
+        });
 
         it('finds component names', async () => {
             let file = new XmlFile('abs', 'rel', null);
@@ -74,14 +116,19 @@ describe('XmlFile', () => {
 
         it('finds script imports', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
-            await file.parse(`<script type="text/brightscript" uri="pkg:/components/cmp1.brs" />`)
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Cmp1" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/components/cmp1.brs" />
+                </component>
+            `);
             expect(file.ownScriptImports.length).to.equal(1);
             expect(file.ownScriptImports[0]).to.deep.include(<FileReference>{
                 sourceFile: file,
                 text: 'pkg:/components/cmp1.brs',
-                lineIndex: 0,
-                columnIndexBegin: 38,
-                columnIndexEnd: 62,
+                lineIndex: 3,
+                columnIndexBegin: 58,
+                columnIndexEnd: 82,
                 pkgPath: `components${path.sep}cmp1.brs`
             });
         });
@@ -109,7 +156,12 @@ describe('XmlFile', () => {
 
         it('resolves relative paths', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
-            await file.parse(`<script type="text/brightscript" uri="cmp1.brs" />`)
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Cmp1" extends="Scene">
+                    <script type="text/brightscript" uri="cmp1.brs" />
+                </component>
+            `);
             expect(file.ownScriptImports.length).to.equal(1);
             expect(file.ownScriptImports[0]).to.deep.include(<FileReference>{
                 text: 'cmp1.brs',
@@ -119,12 +171,17 @@ describe('XmlFile', () => {
 
         it('finds correct position for empty uri in script tag', async () => {
             let file = new XmlFile('abspath/components/cmp1.xml', 'components/cmp1.xml', null);
-            await file.parse(`<script type="text/brightscript" uri="" />`)
+            await file.parse(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Cmp1" extends="Scene">
+                    <script type="text/brightscript" uri="" />
+                </component>
+            `);
             expect(file.ownScriptImports.length).to.equal(1);
             expect(file.ownScriptImports[0]).to.deep.include({
-                lineIndex: 0,
-                columnIndexBegin: 38,
-                columnIndexEnd: 38,
+                lineIndex: 3,
+                columnIndexBegin: 58,
+                columnIndexEnd: 58,
             });
         });
     });

@@ -68,34 +68,9 @@ export class XmlFile {
         //split the text into lines
         let lines = util.getLines(fileContents);
 
-        //find script imports
-        {
-            let scriptImports = [] as FileReference[];
-            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-                let line = lines[lineIndex];
-                let scriptMatch = /(.*<\s*script.*uri\s*=\s*")(.*)".*\/>/ig.exec(line)
-                if (scriptMatch) {
-                    let junkBeforeUri = scriptMatch[1];
-                    let filePath = scriptMatch[2];
-                    let columnIndexBegin = junkBeforeUri.length;
-
-                    scriptImports.push({
-                        sourceFile: this,
-                        text: filePath,
-                        lineIndex: lineIndex,
-                        columnIndexBegin: columnIndexBegin,
-                        columnIndexEnd: columnIndexBegin + filePath.length,
-                        pkgPath: util.getPkgPathFromTarget(this.pkgPath, filePath)
-                    });
-                }
-            }
-
-            //add all of these script imports
-            this.ownScriptImports = scriptImports;
-        }
-
+        let parsedXml;
         try {
-            var parsedXml = await util.parseXml(fileContents);
+            parsedXml = await util.parseXml(fileContents);
 
             if (parsedXml && parsedXml.component) {
                 if (parsedXml.component.$) {
@@ -181,6 +156,68 @@ export class XmlFile {
                 });
             }
         }
+
+        //find script imports
+        if (parsedXml && parsedXml.component) {
+
+            let scripts = parsedXml.component.script ? parsedXml.component.script : [];
+            let scriptImports = [] as FileReference[];
+            //get a list of all scripts
+            for (let script of scripts) {
+                let uri = script.$.uri;
+                if (typeof uri === 'string') {
+                    scriptImports.push({
+                        sourceFile: this,
+                        text: uri,
+                        lineIndex: null,
+                        columnIndexBegin: null,
+                        columnIndexEnd: null,
+                        pkgPath: util.getPkgPathFromTarget(this.pkgPath, uri)
+                    });
+                }
+            }
+
+            //make a lookup of every uri range
+            let uriRanges = {} as { [uri: string]: Range[] };
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                let line = lines[lineIndex];
+                let regex = /(.*?\s+uri\s*=\s*")(.*?)"/gi
+                let lineIndexOffset = 0;
+                let match;
+                while (match = regex.exec(line)) {
+                    let preUriContent = match[1];
+                    let uri = match[2];
+                    if (!uriRanges[uri]) {
+                        uriRanges[uri] = [];
+                    }
+                    let startColumnIndex = lineIndexOffset + preUriContent.length;
+                    let endColumnIndex = startColumnIndex + uri.length;
+
+                    uriRanges[uri].push(
+                        Range.create(
+                            lineIndex,
+                            startColumnIndex,
+                            lineIndex,
+                            endColumnIndex
+                        )
+                    );
+                    lineIndexOffset += match[0].length;
+                }
+            }
+
+            //try to compute the locations of each script import
+            for (let scriptImport of scriptImports) {
+                //take and remove the first item from the list
+                let range = uriRanges[scriptImport.text].shift();
+                scriptImport.lineIndex = range.start.line;
+                scriptImport.columnIndexBegin = range.start.character;
+                scriptImport.columnIndexEnd = range.end.character;
+            }
+
+            //add all of these script imports
+            this.ownScriptImports = scriptImports;
+        }
+
         this.wasProcessed = true;
     }
 
