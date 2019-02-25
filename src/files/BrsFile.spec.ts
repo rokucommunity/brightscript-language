@@ -73,6 +73,34 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it.skip('supports assignment operators against object properties', async () => {
+            await file.parse(`
+                function Main()
+                    m.age = 1
+                
+                    m.age += 1
+                    m.age -= 1
+                    m.age *= 1
+                    m.age /= 1
+                    m.age \= 1
+                    m.age <<= 1
+                    m.age >>= 1
+                
+                    m["age"] += 1
+                    m["age"] -= 1
+                    m["age"] *= 1
+                    m["age"] /= 1
+                    m["age"] \\= 1
+                    m["age"] <<= 1
+                    m["age"] >>= 1
+                
+                    print m.age
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+
         //skipped until `brs` supports this
         it.skip('supports bitshift assignment operators', async () => {
             await file.parse(`
@@ -82,6 +110,23 @@ describe('BrsFile', () => {
                     x >>= 4
                     print x
                 end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('supports weird period AA accessor', async () => {
+            await file.parse(`
+                function Main()
+                    m._uuid = "123"
+                    print m.["_uuid"]
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('supports library imports', async () => {
+            await file.parse(`
+                Library "v30/bslCore.brs"
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
