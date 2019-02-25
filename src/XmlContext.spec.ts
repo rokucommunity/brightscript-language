@@ -1,8 +1,9 @@
 import { XmlFile } from './files/XmlFile';
 import { XmlContext } from './XmlContext';
 import * as path from 'path'; import { Program } from './Program';
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 import { diagnosticMessages } from './DiagnosticMessages';
+import { EventEmitter } from 'events';
 ;
 var n = path.normalize;
 let rootDir = 'C:/projects/RokuApp';
@@ -21,9 +22,26 @@ describe('XmlContext', () => {
 
         context.parentContext = program.platformContext;
     });
+    describe('onProgramFileRemove', () => {
+        it('handles file-removed event when file does not have component name', async () => {
+            xmlFile.parentComponentName = 'Scene';
+            xmlFile.componentName = 'ParentComponent';
+            let namelessComponent = await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component extends="ParentComponent">
+                </component>
+            `);
+            try {
+                (context as any).onProgramFileRemove(namelessComponent)
+            } catch (e) {
+                assert.fail(null, null, 'Should not have thrown');
+            }
+        });
+    });
+
     describe('constructor', () => {
         it('listens for attach/detach parent events', () => {
-            var parentXmlFile = new XmlFile(n('${rootDir}/components/parent.xml'), n('components/parent.xml'), program);
+            var parentXmlFile = new XmlFile(n(`${rootDir}/components/parent.xml`), n('components/parent.xml'), program);
             var parentContext = new XmlContext(parentXmlFile);
             program.contexts[parentContext.name] = parentContext;
 

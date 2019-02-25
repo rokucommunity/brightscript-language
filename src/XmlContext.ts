@@ -43,22 +43,7 @@ export class XmlContext extends Context {
 
         //detach xml file's parent if it's removed from the program
         this.programHandles.push(
-            this.program.on('file-removed', (file) => {
-                if (
-                    //incoming file is an xml file
-                    file instanceof XmlFile &&
-                    //this xml file has a parent
-                    this.xmlFile.parentComponentName &&
-                    //incoming file has same name as parent
-                    file.componentName.toLowerCase() === this.xmlFile.parentComponentName.toLowerCase()
-                ) {
-                    this.isValidated = false;
-                    this.xmlFile.detachParent();
-
-                    //disconnect the context link
-                    this.detachParent();
-                }
-            })
+            this.program.on('file-removed', this.onProgramFileRemove.bind(this))
         );
 
         //try finding and attaching the parent component
@@ -69,6 +54,29 @@ export class XmlContext extends Context {
         //if the xml file already has a parent xml file, attach it
         if (this.xmlFile.parent && this.xmlFile.parent !== (this.program.platformContext as any)) {
             this.handleXmlFileParentAttach(this.xmlFile.parent);
+        }
+    }
+
+    /**
+     * Event handler for when the attached program removes a file
+     * @param file 
+     */
+    private onProgramFileRemove(file: BrsFile | XmlFile) {
+        if (
+            //incoming file is an xml file
+            file instanceof XmlFile &&
+            //incoming file has a component name
+            file.componentName &&
+            //this xml file has a parent
+            this.xmlFile.parentComponentName &&
+            //incoming file has same name as parent
+            file.componentName.toLowerCase() === this.xmlFile.parentComponentName.toLowerCase()
+        ) {
+            this.isValidated = false;
+            this.xmlFile.detachParent();
+
+            //disconnect the context link
+            this.detachParent();
         }
     }
 
