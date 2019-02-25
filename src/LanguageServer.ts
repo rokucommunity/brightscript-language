@@ -328,11 +328,10 @@ export class LanguageServer {
                 //only add or replace existing files. All of the files in the project should
                 //have already been loaded by other means
                 if (x.builder.program.hasFile(filePath)) {
-                    x.builder.program.addOrReplaceFile(filePath, documentText)
+                    return x.builder.program.addOrReplaceFile(filePath, documentText)
                 }
             })
         );
-
         await Promise.all(
             this.workspaces.map(x => x.builder.program.validate())
         )
