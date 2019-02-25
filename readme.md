@@ -1,6 +1,6 @@
-# BrightScript
+# BrightScript-Language
 
-A language server for Roku's BrightScript language.
+A compiler and language server for Roku's BrightScript language. 
 
 [![Build Status](https://travis-ci.org/TwitchBronBron/brightscript.svg?branch=master)](https://travis-ci.org/TwitchBronBron/brightscript)
 [![codecov](https://codecov.io/gh/TwitchBronBron/brightscript/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript)

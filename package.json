@@ -1,5 +1,5 @@
 {
-  "name": "brightscript",
+  "name": "brightscript-language",
   "version": "0.1.0",
   "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
@@ -22,10 +22,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/TwitchBronBron/brightscript.git"
+    "url": "https://github.com/TwitchBronBron/brightscript-language.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "nyc": {
     "include": [
       "src/**/*.ts",
