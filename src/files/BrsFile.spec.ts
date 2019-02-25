@@ -64,9 +64,19 @@ describe('BrsFile', () => {
                     x -= 1
                     x /= 2
                     x = 9
-                    x \= 2
-                    x *= 3
+                    x \\= 2
+                    x *= 3.0
                     x -= 1
+                    print x
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('supports writing numbers with decimal but no trailing digit', async () => {
+            await file.parse(`
+                function Main()
+                    x = 3.
                     print x
                 end function
             `);
@@ -82,7 +92,7 @@ describe('BrsFile', () => {
                     m.age -= 1
                     m.age *= 1
                     m.age /= 1
-                    m.age \= 1
+                    m.age \\= 1
                     m.age <<= 1
                     m.age >>= 1
                 
