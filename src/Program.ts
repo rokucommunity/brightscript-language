@@ -1,15 +1,15 @@
-import { Diagnostic, Callable, File } from './interfaces';
+import * as path from 'path';
+import { Position, Range } from 'vscode-languageserver';
+import { EventEmitter } from 'events';
+
+import { Diagnostic, File } from './interfaces';
 import { BrsFile } from './files/BrsFile';
 import { Context } from './Context';
-import * as path from 'path';
 import util from './util';
 import { BrsConfig } from './BrsConfig';
 import { XmlFile } from './files/XmlFile';
-import { textChangeRangeIsUnchanged } from 'typescript';
-import { Position, Location, Range } from 'vscode-languageserver';
 import { XmlContext } from './XmlContext';
-import { platformCallables, platformFile } from './platformCallables';
-import { EventEmitter } from 'events';
+import { platformFile } from './platformCallables';
 import { diagnosticMessages } from './DiagnosticMessages';
 
 export class Program {
@@ -70,13 +70,26 @@ export class Program {
             let context = this.contexts[contextName];
             errorLists.push(context.getDiagnostics());
         }
-        let result = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
+        let allDiagnistics = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
 
-        //if we have a list of error codes to ignore, throw them out
-        if (this.options.ignoreErrorCodes.length > 0) {
-            result = result.filter(x => this.options.ignoreErrorCodes.indexOf(x.code) === -1);
+        let finalDiagnostics = [];
+
+        for (let diagnostic of allDiagnistics) {
+            //skip duplicate diagnostics (by reference). This skips file parse diagnostics when multiple contexts include same file
+            if (finalDiagnostics.indexOf(diagnostic) > -1) {
+                continue;
+            }
+
+            //skip any specified error codes
+            if (this.options.ignoreErrorCodes.indexOf(diagnostic.code) > -1) {
+                continue;
+            }
+
+            //add the diagnostic to the final list
+            finalDiagnostics.push(diagnostic);
         }
-        return result;
+
+        return finalDiagnostics;
     }
 
     /**

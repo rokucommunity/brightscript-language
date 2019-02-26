@@ -1,6 +1,6 @@
 {
-  "name": "brightscript",
-  "version": "0.1.0",
+  "name": "brightscript-language",
+  "version": "0.1.13",
   "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
     "prepare": "npm run build",
@@ -12,7 +12,7 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "files": [
-    "dist/**/*",
+    "dist/**/!(*.spec.*)*",
     "brsconfig.schema.json"
   ],
   "main": "dist/index.js",
@@ -22,10 +22,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/TwitchBronBron/brightscript.git"
+    "url": "https://github.com/TwitchBronBron/brightscript-language.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "nyc": {
     "include": [
       "src/**/*.ts",

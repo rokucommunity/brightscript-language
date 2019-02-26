@@ -16,6 +16,7 @@
         ]
     },
     "include": [
-        "src/**/*.ts", "../vscode-brightscript-language/src/runner.ts"
+        "src/**/*.ts",
+        "../vscode-brightscript-language/src/runner.ts"
     ]
 }

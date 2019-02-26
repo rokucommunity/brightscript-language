@@ -1,27 +1,20 @@
-# BrightScript
+# BrightScript-Language
 
-A language server for Roku's BrightScript language.
+A compiler and language server for Roku's BrightScript language. 
 
-[![Build Status](https://travis-ci.org/TwitchBronBron/brightscript.svg?branch=master)](https://travis-ci.org/TwitchBronBron/brightscript)
-[![codecov](https://codecov.io/gh/TwitchBronBron/brightscript/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript)
+[![Build Status](https://travis-ci.org/TwitchBronBron/brightscript-language.svg?branch=master)](https://travis-ci.org/TwitchBronBron/brightscript-language)
+[![codecov](https://codecov.io/gh/TwitchBronBron/brightscript-language/branch/master/graph/badge.svg)](https://codecov.io/gh/TwitchBronBron/brightscript-language)
+[![NPM Version](https://badge.fury.io/js/brightscript-language.svg?style=flat)](https://npmjs.org/package/brightscript-language)
 
  **Disclaimer:** This is currently a **work in progress**. Use at your own risk, but feel free to raise any issues you may find. 
 
 ## Installation
 
-Since this is a work in progress, there is not yet an npm package. However, you can install directly from github using `npm` by running the following command:
+### npm
 
 ```bash
-npm install -g github:twitchbronbron/brightscript
+npm install brightscript-language -g
 ```
-
-or, lock in a specific commit:
-
-```bash
-npm install -g "github:twitchbronbron/brightscript#98cc399"
-```
-
-The installation instructions will be updaed once the project reaches a more stable point.
 
 ## Usage
 
@@ -118,3 +111,7 @@ These are the options available in the `brsconfig.json` file.
 ## Language Server Protocol
 
 This project also contributes a class that aligns with Microsoft's [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), which makes it easy to integrate `brightscript` with any IDE that supports the protocol. We won't go into more detail here, but you can use the `LanguageServer` class from this project to integrate into your IDE. The [vscode-brightscript-language](https://github.com/twitchbronbron/vscode-brightscript-language) extension uses this LanguageServer class for Visual Studio Code support. 
+
+
+## Changelog
+[Click here](CHANGELOG.md) to view the changelog.
