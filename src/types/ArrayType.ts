@@ -34,6 +34,6 @@ export class ArrayType implements BrsType {
     }
 
     public toString() {
-        return `Array<${this.innerTypes.map(x => x.toString()).join(' | ')}>`;
+        return `Array<${this.innerTypes.map((x) => x.toString()).join(' | ')}>`;
     }
 }

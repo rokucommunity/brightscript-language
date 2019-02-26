@@ -1,21 +1,23 @@
-import { XmlFile } from './files/XmlFile';
-import { XmlContext } from './XmlContext';
-import * as path from 'path'; import { Program } from './Program';
-import { expect, assert } from 'chai';
-import { diagnosticMessages } from './DiagnosticMessages';
+import { assert, expect } from 'chai';
 import { EventEmitter } from 'events';
-;
-var n = path.normalize;
+import * as path from 'path';
+
+import { diagnosticMessages } from './DiagnosticMessages';
+import { XmlFile } from './files/XmlFile';
+import { Program } from './Program';
+import { XmlContext } from './XmlContext';
+
+let n = path.normalize;
 let rootDir = 'C:/projects/RokuApp';
 
 describe('XmlContext', () => {
-    var xmlFile: XmlFile;
-    var context: XmlContext;
-    var program: Program;
-    let xmlFilePath = n(`${rootDir}/components/component.xml`)
+    let xmlFile: XmlFile;
+    let context: XmlContext;
+    let program: Program;
+    let xmlFilePath = n(`${rootDir}/components/component.xml`);
     beforeEach(() => {
 
-        program = new Program({ rootDir });
+        program = new Program({ rootDir: rootDir });
         xmlFile = new XmlFile(xmlFilePath, n('components/component.xml'), program);
         context = new XmlContext(xmlFile);
         context.attachProgram(program);
@@ -32,7 +34,7 @@ describe('XmlContext', () => {
                 </component>
             `);
             try {
-                (context as any).onProgramFileRemove(namelessComponent)
+                (context as any).onProgramFileRemove(namelessComponent);
             } catch (e) {
                 assert.fail(null, null, 'Should not have thrown');
             }
@@ -41,8 +43,8 @@ describe('XmlContext', () => {
 
     describe('constructor', () => {
         it('listens for attach/detach parent events', () => {
-            var parentXmlFile = new XmlFile(n(`${rootDir}/components/parent.xml`), n('components/parent.xml'), program);
-            var parentContext = new XmlContext(parentXmlFile);
+            let parentXmlFile = new XmlFile(n(`${rootDir}/components/parent.xml`), n('components/parent.xml'), program);
+            let parentContext = new XmlContext(parentXmlFile);
             program.contexts[parentContext.name] = parentContext;
 
             //should default to platform context

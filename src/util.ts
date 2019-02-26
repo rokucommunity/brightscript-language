@@ -1,40 +1,41 @@
-import * as moment from 'moment';
-import * as fsExtra from 'fs-extra';
-import * as path from 'path';
-import { BrsConfig } from './BrsConfig';
-import * as rokuDeploy from 'roku-deploy';
-import { ValueKind, CallableContainer, Callable } from './interfaces';
-import * as xml2js from 'xml2js';
-import { Range, Position, DiagnosticSeverity } from 'vscode-languageserver';
 import * as brs from 'brs';
+import chalk from 'chalk';
+import * as fsExtra from 'fs-extra';
+import { utils } from 'mocha';
+import * as moment from 'moment';
+import * as path from 'path';
+import * as rokuDeploy from 'roku-deploy';
+import { DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
+import Uri from 'vscode-uri';
+import * as xml2js from 'xml2js';
+
+import { BrsConfig } from './BrsConfig';
+import { Callable, CallableContainer, ValueKind } from './interfaces';
 import { BooleanType } from './types/BooleanType';
-import { FunctionType } from './types/FunctionType';
+import { BrsType } from './types/BrsType';
 import { DoubleType } from './types/DoubleType';
 import { DynamicType } from './types/DynamicType';
 import { FloatType } from './types/FloatType';
+import { FunctionType } from './types/FunctionType';
 import { IntegerType } from './types/IntegerType';
-import { LongIntegerType } from './types/LongIntegerType';
 import { InvalidType } from './types/InvalidType';
+import { LongIntegerType } from './types/LongIntegerType';
 import { ObjectType } from './types/ObjectType';
 import { StringType } from './types/StringType';
 import { UninitializedType } from './types/UninitializedType';
 import { VoidType } from './types/VoidType';
-import { BrsType } from './types/BrsType';
-import chalk from 'chalk';
-import Uri from 'vscode-uri';
-import { utils } from 'mocha';
 
 class Util {
     public log(...args) {
-        //print an empty line 
+        //print an empty line
         console.log('');
         let timestamp = '[' + chalk.grey(moment().format('hh:mm:ss A')) + ']';
         console.log.apply(console.log, [timestamp, ...args]);
-        //print an empty line 
+        //print an empty line
         console.log('');
     }
     public clearConsole() {
-        process.stdout.write("\x1Bc");
+        process.stdout.write('\x1Bc');
     }
 
     /**
@@ -76,7 +77,7 @@ class Util {
             if (await this.fileExists(configPath)) {
                 return configPath;
             } else {
-                let parentDirPath = path.dirname(path.dirname(configPath))
+                let parentDirPath = path.dirname(path.dirname(configPath));
                 configPath = path.join(parentDirPath, 'brsconfig.json');
             }
         }
@@ -98,7 +99,7 @@ class Util {
             if (parentProjectPaths && parentProjectPaths.indexOf(configFilePath) > -1) {
                 parentProjectPaths.push(configFilePath);
                 parentProjectPaths.reverse();
-                throw new Error('Circular dependency detected: "' + parentProjectPaths.join('" => ') + '"')
+                throw new Error('Circular dependency detected: "' + parentProjectPaths.join('" => ') + '"');
             }
             //load the project file
             let projectFileContents = await this.getFileContents(configFilePath);
@@ -162,7 +163,7 @@ class Util {
 
     /**
      * Set defaults for any missing items
-     * @param config 
+     * @param config
      */
     public normalizeConfig(config: BrsConfig) {
         config = config ? config : {} as BrsConfig;
@@ -203,12 +204,12 @@ class Util {
 
     /**
      * Format a string with placeholders replaced by argument indexes
-     * @param subject 
-     * @param params 
+     * @param subject
+     * @param params
      */
     public stringFormat(subject: string, ...args) {
-        return subject.replace(/{(\d+)}/g, function (match, number) {
-            return typeof args[number] != 'undefined' ? args[number] : match;
+        return subject.replace(/{(\d+)}/g, function(match, num) {
+            return typeof args[num] !== 'undefined' ? args[num] : match;
         });
     }
 
@@ -232,7 +233,7 @@ class Util {
 
     /**
      * Convert a 1-indexed brs Location to a 0-indexed vscode range
-     * @param location 
+     * @param location
      */
     public locationToRange(location: brs.lexer.Location) {
         return Range.create(
@@ -263,7 +264,7 @@ class Util {
 
     /**
      * Given a list of callables, get that as a a dictionary indexed by name.
-     * @param callables 
+     * @param callables
      */
     public getCallableContainersByLowerName(callables: CallableContainer[]) {
         //find duplicate functions
@@ -282,8 +283,8 @@ class Util {
     }
 
     /**
-     * 
-     * @param severity 
+     *
+     * @param severity
      */
     public severityToDiagnostic(severity: 'hint' | 'information' | 'warning' | 'error') {
         switch (severity) {
@@ -310,8 +311,8 @@ class Util {
     /**
      * Given an absollute path to a source file, and a target path,
      * compute the pkg path for the target relative to the source file's location
-     * @param containingFilePathAbsolute 
-     * @param targetPath 
+     * @param containingFilePathAbsolute
+     * @param targetPath
      */
     public getPkgPathFromTarget(containingFilePathAbsolute: string, targetPath: string) {
         //if the target starts with 'pkg:', it's an absolute path. Return as is
@@ -381,7 +382,7 @@ class Util {
         //throw out the filename part of source
         sourceParts.splice(sourceParts.length - 1, 1);
         //start out by adding updir paths for each remaining source part
-        let resultParts = sourceParts.map(x => '..');
+        let resultParts = sourceParts.map((x) => '..');
 
         //now add every target part
         resultParts = [...resultParts, ...targetParts];
@@ -389,13 +390,13 @@ class Util {
     }
 
     /**
-     * Find all properties in an object that match the predicate. 
-     * @param obj 
-     * @param predicate 
-     * @param parentKey 
+     * Find all properties in an object that match the predicate.
+     * @param obj
+     * @param predicate
+     * @param parentKey
      */
     public findAllDeep<T>(obj: any, predicate: (value: any) => boolean | undefined, parentKey?: string) {
-        let result = [] as { key: string; value: T }[];
+        let result = [] as Array<{ key: string; value: T }>;
 
         //base case. If this object maches, keep it as a result
         if (predicate(obj) === true) {
@@ -420,9 +421,9 @@ class Util {
 
     /**
      * Test if `position` is in `range`. If the position is at the edges, will return true.
-     * Adapted from core vscode 
-     * @param range 
-     * @param position 
+     * Adapted from core vscode
+     * @param range
+     * @param position
      */
     public rangeContains(range: Range, position: Position) {
         if (position.line < range.start.line || position.line > range.end.line) {
@@ -443,7 +444,7 @@ class Util {
      */
     public parseXml(text: string) {
         return new Promise<any>((resolve, reject) => {
-            xml2js.parseString(text, function (err, data) {
+            xml2js.parseString(text, function(err, data) {
                 if (err) {
                     reject(err);
                 } else {
@@ -453,8 +454,8 @@ class Util {
         });
     }
 
-    public propertyCount(object: Object) {
-        var count = 0;
+    public propertyCount(object: object) {
+        let count = 0;
         for (let key in object) {
             if (object.hasOwnProperty(key)) {
                 count++;
@@ -479,7 +480,7 @@ class Util {
 
     public padLeft(subject: string, totalLength: number, char: string) {
         totalLength = totalLength > 1000 ? 1000 : totalLength;
-        while (subject.length < totalLength) subject = char + subject;
+        while (subject.length < totalLength) { subject = char + subject; }
         return subject;
     }
 
@@ -489,7 +490,7 @@ class Util {
 
     /**
      * Get the outDir from options, taking into account cwd and absolute outFile paths
-     * @param options 
+     * @param options
      */
     public getOutDir(options: BrsConfig) {
         options = this.normalizeConfig(options);

@@ -1,19 +1,19 @@
 import * as brs from 'brs';
-import * as path from 'path';
-
-import { Callable, ExpressionCall, Diagnostic, CallableArg, CallableParam } from '../interfaces';
-import { Context } from '../Context';
-import util from '../util';
-import { Position, Range, CompletionItem, CompletionItemKind, Hover } from 'vscode-languageserver';
-import { FunctionScope } from '../FunctionScope';
 import { outputFile } from 'fs-extra';
+import * as path from 'path';
+import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
+
+import { Context } from '../Context';
 import { diagnosticMessages } from '../DiagnosticMessages';
+import { FunctionScope } from '../FunctionScope';
+import { Callable, CallableArg, CallableParam, Diagnostic, ExpressionCall } from '../interfaces';
+import { Program } from '../Program';
 import { BrsType } from '../types/BrsType';
 import { DynamicType } from '../types/DynamicType';
-import { StringType } from '../types/StringType';
 import { FunctionType } from '../types/FunctionType';
+import { StringType } from '../types/StringType';
 import { VoidType } from '../types/VoidType';
-import { Program } from '../Program';
+import util from '../util';
 
 /**
  * Holds all details about this file within the context of the whole program
@@ -36,7 +36,7 @@ export class BrsFile {
     public extension: string;
 
     /**
-     * Indicates if this file was processed by the program yet. 
+     * Indicates if this file was processed by the program yet.
      */
     public wasProcessed = false;
 
@@ -46,7 +46,7 @@ export class BrsFile {
         return [...this.diagnostics];
     }
 
-    public callables = [] as Callable[]
+    public callables = [] as Callable[];
 
     public functionCalls = [] as ExpressionCall[];
 
@@ -60,7 +60,7 @@ export class BrsFile {
 
     /**
      * Get the token at the specified position
-     * @param position 
+     * @param position
      */
     private getTokenAt(position: Position) {
         for (let token of this.tokens) {
@@ -72,7 +72,7 @@ export class BrsFile {
 
     /**
      * Calculate the AST for this file
-     * @param fileContents 
+     * @param fileContents
      */
     public async parse(fileContents?: string) {
         if (this.wasProcessed) {
@@ -208,8 +208,8 @@ export class BrsFile {
     /**
      * Given a set of statements and top-level ast,
      * find the closest function ancestor for the given key
-     * @param statements 
-     * @param key 
+     * @param statements
+     * @param key
      */
     private getAncestors(statements: any[], key: string) {
         let parts = key.split('.');
@@ -239,7 +239,7 @@ export class BrsFile {
                 for (let argument of assignment.value.parameters) {
                     let isRequired = !argument.defaultValue;
                     //TODO compute optional parameters
-                    functionType.addParameter(argument.name.text, util.valueKindToBrsType(argument.type.kind), isRequired)
+                    functionType.addParameter(argument.name.text, util.valueKindToBrsType(argument.type.kind), isRequired);
                 }
                 return functionType;
 
@@ -308,7 +308,6 @@ export class BrsFile {
                 functionType.addParameter(callableParam.name, callableParam.type, isRequired);
             }
 
-
             this.callables.push({
                 isSub: statement.func.keyword.text.toLowerCase() === 'sub',
                 name: statement.name.text,
@@ -335,7 +334,7 @@ export class BrsFile {
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {
                     let expression: brs.parser.Expr.Call = bodyStatement.expression;
-                    expression.callee
+
                     //filter out dotted function invocations (i.e. object.doSomething()) (not currently supported. TODO support it)
                     if (bodyStatement.expression.callee.obj) {
                         continue;
@@ -348,7 +347,7 @@ export class BrsFile {
                     let calleeRange = util.locationToRange(callee.location);
 
                     let columnIndexBegin = calleeRange.start.character;
-                    let columnIndexEnd = calleeRange.end.character
+                    let columnIndexEnd = calleeRange.end.character;
 
                     let args = [] as CallableArg[];
                     //TODO convert if stmts to use instanceof instead
@@ -403,8 +402,8 @@ export class BrsFile {
 
     /**
      * Find the function scope at the given position.
-     * @param position 
-     * @param functionScopes 
+     * @param position
+     * @param functionScopes
      */
     public getFunctionScopeAtPosition(position: Position, functionScopes?: FunctionScope[]): FunctionScope {
         if (!functionScopes) {

@@ -77,6 +77,7 @@
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
     "tslint-eslint-rules": "^5.4.0",
+    "tslint-no-unused-expression-chai": "^0.1.4",
     "tslint-origin-ordered-imports-rule": "^1.1.2",
     "typescript": "^3.2.4"
   },

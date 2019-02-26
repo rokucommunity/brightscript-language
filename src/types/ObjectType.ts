@@ -12,7 +12,7 @@ export class ObjectType implements BrsType {
     public isConvertibleTo(targetType: BrsType) {
         return this.isAssignableTo(targetType);
     }
-    
+
     public toString() {
         return 'object';
     }

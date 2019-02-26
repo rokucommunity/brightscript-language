@@ -1,19 +1,19 @@
+import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
-let sinon = sinonImport.createSandbox();
+import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
-import { BrsFile } from './BrsFile';
-import { expect, assert } from 'chai';
-import { CallableArg, Diagnostic, Callable, ExpressionCall, VariableDeclaration } from '../interfaces';
-import util from '../util';
-import { Range, Position, CompletionItemKind } from 'vscode-languageserver';
-import { StringType } from '../types/StringType';
-import { IntegerType } from '../types/IntegerType';
+import { Callable, CallableArg, Diagnostic, ExpressionCall, VariableDeclaration } from '../interfaces';
+import { Program } from '../Program';
 import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
+import { IntegerType } from '../types/IntegerType';
+import { StringType } from '../types/StringType';
 import { VoidType } from '../types/VoidType';
-import { Program } from '../Program';
+import util from '../util';
+import { BrsFile } from './BrsFile';
 
+let sinon = sinonImport.createSandbox();
 describe('BrsFile', () => {
     let rootDir = process.cwd();
     let program: Program;
@@ -32,7 +32,7 @@ describe('BrsFile', () => {
                 function GetObject()
                     obj = {
                         stop: function() as void
-                
+
                         end function
                     }
                     return obj
@@ -46,7 +46,7 @@ describe('BrsFile', () => {
                 function GetObject()
                     obj = {
                         run: function() as void
-                
+
                         end function
                     }
                     return obj
@@ -87,7 +87,7 @@ describe('BrsFile', () => {
             await file.parse(`
                 function Main()
                     m.age = 1
-                
+
                     m.age += 1
                     m.age -= 1
                     m.age *= 1
@@ -95,7 +95,7 @@ describe('BrsFile', () => {
                     m.age \\= 1
                     m.age <<= 1
                     m.age >>= 1
-                
+
                     m["age"] += 1
                     m["age"] -= 1
                     m["age"] *= 1
@@ -103,13 +103,12 @@ describe('BrsFile', () => {
                     m["age"] \\= 1
                     m["age"] <<= 1
                     m["age"] >>= 1
-                
+
                     print m.age
                 end function
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
-
 
         //skipped until `brs` supports this
         it.skip('supports bitshift assignment operators', async () => {
@@ -182,7 +181,7 @@ describe('BrsFile', () => {
 
         it('throws an error if the file has already been parsed', async () => {
             let file = new BrsFile('abspath', 'relpath', program);
-            file.parse(`'a comment`);
+            await file.parse(`'a comment`);
             try {
                 await file.parse(`'a new comment`);
                 assert.fail(null, null, 'Should have thrown an exception, but did not');
@@ -196,7 +195,7 @@ describe('BrsFile', () => {
             expect(stub.called).to.be.false;
 
             let file = new BrsFile('abspath', 'relpath', program);
-            file.parse();
+            await file.parse();
             expect(stub.called).to.be.true;
 
         });
@@ -241,7 +240,7 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoSomething
-                end function            
+                end function
             `);
             expect(file.getDiagnostics().length).to.be.greaterThan(0);
             expect(file.getDiagnostics()[0]).to.deep.include({
@@ -308,7 +307,7 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a, b, c)
-                    
+
                 end function
             `);
             let callable = file.callables[0];
@@ -338,7 +337,7 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a=2)
-                    
+
                 end function
             `);
             let callable = file.callables[0];
@@ -354,7 +353,7 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function Sum(a, b as integer, c as string)
-                    
+
                 end function
             `);
             let callable = file.callables[0];
@@ -517,14 +516,12 @@ describe('BrsFile', () => {
             });
             expect(file.functionScopes[0].variableDeclarations[0].type).instanceof(FunctionType);
 
-
             expect(file.functionScopes[1].variableDeclarations).to.be.length(1);
             expect(file.functionScopes[1].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
                 lineIndex: 3,
                 name: 'age'
             });
             expect(file.functionScopes[1].variableDeclarations[0].type).instanceof(IntegerType);
-
 
             expect(file.functionScopes[2].variableDeclarations).to.be.length(1);
             expect(file.functionScopes[2].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
@@ -598,8 +595,8 @@ describe('BrsFile', () => {
                     shoeSize = 10
                 end sub
             `);
-            let completions = file.getCompletions(Position.create(3, 26))
-            expect(completions).to.be.lengthOf(1)
+            let completions = file.getCompletions(Position.create(3, 26));
+            expect(completions).to.be.lengthOf(1);
             expect(completions[0]).to.deep.include({
                 kind: CompletionItemKind.Variable,
                 label: 'firstName'
@@ -614,7 +611,7 @@ describe('BrsFile', () => {
                     shoeSize = 10
                 end sub
             `);
-            let completions = file.getCompletions(Position.create(3, 26))
+            let completions = file.getCompletions(Position.create(3, 26));
             expect(completions).to.be.lengthOf(2);
             expect(completions[0]).to.deep.include({
                 kind: CompletionItemKind.Variable,
@@ -637,7 +634,7 @@ describe('BrsFile', () => {
                 end function
             `);
 
-            var hover = file.getHover(Position.create(1, 28));
+            let hover = file.getHover(Position.create(1, 28));
             expect(hover).to.exist;
 
             expect(hover.range).to.eql(Range.create(1, 25, 1, 29));
@@ -654,7 +651,7 @@ describe('BrsFile', () => {
                 end sub
             `);
 
-            var hover = file.getHover(Position.create(5, 24));
+            let hover = file.getHover(Position.create(5, 24));
 
             expect(hover.range).to.eql(Range.create(5, 20, 5, 29));
             expect(hover.contents).to.equal('sub sayMyName(name as string) as void');
@@ -671,7 +668,7 @@ describe('BrsFile', () => {
                 end sub
             `);
 
-            var hover = file.getHover(Position.create(2, 25));
+            let hover = file.getHover(Position.create(2, 25));
 
             expect(hover.range).to.eql(Range.create(2, 20, 2, 29));
             expect(hover.contents).to.equal('sub sayMyName() as void');
@@ -679,7 +676,7 @@ describe('BrsFile', () => {
 
         it('finds function hover in context scope', async () => {
             let rootDir = process.cwd();
-            var program = new Program({
+            let program = new Program({
                 rootDir: rootDir
             });
 
@@ -695,7 +692,7 @@ describe('BrsFile', () => {
                 end sub
             `);
 
-            var hover = mainFile.getHover(Position.create(2, 25));
+            let hover = mainFile.getHover(Position.create(2, 25));
             expect(hover).to.exist;
 
             expect(hover.range).to.eql(Range.create(2, 20, 2, 29));

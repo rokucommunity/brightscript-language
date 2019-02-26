@@ -1,13 +1,13 @@
+import { expect } from 'chai';
+import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
-import { Program } from './Program';
-import { BrsFile } from './files/BrsFile';
-import { expect } from 'chai';
 import { Context as Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
+import { BrsFile } from './files/BrsFile';
+import { Program } from './Program';
 import util from './util';
-import { EventEmitter } from 'events';
 let n = path.normalize;
 
 describe('Context', () => {
@@ -28,12 +28,12 @@ describe('Context', () => {
 
     describe('attachProgram', () => {
         it('correctly listens to program events', async () => {
-            var context = new Context('some context', (file) => true);
+            let context = new Context('some context', (file) => true);
 
             let file = new BrsFile(n('abs/file.brs'), n('rel/file.brs'), program);
 
             //we're only testing events, so make this emitter look like a program
-            var fakeProgram = new EventEmitter();
+            let fakeProgram = new EventEmitter();
             (fakeProgram as any).files = {};
 
             //attach the program (and therefore to the program's events)
@@ -53,10 +53,10 @@ describe('Context', () => {
 
     describe('attachParentContext', () => {
         it('listens for invalidated events', async () => {
-            var parentCtx = new Context('parent', null);
+            let parentCtx = new Context('parent', null);
             parentCtx.isValidated = false;
 
-            var childCtx = new Context('child', null);
+            let childCtx = new Context('child', null);
             childCtx.isValidated = true;
 
             //attaching child to invalidated parent invalidates child
@@ -335,7 +335,7 @@ describe('Context', () => {
 
     describe('inheritance', () => {
         it('inherits callables from parent', () => {
-            var program = new Program({ rootDir });
+            let program = new Program({ rootDir: rootDir });
             //erase the platform context so our tests are more stable
             program.platformContext = new Context('platform', null);
 
@@ -343,11 +343,11 @@ describe('Context', () => {
             parentFile.callables.push(<any>{
                 name: 'parentFunction'
             });
-            var parentContext = new Context('parent', null);
+            let parentContext = new Context('parent', null);
             parentContext.attachProgram(program);
             parentContext.addOrReplaceFile(parentFile);
 
-            var childContext = new Context('child', null);
+            let childContext = new Context('child', null);
             childContext.attachProgram(program);
             expect(childContext.getAllCallables()).to.be.lengthOf(0);
 

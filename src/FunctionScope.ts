@@ -1,6 +1,7 @@
-import { VariableDeclaration } from './interfaces';
-import { Range } from 'vscode-languageserver';
 import * as brs from 'brs';
+import { Range } from 'vscode-languageserver';
+
+import { VariableDeclaration } from './interfaces';
 
 export class FunctionScope {
     constructor(
@@ -26,7 +27,7 @@ export class FunctionScope {
 
     /**
      * Find all variable declarations above the given line index
-     * @param lineIndex 
+     * @param lineIndex
      */
     public getVariablesAbove(lineIndex: number) {
         let results = [] as VariableDeclaration[];

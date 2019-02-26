@@ -1,14 +1,14 @@
+import { assert, expect } from 'chai';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
-
-import { Program } from '../Program';
-import { BrsFile } from './BrsFile';
-import { expect, assert } from 'chai';
-import { CallableArg, FileReference, Diagnostic } from '../interfaces';
-import { XmlFile } from './XmlFile';
 import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-languageserver';
-import util from '../util';
+
 import { diagnosticMessages } from '../DiagnosticMessages';
+import { CallableArg, Diagnostic, FileReference } from '../interfaces';
+import { Program } from '../Program';
+import util from '../util';
+import { BrsFile } from './BrsFile';
+import { XmlFile } from './XmlFile';
 let n = path.normalize;
 
 describe('XmlFile', () => {
@@ -135,7 +135,7 @@ describe('XmlFile', () => {
 
         it('throws an error if the file has already been parsed', async () => {
             let file = new XmlFile('abspath', 'relpath', null);
-            file.parse(`'a comment`);
+            await file.parse(`'a comment`);
             try {
                 await file.parse(`'a new comment`);
                 assert.fail(null, null, 'Should have thrown an exception, but did not');
@@ -149,7 +149,7 @@ describe('XmlFile', () => {
             expect(stub.called).to.be.false;
 
             let file = new XmlFile('abspath', 'relpath', null);
-            file.parse();
+            await file.parse();
             expect(stub.called).to.be.true;
 
         });
@@ -235,12 +235,12 @@ describe('XmlFile', () => {
 
     describe('getAllScriptImports', () => {
         it('returns own imports', () => {
-            var file = new XmlFile('file.xml', 'file.xml', null);
-            var scriptImport = {
+            let file = new XmlFile('file.xml', 'file.xml', null);
+            let scriptImport = {
                 text: 'some-import'
             };
             file.ownScriptImports.push(<any>scriptImport);
             expect(file.getAllScriptImports()).to.be.lengthOf(1);
         });
-    })
+    });
 });

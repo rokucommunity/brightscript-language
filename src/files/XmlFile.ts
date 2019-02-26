@@ -1,11 +1,12 @@
-import { FileReference, Diagnostic, Callable, ExpressionCall, File } from '../interfaces';
-import util from '../util';
-import { Program } from '../Program';
-import * as path from 'path';
-import { CompletionItem, CompletionItemKind, TextEdit, Range, Position, Hover } from 'vscode-languageserver';
-import { diagnosticMessages } from '../DiagnosticMessages';
 import { EventEmitter } from 'events';
+import * as path from 'path';
+import { CompletionItem, CompletionItemKind, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
+
+import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
+import { Callable, Diagnostic, ExpressionCall, File, FileReference } from '../interfaces';
+import { Program } from '../Program';
+import util from '../util';
 
 export class XmlFile {
     constructor(
@@ -51,7 +52,7 @@ export class XmlFile {
     public componentName: string;
 
     /**
-     * Indicates if this file was processed by the program yet. 
+     * Indicates if this file was processed by the program yet.
      */
     public wasProcessed = false;
 
@@ -86,7 +87,7 @@ export class XmlFile {
                         componentRange = Range.create(
                             Position.create(lineIndex, match[1].length),
                             Position.create(lineIndex, match[0].length)
-                        )
+                        );
                         break;
                     }
                 }
@@ -136,7 +137,7 @@ export class XmlFile {
                 });
             }
         } catch (e) {
-            var match = /(.*)\r?\nLine:\s*(\d+)\r?\nColumn:\s*(\d+)\r?\nChar:\s*(\d*)/gi.exec(e.message);
+            let match = /(.*)\r?\nLine:\s*(\d+)\r?\nColumn:\s*(\d+)\r?\nChar:\s*(\d*)/gi.exec(e.message);
             if (match) {
 
                 let lineIndex = parseInt(match[2]);
@@ -181,7 +182,7 @@ export class XmlFile {
             let uriRanges = {} as { [uri: string]: Range[] };
             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                 let line = lines[lineIndex];
-                let regex = /(.*?\s+uri\s*=\s*")(.*?)"/gi
+                let regex = /(.*?\s+uri\s*=\s*")(.*?)"/gi;
                 let lineIndexOffset = 0;
                 let match;
                 while (match = regex.exec(line)) {
@@ -225,8 +226,8 @@ export class XmlFile {
      * Get the list of scripts imported by this component and all of its ancestors
      */
     public getAllScriptImports() {
-        var imports = [...this.ownScriptImports] as FileReference[];
-        var file: XmlFile = this;
+        let imports = [...this.ownScriptImports] as FileReference[];
+        let file: XmlFile = this;
         while (file.parent) {
             imports = [...imports, ...file.parent.getOwnScriptImports()];
             file = file.parent;
@@ -235,7 +236,7 @@ export class XmlFile {
     }
 
     /**
-     * Get the list of scripts explicitly imported by this file. 
+     * Get the list of scripts explicitly imported by this file.
      * This method excludes any ancestor imports
      */
     public getOwnScriptImports() {
@@ -244,7 +245,7 @@ export class XmlFile {
 
     /**
      * Determines if this xml file has a reference to the specified file (or if it's itself)
-     * @param file 
+     * @param file
      */
     public doesReferenceFile(file: File) {
         if (file === this) {
@@ -267,8 +268,8 @@ export class XmlFile {
 
     /**
      * Get all available completions for the specified position
-     * @param lineIndex 
-     * @param columnIndex 
+     * @param lineIndex
+     * @param columnIndex
      */
     public getCompletions(position: Position): CompletionItem[] {
         let result = [] as CompletionItem[];
@@ -276,12 +277,12 @@ export class XmlFile {
             return x.lineIndex === position.line &&
                 //column between start and end
                 position.character >= x.columnIndexBegin &&
-                position.character <= x.columnIndexEnd
+                position.character <= x.columnIndexEnd;
         });
         //the position is within a script import. Provide path completions
         if (scriptImport) {
             //get a list of all scripts currently being imported
-            let currentImports = this.ownScriptImports.map(x => x.pkgPath);
+            let currentImports = this.ownScriptImports.map((x) => x.pkgPath);
 
             //restrict to only .brs files
             for (let key in this.program.files) {
@@ -342,7 +343,7 @@ export class XmlFile {
         this.emitter.on(name, callback);
         return () => {
             this.emitter.removeListener(name, callback);
-        }
+        };
     }
 
     protected emit(name: 'attach-parent', data: XmlFile);
@@ -361,9 +362,9 @@ export class XmlFile {
 
     /**
      * Components can extend another component.
-     * This method attaches the parent component to this component, where 
-     * this component can listen for script import changes on the parent. 
-     * @param parent 
+     * This method attaches the parent component to this component, where
+     * this component can listen for script import changes on the parent.
+     * @param parent
      */
     public attachParent(parent: XmlFile) {
         //detach any existing parent

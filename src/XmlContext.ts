@@ -1,10 +1,11 @@
-import { Context } from './Context';
-import { XmlFile } from './files/XmlFile';
-import { Program } from './Program';
-import { BrsFile } from './files/BrsFile';
-import { diagnosticMessages } from './DiagnosticMessages';
-import { FileReference } from './interfaces';
 import { Range } from 'vscode-languageserver';
+
+import { Context } from './Context';
+import { diagnosticMessages } from './DiagnosticMessages';
+import { BrsFile } from './files/BrsFile';
+import { XmlFile } from './files/XmlFile';
+import { FileReference } from './interfaces';
+import { Program } from './Program';
 import util from './util';
 
 export class XmlContext extends Context {
@@ -59,7 +60,7 @@ export class XmlContext extends Context {
 
     /**
      * Event handler for when the attached program removes a file
-     * @param file 
+     * @param file
      */
     private onProgramFileRemove(file: BrsFile | XmlFile) {
         if (
@@ -81,7 +82,7 @@ export class XmlContext extends Context {
     }
 
     private handleXmlFileParentAttach(file: XmlFile) {
-        var parentContext = this.program.contexts[file.pkgPath];
+        let parentContext = this.program.contexts[file.pkgPath];
         if (parentContext) {
             this.attachParentContext(parentContext);
         }
@@ -120,9 +121,9 @@ export class XmlContext extends Context {
      */
     private diagnosticDetectDuplicateAncestorScriptImports() {
         if (this.xmlFile.parent) {
-            //build a lookup of pkg paths -> FileReference so we can more easily look up collisions 
-            var parentScriptImports = this.xmlFile.parent.getAllScriptImports();
-            var lookup = {} as { [pkgPath: string]: FileReference };
+            //build a lookup of pkg paths -> FileReference so we can more easily look up collisions
+            let parentScriptImports = this.xmlFile.parent.getAllScriptImports();
+            let lookup = {} as { [pkgPath: string]: FileReference };
             for (let parentScriptImport of parentScriptImports) {
                 //keep the first occurance of a pkgPath. Parent imports are first in the array
                 if (!lookup[parentScriptImport.pkgPath]) {
@@ -135,7 +136,7 @@ export class XmlContext extends Context {
                 let ancestorScriptImport = lookup[scriptImport.pkgPath];
                 if (ancestorScriptImport) {
                     let ancestorComponentName = (ancestorScriptImport.sourceFile as XmlFile).componentName;
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         severity: 'warning',
                         file: this.xmlFile,
                         location: Range.create(scriptImport.lineIndex, scriptImport.columnIndexBegin, scriptImport.lineIndex, scriptImport.columnIndexEnd),
@@ -149,7 +150,7 @@ export class XmlContext extends Context {
     }
 
     /**
-     * Verify that all of the scripts ipmorted by 
+     * Verify that all of the scripts ipmorted by
      */
     private diagnosticValidateScriptImportPaths() {
         //verify every script import
@@ -157,7 +158,7 @@ export class XmlContext extends Context {
             let referencedFile = this.getFileByRelativePath(scriptImport.pkgPath);
             //if we can't find the file
             if (!referencedFile) {
-                this._diagnostics.push({
+                this.diagnostics.push({
                     message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
                     code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
                     location: Range.create(
@@ -172,7 +173,7 @@ export class XmlContext extends Context {
             } else {
                 //if the script import path is not identical in case to the actual path, add a warning
                 if (scriptImport.pkgPath !== referencedFile.file.pkgPath) {
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         message: util.stringFormat(
                             diagnosticMessages.Script_import_case_mismatch_1012.message,
                             referencedFile.file.pkgPath
@@ -192,14 +193,13 @@ export class XmlContext extends Context {
         }
     }
 
-
-    private xmlFileHandles = [] as (() => void)[];
+    private xmlFileHandles = [] as Array<() => void>;
 
     private xmlFile: XmlFile;
 
     public dispose() {
         super.dispose();
-        for (var disconnect of this.xmlFileHandles) {
+        for (let disconnect of this.xmlFileHandles) {
             disconnect();
         }
     }

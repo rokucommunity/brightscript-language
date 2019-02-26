@@ -1,12 +1,12 @@
+import { assert, expect } from 'chai';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
-
-import { expect, assert } from 'chai';
-import { Program } from './Program';
-import { Diagnostic } from './interfaces';
-import { diagnosticMessages } from './DiagnosticMessages';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
+
+import { diagnosticMessages } from './DiagnosticMessages';
 import { XmlFile } from './files/XmlFile';
+import { Diagnostic } from './interfaces';
+import { Program } from './Program';
 import util from './util';
 let n = path.normalize;
 
@@ -16,7 +16,7 @@ let sinon = sinonImport.createSandbox();
 let rootDir = process.cwd();
 let program: Program;
 beforeEach(() => {
-    program = new Program({ rootDir });
+    program = new Program({ rootDir: rootDir });
 });
 afterEach(() => {
     sinon.restore();
@@ -38,29 +38,29 @@ describe('Program', () => {
         });
 
         it('adds files in the source folder to the global context', async () => {
-            expect(program.contexts['global']).to.exist;
+            expect(program.contexts.global).to.exist;
             //no files in global context
-            expect(Object.keys(program.contexts['global'].files).length).to.equal(0);
+            expect(Object.keys(program.contexts.global.files).length).to.equal(0);
 
             let mainPath = path.normalize(`${rootDir}/source/main.brs`);
             //add a new source file
             await program.addOrReplaceFile(mainPath, '');
             //file should be in global context now
-            expect(program.contexts['global'].files[mainPath]).to.exist;
+            expect(program.contexts.global.files[mainPath]).to.exist;
 
             //add an unreferenced file from the components folder
             await program.addOrReplaceFile(`${rootDir}/components/component1/component1.brs`, '');
 
             //global context should have the same number of files
-            expect(program.contexts['global'].files[mainPath]).to.exist;
-            expect(program.contexts['global'].files[`${rootDir}/components/component1/component1.brs`]).not.to.exist;
+            expect(program.contexts.global.files[mainPath]).to.exist;
+            expect(program.contexts.global.files[`${rootDir}/components/component1/component1.brs`]).not.to.exist;
         });
 
         it('normalizes file paths', async () => {
             let filePath = n(`${rootDir}/source\\main.brs`);
-            await program.addOrReplaceFile(filePath, '')
+            await program.addOrReplaceFile(filePath, '');
 
-            expect(program.contexts['global'].files[n(filePath)]);
+            expect(program.contexts.global.files[n(filePath)]);
 
             //shouldn't throw an exception because it will find the correct path after normalizing the above path and remove it
             try {
@@ -115,7 +115,7 @@ describe('Program', () => {
             //add the orphaned file
             await program.addOrReplaceFile(`${rootDir}/components/lib.brs`, '');
             await program.validate();
-            var diagnostics = program.getDiagnostics();
+            let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
             expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013.code);
         });
@@ -149,10 +149,10 @@ describe('Program', () => {
                 function DoB()
                     sleep(100)
                 end function
-            `)
+            `);
             //validate the context
             await program.validate();
-            var diagnostics = program.getDiagnostics();
+            let diagnostics = program.getDiagnostics();
             //shouldn't have any errors
             expect(diagnostics).to.be.lengthOf(0);
         });
@@ -162,19 +162,19 @@ describe('Program', () => {
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ParentScene" extends="Scene">
                     <script type="text/brightscript" uri="pkg:/lib.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ChildScene" extends="ParentScene">
                     <script type="text/brightscript" uri="pkg:/lib.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/lib.brs`, `'comment`);
             await program.validate();
-            var diagnostics = program.getDiagnostics();
+            let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
             expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code);
             expect(diagnostics[0].severity).to.equal('warning');
@@ -185,20 +185,20 @@ describe('Program', () => {
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ParentScene" extends="Scene">
                     <script type="text/brightscript" uri="pkg:/parent.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ChildScene" extends="ParentScene">
                     <script type="text/brightscript" uri="pkg:/child.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/parent.brs`, `sub DoSomething()\nend sub`);
             await program.addOrReplaceFile(`${rootDir}/child.brs`, `sub DoSomething()\nend sub`);
             await program.validate();
-            var diagnostics = program.getDiagnostics();
+            let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
             expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010.code);
         });
@@ -208,20 +208,20 @@ describe('Program', () => {
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ParentScene" extends="Scene">
                     <script type="text/brightscript" uri="pkg:/parent.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="ChildScene" extends="ParentScene">
                     <script type="text/brightscript" uri="pkg:/child.brs" />
-                </component>            
+                </component>
             `);
 
             await program.addOrReplaceFile(`${rootDir}/parent.brs`, `sub Init()\nend sub`);
             await program.addOrReplaceFile(`${rootDir}/child.brs`, `sub Init()\nend sub`);
             await program.validate();
-            var diagnostics = program.getDiagnostics();
+            let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(0);
         });
 
@@ -234,7 +234,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(2);
-            expect(program.getDiagnostics()[0].message.indexOf('Duplicate sub declaration'))
+            expect(program.getDiagnostics()[0].message.indexOf('Duplicate sub declaration'));
         });
 
         it('catches duplicate methods across multiple files', async () => {
@@ -248,18 +248,18 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(2);
-            expect(program.getDiagnostics()[0].message.indexOf('Duplicate sub declaration'))
+            expect(program.getDiagnostics()[0].message.indexOf('Duplicate sub declaration'));
         });
 
         it('maintains correct callables list', async () => {
-            let initialCallableCount = program.contexts['global'].getAllCallables().length;
+            let initialCallableCount = program.contexts.global.getAllCallables().length;
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
                 end sub
                 sub DoSomething()
                 end sub
             `);
-            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount + 2);
+            expect(program.contexts.global.getAllCallables().length).equals(initialCallableCount + 2);
             //set the file contents again (resetting the wasProcessed flag)
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething()
@@ -267,9 +267,9 @@ describe('Program', () => {
                 sub DoSomething()
                 end sub
                 `);
-            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount + 2);
+            expect(program.contexts.global.getAllCallables().length).equals(initialCallableCount + 2);
             program.removeFile(`${rootDir}/source/main.brs`);
-            expect(program.contexts['global'].getAllCallables().length).equals(initialCallableCount);
+            expect(program.contexts.global.getAllCallables().length).equals(initialCallableCount);
         });
 
         it('resets errors on revalidate', async () => {
@@ -466,7 +466,7 @@ describe('Program', () => {
             //add the file, the error should go away
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
             await program.addOrReplaceFile(brsPath, '');
-            program.validate();
+            await program.validate();
             expect(program.getDiagnostics()).to.be.empty;
 
             //add the xml file back in, but change the component brs file name. Should have an error again
@@ -476,7 +476,7 @@ describe('Program', () => {
                     <script type="text/brightscript" uri="pkg:/components/component2.brs" />
                 </component>
             `);
-            program.validate();
+            await program.validate();
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
                 message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
             });
@@ -507,7 +507,7 @@ describe('Program', () => {
             let xmlFile = await program.addOrReplaceFile(xmlPath, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="HeroScene" extends="Scene" >');
-                    
+
                 </component>
             `);
             await program.validate();
@@ -632,7 +632,7 @@ describe('Program', () => {
     describe('xml context', () => {
         it('detects script import changes', async () => {
             //create the xml file without script imports
-            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+            let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="MyScene" extends="Scene">
                 </component>
@@ -645,7 +645,7 @@ describe('Program', () => {
             let libFile = await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `'comment`);
 
             //change the xml file to have a script import
-            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+            let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="MyScene" extends="Scene">
                     <script type="text/brightscript" uri="pkg:/source/lib.brs" />
@@ -658,7 +658,7 @@ describe('Program', () => {
             expect(program.contexts[xmlFile.pkgPath].files[libFile.pathAbsolute]).to.exist;
 
             //reload the xml file again, removing the script import.
-            var xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+            let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="MyScene" extends="Scene">
                 </component>
@@ -670,7 +670,6 @@ describe('Program', () => {
 
         });
     });
-
 
     describe('getDiagnostics', () => {
         it('it excludes specified error codes', async () => {

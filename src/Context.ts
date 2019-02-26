@@ -1,12 +1,13 @@
+import { EventEmitter } from 'events';
+import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
+
+import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
-import { Diagnostic, Callable, File, CallableContainer } from './interfaces';
-import { EventEmitter } from 'events';
-import util from './util';
-import { diagnosticMessages } from './DiagnosticMessages';
-import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
+import { Callable, CallableContainer, Diagnostic, File } from './interfaces';
 import { Program } from './Program';
 import { FunctionType } from './types/FunctionType';
+import util from './util';
 
 /**
  * A class to keep track of all declarations within a given context (like global scope, component scope)
@@ -19,18 +20,18 @@ export class Context {
     }
 
     /**
-     * Indicates whether this context needs to be validated. 
+     * Indicates whether this context needs to be validated.
      * Will be true when first constructed, or anytime one of its watched files is added, changed, or removed
      */
     public isValidated = true;
 
     protected program: Program;
 
-    protected programHandles = [] as (() => void)[];
+    protected programHandles = [] as Array<() => void>;
 
     /**
      * Attach the context to a program. This allows the context to monitor file adds, changes, and removals, and respond accordingly
-     * @param program 
+     * @param program
      */
     public attachProgram(program: Program) {
         this.program = program;
@@ -67,7 +68,7 @@ export class Context {
         this.detachParent();
     }
 
-    private parentContextHandles = [] as (() => void)[];
+    private parentContextHandles = [] as Array<() => void>;
 
     public attachParentContext(parent: Context) {
         this.parentContext = parent;
@@ -97,8 +98,8 @@ export class Context {
     public parentContext: Context;
 
     /**
-     * Determine if this file should 
-     * @param filePath 
+     * Determine if this file should
+     * @param filePath
      */
     public shouldIncludeFile(file: File) {
         return this.matcher(file) === true ? true : false;
@@ -111,7 +112,7 @@ export class Context {
      * call this sparingly.
      */
     public getDiagnostics(): Diagnostic[] {
-        let diagnosticLists = [this._diagnostics] as Diagnostic[][];
+        let diagnosticLists = [this.diagnostics] as Diagnostic[][];
         //add diagnostics from every referenced file
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
@@ -124,10 +125,10 @@ export class Context {
     /**
      * The list of diagnostics found specifically for this context. Individual file diagnostics are stored on the files themselves.
      */
-    protected _diagnostics = [] as Diagnostic[];
+    protected diagnostics = [] as Diagnostic[];
 
     /**
-     * Get the list of callables available in this context (either declared in this context or in a parent context) 
+     * Get the list of callables available in this context (either declared in this context or in a parent context)
      */
     public getAllCallables(): CallableContainer[] {
         //get callables from parent contexts
@@ -141,7 +142,7 @@ export class Context {
     /**
      * Get the callable with the specified name.
      * If there are overridden callables with the same name, the closest callable to this context is returned
-     * @param name 
+     * @param name
      */
     public getCallableByName(name: string) {
         let lowerName = name.toLowerCase();
@@ -180,7 +181,7 @@ export class Context {
         this.emitter.on(eventName, callback);
         return () => {
             this.emitter.removeListener(eventName, callback);
-        }
+        };
     }
 
     protected emit(name: 'invalidated');
@@ -190,8 +191,8 @@ export class Context {
 
     /**
      * Add a file to the program.
-     * @param filePath 
-     * @param fileContents 
+     * @param filePath
+     * @param fileContents
      */
     public addOrReplaceFile(file: BrsFile | XmlFile) {
         this.isValidated = false;
@@ -208,7 +209,7 @@ export class Context {
     }
 
     /**
-     * Remove the file from this context. 
+     * Remove the file from this context.
      * If the file doesn't exist, the method exits immediately, but does not throw an error.
      * @param file
      * @param emitRemovedEvent - if false, the 'remove-file' event will not be emitted
@@ -236,7 +237,7 @@ export class Context {
             this.parentContext.validate();
         }
         //clear the context's errors list (we will populate them from this method)
-        this._diagnostics = [];
+        this.diagnostics = [];
 
         let callables = this.getAllCallables();
 
@@ -269,8 +270,8 @@ export class Context {
 
     /**
      * Detect calls to functions with the incorrect number of parameters
-     * @param file 
-     * @param callableContainersByLowerName 
+     * @param file
+     * @param callableContainersByLowerName
      */
     private diagnosticDetectFunctionCallsWithWrongParamCount(file: BrsFile | XmlFile, callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all function calls
@@ -295,7 +296,7 @@ export class Context {
                 let expCallArgCount = expCall.args.length;
                 if (expCall.args.length > maxParams || expCall.args.length < minParams) {
                     let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
                         code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
                         location: expCall.nameRange,
@@ -310,8 +311,8 @@ export class Context {
 
     /**
      * Detect local variables (function scope) that have the same name as context calls
-     * @param file 
-     * @param callablesByLowerName 
+     * @param file
+     * @param callablesByLowerName
      */
     private diagnosticDetectShadowedLocalVars(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //loop through every function scope
@@ -323,7 +324,7 @@ export class Context {
                 if (globalCallableContainer && globalCallableContainer.length > 0) {
                     let globalCallable = globalCallableContainer[0];
 
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         message: util.stringFormat(
                             diagnosticMessages.Local_var_shadows_global_function_1011.message,
                             varDeclaration.name,
@@ -341,8 +342,8 @@ export class Context {
 
     /**
      * Detect calls to functions that are not defined in this context
-     * @param file 
-     * @param callablesByLowerName 
+     * @param file
+     * @param callablesByLowerName
      */
     private diagnosticDetectCallsToUnknownFunctions(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //validate all expression calls
@@ -354,7 +355,7 @@ export class Context {
             //get the local scope for this expression
             let scope = file.getFunctionScopeAtPosition(expCall.nameRange.start);
             if (scope) {
-                //if we found a variable with the same name as the function, assume the call is "known". 
+                //if we found a variable with the same name as the function, assume the call is "known".
                 //If the variable is a different type, some other check should add a diagnostic for that.
                 if (scope.getVariableByName(lowerName)) {
                     continue;
@@ -368,7 +369,7 @@ export class Context {
 
             //detect calls to unknown functions
             if (!knownCallable) {
-                this._diagnostics.push({
+                this.diagnostics.push({
                     message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, expCall.name),
                     code: diagnosticMessages.Call_to_unknown_function_1001.code,
                     location: expCall.nameRange,
@@ -380,10 +381,9 @@ export class Context {
         }
     }
 
-
     /**
      * Create diagnostics for any duplicate function declarations
-     * @param callablesByLowerName 
+     * @param callablesByLowerName
      */
     private diagnosticFindDuplicateFunctionDeclarations(callableContainersByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //for each list of callables with the same name
@@ -416,7 +416,7 @@ export class Context {
                         continue inner;
                     }
                     let shadowedCallable = ancestorNonPlatformCallables[ancestorNonPlatformCallables.length - 1];
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         message: util.stringFormat(
                             diagnosticMessages.Shadows_ancestor_function_1010.message,
                             container.callable.name,
@@ -439,7 +439,7 @@ export class Context {
                 for (let callableContainer of ownCallables) {
                     let callable = callableContainer.callable;
 
-                    this._diagnostics.push({
+                    this.diagnostics.push({
                         message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name, callableContainer.context.name),
                         code: diagnosticMessages.Duplicate_function_implementation_1003.code,
                         location: Range.create(
@@ -458,7 +458,7 @@ export class Context {
 
     /**
      * Find the file with the specified relative path
-     * @param relativePath 
+     * @param relativePath
      */
     protected getFileByRelativePath(relativePath: string) {
         for (let key in this.files) {
@@ -470,7 +470,7 @@ export class Context {
 
     /**
      * Determine if the context already has this file in its files list
-     * @param file 
+     * @param file
      */
     public hasFile(file: BrsFile | XmlFile) {
         if (this.files[file.pathAbsolute]) {

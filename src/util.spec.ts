@@ -1,8 +1,9 @@
-import util from './util';
-import * as sinonImport from 'sinon';
-import * as path from 'path';
-import { expect, assert } from 'chai';
+import { assert, expect } from 'chai';
 import { O_NOATIME } from 'constants';
+import * as path from 'path';
+import * as sinonImport from 'sinon';
+
+import util from './util';
 
 let sinon = sinonImport.createSandbox();
 let cwd = process.cwd();
@@ -63,13 +64,13 @@ describe('util', () => {
     describe('normalizeConfig', () => {
         it('loads project from disc', async () => {
             vfs[rootConfigPath] = `{"outFile": "customOutDir/pkg.zip"}`;
-            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath })
-            expect(config.outFile).to.equal(path.join(path.dirname(rootConfigPath), 'customOutDir', 'pkg.zip'))
+            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath });
+            expect(config.outFile).to.equal(path.join(path.dirname(rootConfigPath), 'customOutDir', 'pkg.zip'));
         });
 
         it('loads project from disc and extends it', async () => {
             //the extends file
-            let extendsConfigPath = path.join(rootConfigDir, 'testProjects', 'base_brsconfig.json')
+            let extendsConfigPath = path.join(rootConfigDir, 'testProjects', 'base_brsconfig.json');
             vfs[extendsConfigPath] = `{
                 "outFile": "customOutDir/pkg1.zip",
                 "rootDir": "core"
@@ -81,11 +82,11 @@ describe('util', () => {
                 "watch": true
             }`;
 
-            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath })
+            let config = await util.normalizeAndResolveConfig({ project: rootConfigPath });
 
-            expect(config.outFile).to.equal(path.join(rootConfigDir, 'testProjects', 'customOutDir', 'pkg1.zip'))
+            expect(config.outFile).to.equal(path.join(rootConfigDir, 'testProjects', 'customOutDir', 'pkg1.zip'));
             expect(config.rootDir).to.equal(path.join(rootConfigDir, 'testProjects', 'core'));
-            expect(config.watch).to.equal(true)
+            expect(config.watch).to.equal(true);
         });
 
         it('catches circular dependencies', async () => {
@@ -94,11 +95,11 @@ describe('util', () => {
             }`;
             vfs[path.join(rootConfigDir, 'brsconfig2.json')] = `{
                 "extends": "brsconfig.json"
-            }`
+            }`;
 
             let threw = false;
             try {
-                await util.normalizeAndResolveConfig({ project: rootConfigPath })
+                await util.normalizeAndResolveConfig({ project: rootConfigPath });
             } catch (e) {
                 threw = true;
             }
@@ -121,13 +122,12 @@ describe('util', () => {
             expect(util.stringFormat('{0}{1}', 'a')).to.equal('a{1}');
         });
 
-
     });
 
     describe('getPkgPathFromTarget', () => {
         it('works with both types of separators', () => {
-            expect(util.getPkgPathFromTarget('components/component1.xml', '../lib.brs')).to.equal('lib.brs')
-            expect(util.getPkgPathFromTarget('components\\component1.xml', '../lib.brs')).to.equal('lib.brs')
+            expect(util.getPkgPathFromTarget('components/component1.xml', '../lib.brs')).to.equal('lib.brs');
+            expect(util.getPkgPathFromTarget('components\\component1.xml', '../lib.brs')).to.equal('lib.brs');
         });
 
         it('resolves single dot directory', () => {
@@ -136,7 +136,7 @@ describe('util', () => {
 
         it('resolves absolute pkg paths as relative paths', () => {
             expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/source/lib.brs')).to.equal(n(`source/lib.brs`));
-            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/lib.brs')).to.equal(`lib.brs`)
+            expect(util.getPkgPathFromTarget('components/component1.xml', 'pkg:/lib.brs')).to.equal(`lib.brs`);
         });
 
         it('resolves gracefully for invalid values', () => {
@@ -183,7 +183,7 @@ describe('util', () => {
         });
 
         it('finds properties in arrays', () => {
-            let results = util.findAllDeep<{ id: Number }>({
+            let results = util.findAllDeep<{ id: number }>({
                 children: [{
                     id: 1,
                     name: 'bob',

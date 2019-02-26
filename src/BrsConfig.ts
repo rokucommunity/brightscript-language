@@ -21,7 +21,7 @@ export interface BrsConfig {
      * If using the {src;dest;} format, you can specify a different destination directory
      * for the matched files in src.
      */
-    files?: (string | string[] | { src: string | string[]; dest?: string })[];
+    files?: Array<string | string[] | { src: string | string[]; dest?: string }>;
     /**
      * The path where the output zip file should be placed.
      * @default "./out/package.zip"

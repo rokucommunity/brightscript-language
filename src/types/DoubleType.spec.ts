@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { DynamicType } from './DynamicType';
+
 import { DoubleType } from './DoubleType';
+import { DynamicType } from './DynamicType';
 
 describe('DoubleType', () => {
     it('is equivalent to double types', () => {

@@ -1,15 +1,15 @@
 import chalk from 'chalk';
+import * as debounce from 'debounce-promise';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
-import * as debounce from 'debounce-promise';
+import { FileChangeType, FileEvent } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
 import { BrsConfig } from './BrsConfig';
+import { Diagnostic, FileObj } from './interfaces';
+import { Program } from './Program';
 import util from './util';
 import { Watcher } from './Watcher';
-import { Program } from './Program';
-import { FileObj, Diagnostic } from './interfaces';
-import { FileEvent, FileChangeType } from 'vscode-languageserver';
 
 /**
  * A runner class that handles
@@ -53,7 +53,7 @@ export class ProgramBuilder {
     public async enableWatchMode() {
         this.watcher = new Watcher(this.options);
         //keep the process alive indefinitely by setting an interval that runs once every 12 days
-        setInterval(() => { }, 1 << 30);
+        setInterval(() => { }, 1073741824);
 
         //clear the console
         util.clearConsole();
@@ -74,10 +74,10 @@ export class ProgramBuilder {
             util.log(`Found ${errorCount} errors. Watching for file changes.`);
         }, 50);
         //on any file watcher event
-        this.watcher.on('all', (event: string, path: string) => {
+        this.watcher.on('all', async (event: string, path: string) => {
             // console.log(event, path);
             if (event === 'add' || event === 'change') {
-                this.program.addOrReplaceFile(path);
+                await this.program.addOrReplaceFile(path);
             } else if (event === 'unlink') {
                 this.program.removeFile(path);
             }
@@ -105,9 +105,9 @@ export class ProgramBuilder {
             //start the new run
             return this._runOnce(cancellationToken);
         }).then(() => {
-            this.printDiagnostics();
             //track if the run completed
             isCompleted = true;
+            return this.printDiagnostics();
         }, async (err) => {
             await this.printDiagnostics();
             //track if the run completed
@@ -185,7 +185,7 @@ export class ProgramBuilder {
                 let diagnosticLine = lines[diagnostic.location.start.line];
 
                 //if the squiggly length is longer than the line, concat to end of line
-                var squigglyLength = diagnostic.location.end.character - diagnostic.location.start.character;
+                let squigglyLength = diagnostic.location.end.character - diagnostic.location.start.character;
                 if (squigglyLength > diagnosticLine.length - diagnostic.location.start.character) {
                     squigglyLength = diagnosticLine.length - diagnostic.location.end.character;
                 }
@@ -194,7 +194,7 @@ export class ProgramBuilder {
                 console.log(lineNumberText +
                     typeColor[diagnostic.severity](
                         util.padLeft('', diagnostic.location.start.character, ' ') +
-                        //print squigglies 
+                        //print squigglies
                         util.padLeft('', squigglyLength, '~')
                     )
                 );
@@ -286,23 +286,22 @@ export class ProgramBuilder {
         return errorCount;
     }
 
-
     /**
-     * This only operates on files that match the specified files globs, so it is safe to throw 
+     * This only operates on files that match the specified files globs, so it is safe to throw
      * any file changes you receive with no unexpected side-effects
-     * @param changes 
+     * @param changes
      */
     public async handleFileChanges(changes: FileEvent[]) {
         //lazy-load the list of file paths, and only once for this function call
-        let _matchingFilePathsPromise: Promise<string[]>;
+        let matchingFilePathsPromise: Promise<string[]>;
         let getMatchingFilePaths = () => {
-            if (!_matchingFilePathsPromise) {
-                _matchingFilePathsPromise = util.getFilePaths(this.options).then((fileObjects) => {
-                    return fileObjects.map(obj => obj.src);
+            if (!matchingFilePathsPromise) {
+                matchingFilePathsPromise = util.getFilePaths(this.options).then((fileObjects) => {
+                    return fileObjects.map((obj) => obj.src);
                 });
             }
-            return _matchingFilePathsPromise;
-        }
+            return matchingFilePathsPromise;
+        };
         //this loop assumes paths are both file paths and folder paths,
         //Which eliminates the need to detect. All functions below can handle being given
         //a file path AND a folder path, and will only operate on the one they are looking for
@@ -311,7 +310,7 @@ export class ProgramBuilder {
             //remove all files from any removed folder
             if (change.type === FileChangeType.Deleted) {
                 //try to act on this path as a directory
-                this.removeFilesInFolder(pathAbsolute)
+                await this.removeFilesInFolder(pathAbsolute);
                 //if this is a file loaded in the program, remove it
                 if (this.program.hasFile(pathAbsolute)) {
                     this.program.removeFile(pathAbsolute);
@@ -322,11 +321,11 @@ export class ProgramBuilder {
                 let filePaths = await getMatchingFilePaths();
                 //if our program wants this file, then load it
                 if (filePaths.indexOf(pathAbsolute)) {
-                    this.program.addOrReplaceFile(pathAbsolute);
+                    await this.program.addOrReplaceFile(pathAbsolute);
                 }
             } else /*changed*/ {
                 if (this.program.hasFile(pathAbsolute)) {
-                    //sometimes "changed" events are emitted on files that were actually deleted, 
+                    //sometimes "changed" events are emitted on files that were actually deleted,
                     //so determine file existance and act accordingly
                     if (await util.fileExists(pathAbsolute)) {
                         await this.program.addOrReplaceFile(pathAbsolute);
@@ -340,7 +339,7 @@ export class ProgramBuilder {
 
     /**
      * Remove all files from the program that are in the specified folder path
-     * @param folderPathAbsolute 
+     * @param folderPathAbsolute
      */
     public async removeFilesInFolder(folderPathAbsolute: string) {
         for (let filePath in this.program.files) {
@@ -355,20 +354,20 @@ export class ProgramBuilder {
      * Load any files from the given folder that are not already loaded into the program.
      * This is mainly used when folders get moved, but we also have some active changes in
      * some of the files from the new location already
-     * @param folderPathAbsolute 
+     * @param folderPathAbsolute
      */
     public async loadMissingFilesFromFolder(folderPathAbsolute: string) {
         folderPathAbsolute = path.normalize(folderPathAbsolute);
         let allFilesObjects = await util.getFilePaths(this.options);
 
-        let promises = [] as Promise<any>[];
+        let promises = [] as Array<Promise<any>>;
         //for every matching file
         for (let fileObj of allFilesObjects) {
             if (
                 //file path starts with folder path
                 fileObj.src.indexOf(folderPathAbsolute) === 0 &&
                 //paths are not identical (solves problem when passing file path into this method instead of folder path)
-                fileObj.src != folderPathAbsolute &&
+                fileObj.src !== folderPathAbsolute &&
                 this.program.hasFile(fileObj.src) === false) {
                 promises.push(this.program.addOrReplaceFile(fileObj.src));
             }

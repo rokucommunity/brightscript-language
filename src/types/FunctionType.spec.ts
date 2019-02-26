@@ -1,9 +1,10 @@
 import { expect } from 'chai';
+
 import { DynamicType } from './DynamicType';
 import { FunctionType } from './FunctionType';
-import { VoidType } from './VoidType';
 import { IntegerType } from './IntegerType';
 import { StringType } from './StringType';
+import { VoidType } from './VoidType';
 
 describe('FunctionType', () => {
     it('is equivalent to dynamic type', () => {

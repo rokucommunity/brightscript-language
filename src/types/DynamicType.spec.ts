@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { StringType } from './StringType';
+
 import { DynamicType } from './DynamicType';
+import { StringType } from './StringType';
 
 describe('DynamicType', () => {
     it('is equivalent to dynamic types', () => {

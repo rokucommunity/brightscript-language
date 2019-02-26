@@ -1,8 +1,8 @@
 import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
+import { FloatType } from './FloatType';
 import { IntegerType } from './IntegerType';
 import { LongIntegerType } from './LongIntegerType';
-import { FloatType } from './FloatType';
 
 export class DoubleType implements BrsType {
     public isAssignableTo(targetType: BrsType) {

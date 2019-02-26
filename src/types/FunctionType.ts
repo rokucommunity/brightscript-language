@@ -16,9 +16,9 @@ export class FunctionType implements BrsType {
     /**
      * Determines if this is a sub or not
      */
-    public isSub: boolean = false
+    public isSub: boolean = false;
 
-    public params = [] as { name: string; type: BrsType; isRequired: boolean }[];
+    public params = [] as Array<{ name: string; type: BrsType; isRequired: boolean }>;
 
     public setName(name: string) {
         this.name = name;
@@ -39,7 +39,7 @@ export class FunctionType implements BrsType {
             return true;
         } else if (targetType instanceof FunctionType) {
             //compare all parameters
-            var len = Math.max(this.params.length, targetType.params.length);
+            let len = Math.max(this.params.length, targetType.params.length);
             for (let i = 0; i < len; i++) {
                 let myParam = this.params[i];
                 let targetParam = targetType.params[i];

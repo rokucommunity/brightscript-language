@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
-import { ProgramBuilder } from '.';
+
+import { ProgramBuilder } from './ProgramBuilder';
+
 let args = [
     { name: 'project', type: String, description: 'Path to a brsconfig.json project file.' },
     { name: 'cwd', type: String, description: 'Override the current working directory.' },
@@ -17,10 +19,10 @@ let args = [
     { name: 'ignore-error-codes', type: Number, multiple: true, description: ' A list of error codes that the compiler should NOT emit, even if encountered.' },
     { name: 'emit-full-paths', type: Boolean, description: 'Emit full paths to files when encountering diagnostics. Defaults to false' },
     { name: 'help', type: Boolean, description: 'View help information about this tool.' }
-]
+];
 const options = commandLineArgs(args, { camelCase: true });
 if (options.help) {
-    //wire up the help docs 
+    //wire up the help docs
     const usage = commandLineUsage([{
         header: 'BrightScript',
         content: 'A full suite of tools for the BrightScript language'
@@ -30,10 +32,10 @@ if (options.help) {
     }]);
     console.log(usage);
 } else {
-    var builder = new ProgramBuilder();
+    let builder = new ProgramBuilder();
     builder.run(<any>options)
         .then(() => {
-            var k = 2;
+            let k = 2;
         })
         .catch((error) => {
             console.error(error);
