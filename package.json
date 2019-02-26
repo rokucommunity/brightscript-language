@@ -9,6 +9,8 @@
     "prepublishOnly": "npm run build",
     "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
     "test": "nyc mocha \"src/**/*.spec.ts\" --full-trace",
+    "test:nocoverage": "ts-mocha \"src/**/*.spec.ts\" --full-trace",
+    "test:watch": "ts-mocha \"src/**/*.spec.ts\" --full-trace --watch --watch-extensions ts",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "files": [
@@ -71,6 +73,7 @@
     "sinon": "^7.2.2",
     "source-map-support": "^0.5.10",
     "testdouble": "^3.5.2",
+    "ts-mocha": "^6.0.0",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
     "tslint-eslint-rules": "^5.4.0",
