@@ -50,6 +50,7 @@ describe('Program', () => {
 
             //add an unreferenced file from the components folder
             await program.addOrReplaceFile(`${rootDir}/components/component1/component1.brs`, '');
+
             //global context should have the same number of files
             expect(program.contexts['global'].files[mainPath]).to.exist;
             expect(program.contexts['global'].files[`${rootDir}/components/component1/component1.brs`]).not.to.exist;
@@ -76,6 +77,35 @@ describe('Program', () => {
         });
     });
     describe('validate', () => {
+        it('does not produce duplicate parse errors for different component scopes', async () => {
+            //add a file with a parse error
+            await program.addOrReplaceFile(`${rootDir}/components/lib.brs`, `
+                sub DoSomething()
+                    'random out-of-place open paren, definitely causes parse error
+                    (
+                end sub
+            `);
+
+            //add 2 components which both reference the same errored file
+            await program.addOrReplaceFile(`${rootDir}/components/component1.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Component1" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/components/lib.brs" />
+                </component>
+            `);
+            await program.addOrReplaceFile(`${rootDir}/components/component2.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="Component2" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/components/lib.brs" />
+                </component>
+            `);
+
+            await program.validate();
+
+            let diagnostics = program.getDiagnostics();
+            expect(diagnostics).to.be.lengthOf(1);
+        });
+
         it('detects scripts not loaded by any file', async () => {
             //add a main file for sanity check
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, '');
