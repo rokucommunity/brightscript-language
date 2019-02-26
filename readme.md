@@ -110,3 +110,7 @@ These are the options available in the `brsconfig.json` file.
 ## Language Server Protocol
 
 This project also contributes a class that aligns with Microsoft's [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), which makes it easy to integrate `brightscript` with any IDE that supports the protocol. We won't go into more detail here, but you can use the `LanguageServer` class from this project to integrate into your IDE. The [vscode-brightscript-language](https://github.com/twitchbronbron/vscode-brightscript-language) extension uses this LanguageServer class for Visual Studio Code support. 
+
+
+## Changelog
+[Click here](CHANGELOG.md) to view the changelog.
