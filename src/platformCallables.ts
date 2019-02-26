@@ -1,17 +1,18 @@
-import { Callable } from './interfaces';
-import { BrsFile } from './files/BrsFile';
 import { platform } from 'os';
 import { Range } from 'vscode-languageserver';
-import { FloatType } from './types/FloatType';
-import { StringType } from './types/StringType';
-import { ObjectType } from './types/ObjectType';
-import { IntegerType } from './types/IntegerType';
-import { DynamicType } from './types/DynamicType';
-import { FunctionType } from './types/FunctionType';
-import { VoidType } from './types/VoidType';
-import { InterfaceType } from './types/InterfaceType';
-import { BooleanType } from './types/BooleanType';
+
+import { BrsFile } from './files/BrsFile';
+import { Callable } from './interfaces';
 import { ArrayType } from './types/ArrayType';
+import { BooleanType } from './types/BooleanType';
+import { DynamicType } from './types/DynamicType';
+import { FloatType } from './types/FloatType';
+import { FunctionType } from './types/FunctionType';
+import { IntegerType } from './types/IntegerType';
+import { InterfaceType } from './types/InterfaceType';
+import { ObjectType } from './types/ObjectType';
+import { StringType } from './types/StringType';
+import { VoidType } from './types/VoidType';
 
 export let platformFile = new BrsFile('platform', 'platform', null);
 
@@ -221,7 +222,7 @@ let runtimeFunctions = [{
         name: 'filename',
         type: new StringType()
     }, {
-        name: "arg",
+        name: 'arg',
         type: new DynamicType(),
         isRestArgument: true
     }]
@@ -234,7 +235,7 @@ let runtimeFunctions = [{
         name: 'filename',
         type: new ArrayType(new StringType())
     }, {
-        name: "arg",
+        name: 'arg',
         type: new DynamicType(),
         isRestArgument: true
     }]
@@ -383,7 +384,7 @@ let globalUtilityFunctions = [
             `Search a directory for filenames that match a certain pattern. Pattern is a wildmat expression. Returns a List object.
 This function checks all the files in the directory specified against the pattern specified and places any matches in the returned roList.
 
-The returned list contains only the part of the filename that is matched against the pattern not the full path. 
+The returned list contains only the part of the filename that is matched against the pattern not the full path.
 The pattern may contain certain special characters:
 
 A '?' matches any single character.
@@ -494,7 +495,7 @@ Normally non-ASCII characters are escaped in the output string as "\\uXXXX" wher
         shortDescription:
             `Translates the source string into the language of the current locale. The function looks for a translations.xml file in the XLIFF format in the pkg:/locale subdirectory named for the current locale (see ifDeviceInfo.GetCurrentLocale for the list of currently-supported locales). If the translations.xml file exists for the current locale, and contains the source string with a translated string, the function returns the translated string. Otherwise, the function returns the original source string.
 
-In some cases you may want to include a placeholder marker in a localizable string that gets dynamically substituted with a value at runtime. 
+In some cases you may want to include a placeholder marker in a localizable string that gets dynamically substituted with a value at runtime.
 One way to accomplish that is to use the Replace method on the string value returned from the Tr() lookup.`,
         type: new FunctionType(new StringType()),
         file: platformFile,
@@ -537,7 +538,7 @@ let globalStringFunctions = [
         name: 'Chr',
         shortDescription:
             `Performs the inverse of the Asc function: returns a one-character string whose character has the specified Unicode value. Returns empty string if the specified value is 0 or an invalid Unicode value.
- 
+
  print Chr(67) ' prints: C
 
 By using Chr, you can create strings containing characters which cannot be contained in quotes, such as newline or the quote character itself.
@@ -709,14 +710,14 @@ By using Chr, you can create strings containing characters which cannot be conta
         }]
     }
 ] as Callable[];
-export var platformCallables = [...mathFunctions, ...runtimeFunctions, ...globalUtilityFunctions, ...globalStringFunctions];
-for (var callable of platformCallables) {
+export let platformCallables = [...mathFunctions, ...runtimeFunctions, ...globalUtilityFunctions, ...globalStringFunctions];
+for (let callable of platformCallables) {
     //give each callable a dummy location
     callable.nameRange = Range.create(0, 0, 0, callable.name.length);
     callable.bodyRange = Range.create(0, 0, 0, callable.name.length);
 
     //add each parameter to the type
-    for (var param of callable.params) {
+    for (let param of callable.params) {
         callable.type.addParameter(param.name, param.type, param.isOptional);
     }
 

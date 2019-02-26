@@ -1,17 +1,28 @@
 {
     "version": "2.0.0",
     "tasks": [
+        //build
         {
-            "label": "test",
-            "type": "shell",
+            "label": "build",
+            "type": "npm",
             "group": {
-                "kind": "test",
+                "kind": "build",
                 "isDefault": true
             },
+            "presentation": {
+                "clear": true
+            },
+            "script": "build",
+            "problemMatcher": []
+        },
+        //test with coverage
+        {
+            "label": "test-coverage",
+            "type": "shell",
             "command": "npm",
             "args": [
                 "run",
-                "test",
+                "test:coverage",
                 "--silent"
             ],
             "presentation": {
@@ -25,18 +36,41 @@
             "options": {},
             "problemMatcher": []
         },
+        //test (without coverage, fast)
         {
-            "type": "npm",
-            "label": "build",
+            "label": "test",
             "group": {
-                "kind": "build",
+                "kind": "test",
                 "isDefault": true
             },
-            "presentation": {
-                "clear": true
-            },
-            "script": "build",
+            "type": "npm",
+            "script": "test",
             "problemMatcher": []
-        }
+        },
+        //watch tests (without coverage, fast)
+        {
+            "label": "test-watch",
+            "type": "npm",
+            "script": "test:watch",
+            "problemMatcher": []
+        },
+        //tslint checking
+        {
+            "label": "tslint",
+            "type": "npm",
+            "script": "tslint",
+            "problemMatcher": {
+                "owner": "tslint",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(WARNING|ERROR):\\s+(.*\\.ts):(\\d+):(\\d+)\\s*-\\s*(.+)$",
+                    "severity": 1,
+                    "file": 2,
+                    "line": 3,
+                    "column": 4,
+                    "message": 5
+                },
+            }
+        },
     ]
 }

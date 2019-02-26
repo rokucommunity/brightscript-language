@@ -1,16 +1,16 @@
+import { EventEmitter } from 'events';
 import * as path from 'path';
 import { Position, Range } from 'vscode-languageserver';
-import { EventEmitter } from 'events';
 
-import { Diagnostic, File } from './interfaces';
-import { BrsFile } from './files/BrsFile';
-import { Context } from './Context';
-import util from './util';
 import { BrsConfig } from './BrsConfig';
-import { XmlFile } from './files/XmlFile';
-import { XmlContext } from './XmlContext';
-import { platformFile } from './platformCallables';
+import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
+import { BrsFile } from './files/BrsFile';
+import { XmlFile } from './files/XmlFile';
+import { Diagnostic, File } from './interfaces';
+import { platformFile } from './platformCallables';
+import util from './util';
+import { XmlContext } from './XmlContext';
 
 export class Program {
     constructor(
@@ -36,7 +36,7 @@ export class Program {
         this.platformContext.isValidated = true;
 
         //create the "global" context
-        var globalContext = new Context('global', (file) => {
+        let globalContext = new Context('global', (file) => {
             //global context includes every file under the `source` folder
             return file.pkgPath.indexOf(`source${path.sep}`) === 0;
         });
@@ -58,14 +58,14 @@ export class Program {
      * A set of diagnostics. This does not include any of the context diagnostics.
      * Should only be set from `this.validate()`
      */
-    private _diagnostics = [] as Diagnostic[];
+    private diagnostics = [] as Diagnostic[];
 
     /**
      * Get the list of errors for the entire program. It's calculated on the fly
      * by walking through every file, so call this sparingly.
      */
     public getDiagnostics() {
-        let errorLists = [this._diagnostics];
+        let errorLists = [this.diagnostics];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             errorLists.push(context.getDiagnostics());
@@ -101,7 +101,7 @@ export class Program {
 
     /**
      * Determine if the specified file is loaded in this program right now.
-     * @param filePath 
+     * @param filePath
      */
     public hasFile(filePath: string) {
         filePath = util.normalizeFilePath(filePath);
@@ -109,10 +109,10 @@ export class Program {
     }
 
     /**
-     * Add and parse all of the provided files. 
+     * Add and parse all of the provided files.
      * Files that are already loaded will be replaced by the latest
      * contents from the file system.
-     * @param filePaths 
+     * @param filePaths
      */
     public async addOrReplaceFiles(filePaths: string[]) {
         await Promise.all(
@@ -125,8 +125,8 @@ export class Program {
     /**
      * Load a file into the program. If that file already exists, it is replaced.
      * If file contents are provided, those are used, Otherwise, the file is loaded from the file system
-     * @param pathAbsolute 
-     * @param fileContents 
+     * @param pathAbsolute
+     * @param fileContents
      */
     public async addOrReplaceFile(pathAbsolute: string, fileContents?: string) {
         pathAbsolute = util.normalizeFilePath(pathAbsolute);
@@ -150,7 +150,7 @@ export class Program {
             file = xmlFile;
 
             //create a new context for this xml file
-            var context = new XmlContext(xmlFile);
+            let context = new XmlContext(xmlFile);
             //attach this program to the new context
             context.attachProgram(this);
 
@@ -185,7 +185,7 @@ export class Program {
         this.emitter.on(name, callback);
         return () => {
             this.emitter.removeListener(name, callback);
-        }
+        };
     }
 
     protected emit(name: 'file-added', file: BrsFile | XmlFile);
@@ -198,7 +198,7 @@ export class Program {
      * Get a lookup of files by their component name
      */
     private getComponentFileLookup() {
-        var lookup = {} as { [componentName: string]: XmlFile };
+        let lookup = {} as { [componentName: string]: XmlFile };
         for (let key in this.files) {
             let file = this.files[key];
             //if this is an xml file, and we were able to compute a component name
@@ -220,7 +220,7 @@ export class Program {
             if (file instanceof XmlFile) {
                 let parentComponent = componentLookup[file.parentComponentName];
 
-                //if we found the parent, and the parent is DIFFERENT than the previous parent, 
+                //if we found the parent, and the parent is DIFFERENT than the previous parent,
                 if (parentComponent && file.parent !== parentComponent) {
                     //attach the parent to its child
                     file.attachParent(parentComponent);
@@ -233,7 +233,7 @@ export class Program {
     }
 
     /**
-     * Get a file with the specified pkg path. 
+     * Get a file with the specified pkg path.
      * If not found, return undefined
      */
     public getFileByPkgPath(pkgPath: string) {
@@ -247,7 +247,7 @@ export class Program {
 
     /**
      * Remove a set of files from the program
-     * @param filePaths 
+     * @param filePaths
      */
     public removeFiles(filePaths: string[]) {
         for (let filePath of filePaths) {
@@ -257,7 +257,7 @@ export class Program {
 
     /**
      * Remove a file from the program
-     * @param filePath 
+     * @param filePath
      */
     public removeFile(filePath: string) {
         filePath = path.normalize(filePath);
@@ -266,7 +266,7 @@ export class Program {
         //notify every context of this file removal
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
-            context.removeFile(file)
+            context.removeFile(file);
         }
 
         //if there is a context named the same as this file's path, remove it (i.e. xml contexts)
@@ -284,7 +284,7 @@ export class Program {
      * Traverse the entire project, and validate all contexts
      */
     public async validate() {
-        this._diagnostics = [];
+        this.diagnostics = [];
         for (let contextName in this.contexts) {
             let context = this.contexts[contextName];
             context.validate();
@@ -299,7 +299,7 @@ export class Program {
                 }
             }
             //if we got here, the file is not loaded in any context
-            this._diagnostics.push({
+            this.diagnostics.push({
                 file: file,
                 location: Range.create(0, 0, 0, Number.MAX_VALUE),
                 severity: 'warning',
@@ -311,7 +311,7 @@ export class Program {
 
     /**
      * Get the file at the given path
-     * @param pathAbsolute 
+     * @param pathAbsolute
      */
     private getFile(pathAbsolute: string) {
         pathAbsolute = path.resolve(pathAbsolute);
@@ -320,7 +320,7 @@ export class Program {
 
     /**
      * Get a list of all contexts the file is loaded into
-     * @param file 
+     * @param file
      */
     public getContextsForFile(file: XmlFile | BrsFile) {
         let result = [] as Context[];
@@ -336,9 +336,9 @@ export class Program {
 
     /**
      * Find all available completion items at the given position
-     * @param pathAbsolute 
-     * @param lineIndex 
-     * @param columnIndex 
+     * @param pathAbsolute
+     * @param lineIndex
+     * @param columnIndex
      */
     public getCompletions(pathAbsolute: string, position: Position) {
         let file = this.getFile(pathAbsolute);
@@ -349,7 +349,7 @@ export class Program {
         //find the contexts for this file (hopefully there's only one)
         let contexts = this.getContextsForFile(file);
         if (contexts.length > 1) {
-            //TODO - make the user choose which context to use. 
+            //TODO - make the user choose which context to use.
         }
         let context = contexts[0];
 

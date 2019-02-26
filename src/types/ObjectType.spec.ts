@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+
 import { DynamicType } from './DynamicType';
 import { ObjectType } from './ObjectType';
 import { StringType } from './StringType';
@@ -11,10 +12,10 @@ describe('ObjectType', () => {
 
     describe('custom objects', () => {
         it.only('matches objects with same properties', () => {
-            var personType = new ObjectType();
+            let personType = new ObjectType();
             personType.addProperty('name', new StringType());
 
-            var dogType = new ObjectType();
+            let dogType = new ObjectType();
             dogType.addProperty('name', new StringType());
             dogType.addProperty('breed', new StringType());
 

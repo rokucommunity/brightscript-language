@@ -5,23 +5,23 @@ export class ObjectType implements BrsType {
     /**
      * The list of properties for this object
      */
-    public properties = [] as { name: string; type: BrsType }[];
+    public properties = [] as Array<{ name: string; type: BrsType }>;
 
     /**
      * Add a property to this object
-     * @param name 
-     * @param type 
+     * @param name
+     * @param type
      */
     public addProperty(name: string, type: BrsType) {
         this.properties.push({
             name: name,
             type: type
-        })
+        });
     }
 
     /**
      * Get the property with the specified name, or undefined if not found
-     * @param name 
+     * @param name
      */
     public getProperty(name: string) {
         for (let prop of this.properties) {

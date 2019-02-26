@@ -1,12 +1,12 @@
+import { assert, expect } from 'chai';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
-let sinon = sinonImport.createSandbox();
 
-import { ProgramBuilder } from './ProgramBuilder';
-import { expect, assert } from 'chai';
-import util from './util';
 import { Program } from './Program';
+import { ProgramBuilder } from './ProgramBuilder';
+import util from './util';
 
+let sinon = sinonImport.createSandbox();
 beforeEach(() => {
 });
 afterEach(() => {
@@ -31,7 +31,7 @@ describe('ProgramBuilder', () => {
                 throw new Error('Cannot find file ' + filePath);
             }
         });
-    })
+    });
 
     describe('loadAllFilesAST', () => {
         it('loads .bs, .brs, .xml files', async () => {
@@ -50,7 +50,7 @@ describe('ProgramBuilder', () => {
                 addOrReplaceFile: () => { }
             };
             let stub = sinon.stub(b.program, 'addOrReplaceFile');
-            await b.loadAllFilesAST()
+            await b.loadAllFilesAST();
             expect(stub.getCalls()).to.be.lengthOf(3);
         });
     });

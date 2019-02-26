@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+
 import { DynamicType } from './DynamicType';
 import { FloatType } from './FloatType';
 

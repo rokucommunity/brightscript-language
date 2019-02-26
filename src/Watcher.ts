@@ -1,6 +1,7 @@
 import * as chokidar from 'chokidar';
-import { BrsConfig } from './BrsConfig';
 import { watch } from 'fs';
+
+import { BrsConfig } from './BrsConfig';
 
 /**
  * There are some bugs with chokidar, so this attempts to mitigate them
@@ -16,7 +17,7 @@ export class Watcher {
 
     /**
      * Watch the paths or globs
-     * @param paths 
+     * @param paths
      */
     public watch(paths: string | string[]) {
         let watcher = chokidar.watch(paths, {
@@ -41,8 +42,8 @@ export class Watcher {
 
     /**
      * Be notified of all events
-     * @param event 
-     * @param callback 
+     * @param event
+     * @param callback
      */
     public on(event: 'all', callback: (event, path, details) => void) {
         let watchers = [...this.watchers];

@@ -5,23 +5,23 @@ import {
     createConnection,
     Diagnostic,
     DidChangeConfigurationNotification,
+    DidChangeConfigurationParams,
+    DidChangeWatchedFilesParams,
+    Hover,
+    InitializedParams,
     InitializeParams,
     ProposedFeatures,
+    ServerCapabilities,
     TextDocument,
     TextDocumentPositionParams,
     TextDocuments,
-    InitializedParams,
-    DidChangeConfigurationParams,
-    DidChangeWatchedFilesParams,
-    ServerCapabilities,
     WorkspaceFolder,
-    Hover,
 } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
+import { Program } from './Program';
 import { ProgramBuilder } from './ProgramBuilder';
 import util from './util';
-import { Program } from './Program';
 
 export class LanguageServer {
     constructor() {
@@ -29,11 +29,11 @@ export class LanguageServer {
     }
     private connection: Connection;
 
-    private workspaces = [] as {
+    private workspaces = [] as Array<{
         firstRunPromise: Promise<any>;
         builder: ProgramBuilder;
         workspacePath: string;
-    }[];
+    }>;
 
     private hasConfigurationCapability = false;
 
@@ -70,7 +70,6 @@ export class LanguageServer {
             await this.validateTextDocument(change.document);
         });
 
-
         // This handler provides the initial list of the completion items.
         this.connection.onCompletion(this.onCompletion.bind(this));
 
@@ -100,8 +99,6 @@ export class LanguageServer {
         });
         */
 
-        this.connection.onDocumentSymbol
-
         // listen for open, change and close text document events
         this.documents.listen(this.connection);
 
@@ -117,7 +114,7 @@ export class LanguageServer {
         //start up a new BrightScript program builder in watch mode,
         //disable all output file generation and deployments, as this
         //is purely for the language server options
-        let workspacePaths = params.workspaceFolders.map(x => {
+        let workspacePaths = params.workspaceFolders.map((x) => {
             return util.getPathFromUri(x.uri);
         });
         if (workspacePaths.length === 0) {
@@ -161,13 +158,13 @@ export class LanguageServer {
             this.connection.workspace.onDidChangeWorkspaceFolders((evt) => {
                 for (let removed of evt.removed) {
                     let workspacePath = util.getPathFromUri(removed.uri);
-                    let workspace = this.workspaces.find(x => x.workspacePath === workspacePath);
+                    let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
                     if (workspace) {
                         workspace.builder.dispose();
                         this.workspaces.splice(this.workspaces.indexOf(workspace), 1);
                     }
                 }
-                this.createWorkspaces(evt.added.map(x => util.getPathFromUri(x.uri)));
+                this.createWorkspaces(evt.added.map((x) => util.getPathFromUri(x.uri)));
                 this.connection.console.log('Workspace folder change event received.');
             });
         }
@@ -187,18 +184,17 @@ export class LanguageServer {
      * Wait for all programs' first run to complete
      */
     private async waitAllProgramFirstRuns() {
-        await Promise.all(this.workspaces.map(x => x.firstRunPromise));
+        await Promise.all(this.workspaces.map((x) => x.firstRunPromise));
     }
-
 
     /**
      * Create project for each new workspace. If the workspace is already known,
      * it is skipped.
-     * @param workspaceFolders 
+     * @param workspaceFolders
      */
     private createWorkspaces(workspacePaths: string[]) {
         for (let workspacePath of workspacePaths) {
-            let workspace = this.workspaces.find(x => x.workspacePath === workspacePath);
+            let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
             //skip this workspace if we already have it
             if (workspace) {
                 continue;
@@ -280,18 +276,18 @@ export class LanguageServer {
      * The client is in charge of what files to watch, so all client
      * implementations should ensure that all valid brightscript project
      * file types are watched (.brs,.bs,.xml,manifest, and any json/text/image files)
-     * @param params 
+     * @param params
      */
     private async onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
         this.connection.sendNotification('build-status', 'building');
 
         await Promise.all(
-            this.workspaces.map(x => x.builder.handleFileChanges(params.changes))
+            this.workspaces.map((x) => x.builder.handleFileChanges(params.changes))
         );
 
         //revalidate the program
         await Promise.all(
-            this.workspaces.map(x => x.builder.program.validate())
+            this.workspaces.map((x) => x.builder.program.validate())
         );
 
         //send all diagnostics to the client
@@ -301,8 +297,8 @@ export class LanguageServer {
 
     private onHover(params: TextDocumentPositionParams) {
         let pathAbsolute = util.getPathFromUri(params.textDocument.uri);
-        var hovers = Array.prototype.concat.call([],
-            this.workspaces.map(x => x.builder.program.getHover(pathAbsolute, params.position))
+        let hovers = Array.prototype.concat.call([],
+            this.workspaces.map((x) => x.builder.program.getHover(pathAbsolute, params.position))
         ) as Hover[];
 
         //for now, just return the first hover found. TODO handle multiple hover results
@@ -328,13 +324,13 @@ export class LanguageServer {
                 //only add or replace existing files. All of the files in the project should
                 //have already been loaded by other means
                 if (x.builder.program.hasFile(filePath)) {
-                    return x.builder.program.addOrReplaceFile(filePath, documentText)
+                    return x.builder.program.addOrReplaceFile(filePath, documentText);
                 }
             })
         );
         await Promise.all(
-            this.workspaces.map(x => x.builder.program.validate())
-        )
+            this.workspaces.map((x) => x.builder.program.validate())
+        );
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
     }
@@ -357,7 +353,7 @@ export class LanguageServer {
         }
 
         let diagnostics = Array.prototype.concat.apply([],
-            this.workspaces.map(x => x.builder.program.getDiagnostics())
+            this.workspaces.map((x) => x.builder.program.getDiagnostics())
         );
 
         for (let diagnostic of diagnostics) {

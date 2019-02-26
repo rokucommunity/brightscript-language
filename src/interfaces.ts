@@ -1,9 +1,10 @@
-import { XmlFile } from './files/XmlFile';
 import { Position, Range } from 'vscode-languageserver';
-import { BrsFile } from './files/BrsFile';
+
 import { Context } from './Context';
-import { BrsType } from './types/BrsType';
+import { BrsFile } from './files/BrsFile';
+import { XmlFile } from './files/XmlFile';
 import { FunctionScope } from './FunctionScope';
+import { BrsType } from './types/BrsType';
 import { FunctionType } from './types/FunctionType';
 
 export interface Diagnostic {
@@ -52,7 +53,7 @@ export interface ExpressionCall {
 }
 
 /**
- * An argument for an expression call. 
+ * An argument for an expression call.
  */
 export interface CallableArg {
     text: string;
@@ -120,7 +121,7 @@ export interface VariableDeclaration {
      */
     nameRange: Range;
     /**
-     * Since only one variable can be declared at a time, 
+     * Since only one variable can be declared at a time,
      * we only need to know the line index
      */
     lineIndex: number;
@@ -141,7 +142,6 @@ export enum ValueKind {
     Void = 10,
     Object = 11
 }
-
 
 /**
  * A wrapper around a callable to provide more information about where it came from

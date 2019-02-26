@@ -1,7 +1,7 @@
 import { BrsType } from './BrsType';
+import { DoubleType } from './DoubleType';
 import { DynamicType } from './DynamicType';
 import { FloatType } from './FloatType';
-import { DoubleType } from './DoubleType';
 import { LongIntegerType } from './LongIntegerType';
 
 export class IntegerType implements BrsType {
@@ -25,7 +25,7 @@ export class IntegerType implements BrsType {
             return false;
         }
     }
-    
+
     public toString() {
         return 'integer';
     }

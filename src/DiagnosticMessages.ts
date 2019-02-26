@@ -1,7 +1,7 @@
 /**
- * An object that keeps track of all possible error messages. 
+ * An object that keeps track of all possible error messages.
  */
-export var diagnosticMessages = {
+export let diagnosticMessages = {
     //this one won't be used much, we just need a catchall object for the code since we pass through the message from the parser
     Generic_parser_message: {
         message: 'There was an error parsing the file',
@@ -60,4 +60,4 @@ export var diagnosticMessages = {
         message: 'This file is not referenced by any other file in the project.',
         code: 1013
     }
-}
+};

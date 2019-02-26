@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+
 import { BooleanType } from './BooleanType';
 import { DynamicType } from './DynamicType';
 
