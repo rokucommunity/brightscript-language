@@ -7,9 +7,9 @@
     "build": "rimraf out && tsc",
     "watch": "rimraf out && tsc --watch",
     "prepublishOnly": "npm run build",
-    "tslint": "tslint './src/**/*.ts' --outputAbsolutePaths",
-    "test": "nyc mocha \"src/**/*.spec.ts\" --full-trace",
-    "test:nocoverage": "ts-mocha \"src/**/*.spec.ts\" --full-trace",
+    "tslint": "tslint -p tsconfig.json -c tslint.json",
+    "test": "ts-mocha \"src/**/*.spec.ts\" --full-trace",
+    "test:coverage": "nyc mocha \"src/**/*.spec.ts\" --full-trace",
     "test:watch": "ts-mocha \"src/**/*.spec.ts\" --full-trace --watch --watch-extensions ts",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },

@@ -1,7 +1,7 @@
 {
     "rulesDirectory": [
-        "../node_modules/tslint-eslint-rules/dist/rules",
-        "../node_modules/tslint-origin-ordered-imports-rule/dist"
+        "node_modules/tslint-eslint-rules/dist/rules",
+        "node_modules/tslint-origin-ordered-imports-rule/dist"
     ],
     "extends": [
         "tslint:recommended"
