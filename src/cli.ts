@@ -34,9 +34,7 @@ if (options.help) {
 } else {
     let builder = new ProgramBuilder();
     builder.run(<any>options)
-        .then(() => {
-            let k = 2;
-        })
+        .then(() => { })
         .catch((error) => {
             console.error(error);
             process.exit(-1);

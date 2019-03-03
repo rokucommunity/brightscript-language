@@ -2,14 +2,13 @@ import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
-import { Callable, CallableArg, Diagnostic, ExpressionCall, VariableDeclaration } from '../interfaces';
+import { Callable, CallableArg, Diagnostic, VariableDeclaration } from '../interfaces';
 import { Program } from '../Program';
 import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
-import { VoidType } from '../types/VoidType';
 import util from '../util';
 import { BrsFile } from './BrsFile';
 

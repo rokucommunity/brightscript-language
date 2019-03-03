@@ -72,7 +72,7 @@ export class Program {
         }
         let allDiagnistics = Array.prototype.concat.apply([], errorLists) as Diagnostic[];
 
-        let finalDiagnostics = [];
+        let finalDiagnostics = [] as Diagnostic[];
 
         for (let diagnostic of allDiagnistics) {
             //skip duplicate diagnostics (by reference). This skips file parse diagnostics when multiple contexts include same file
@@ -192,44 +192,6 @@ export class Program {
     protected emit(name: 'file-removed', file: BrsFile | XmlFile);
     protected emit(name: string, data?: any) {
         this.emitter.emit(name, data);
-    }
-
-    /**
-     * Get a lookup of files by their component name
-     */
-    private getComponentFileLookup() {
-        let lookup = {} as { [componentName: string]: XmlFile };
-        for (let key in this.files) {
-            let file = this.files[key];
-            //if this is an xml file, and we were able to compute a component name
-            if (file instanceof XmlFile && file.componentName) {
-                lookup[file.componentName] = file;
-            }
-        }
-        return lookup;
-    }
-
-    private connectComponents() {
-        let componentLookup = this.getComponentFileLookup();
-
-        //build a lookup of files by their compoonent names
-        //walk through every component in the project
-        for (let pathAbsolute in this.files) {
-            let file = this.files[pathAbsolute];
-
-            if (file instanceof XmlFile) {
-                let parentComponent = componentLookup[file.parentComponentName];
-
-                //if we found the parent, and the parent is DIFFERENT than the previous parent,
-                if (parentComponent && file.parent !== parentComponent) {
-                    //attach the parent to its child
-                    file.attachParent(parentComponent);
-                } else {
-                    //no parent component could be found...disconnect any previous parent component
-                    file.detachParent();
-                }
-            }
-        }
     }
 
     /**

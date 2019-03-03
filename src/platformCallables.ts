@@ -1,4 +1,3 @@
-import { platform } from 'os';
 import { Range } from 'vscode-languageserver';
 
 import { BrsFile } from './files/BrsFile';

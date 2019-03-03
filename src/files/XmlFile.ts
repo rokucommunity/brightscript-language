@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
-import { CompletionItem, CompletionItemKind, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
@@ -30,6 +30,11 @@ export class XmlFile {
     public getDiagnostics() {
         return [...this.parseDiagnistics];
     }
+
+    /**
+     * The range of the entire file
+     */
+    public fileRange: Range;
 
     public parseDiagnistics = [] as Diagnostic[];
 
@@ -68,6 +73,9 @@ export class XmlFile {
 
         //split the text into lines
         let lines = util.getLines(fileContents);
+
+        //create a range of the entire file
+        this.fileRange = Range.create(0, 0, lines.length, lines[lines.length - 1].length - 1);
 
         let parsedXml;
         try {
@@ -355,12 +363,6 @@ export class XmlFile {
     public parent: XmlFile;
 
     /**
-     * Certain conditions make it necessary for this file to be revalidated (like adding/changing/removing a parent).
-     * This property will be false when the file needs to be revalidated.
-     */
-    private isValidated = false;
-
-    /**
      * Components can extend another component.
      * This method attaches the parent component to this component, where
      * this component can listen for script import changes on the parent.
@@ -371,22 +373,18 @@ export class XmlFile {
         this.detachParent();
         this.parent = parent;
         this.emit('attach-parent', parent);
-
-        this.isValidated = false;
     }
 
     public detachParent() {
         if (this.parent) {
             this.parent = undefined;
             this.emit('detach-parent');
-
-            this.isValidated = false;
         }
     }
 
     public getHover(position: Position): Hover {
         //TODO implement
-        let result = {} as Hover;
+        // let result = {} as Hover;
         return null;
     }
 

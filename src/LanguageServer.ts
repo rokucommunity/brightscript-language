@@ -1,4 +1,3 @@
-import * as path from 'path';
 import {
     CompletionItem,
     Connection,
@@ -15,11 +14,9 @@ import {
     TextDocument,
     TextDocumentPositionParams,
     TextDocuments,
-    WorkspaceFolder,
 } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
-import { Program } from './Program';
 import { ProgramBuilder } from './ProgramBuilder';
 import util from './util';
 
@@ -389,9 +386,4 @@ export class LanguageServer {
         //save the new list of diagnostics
         this.latestDiagnosticsByFile = issuesByFile;
     }
-}
-
-// The example settings
-interface ExampleSettings {
-    maxNumberOfProblems: number;
 }

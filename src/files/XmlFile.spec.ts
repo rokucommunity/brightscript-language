@@ -4,7 +4,7 @@ import * as sinonImport from 'sinon';
 import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from '../DiagnosticMessages';
-import { CallableArg, Diagnostic, FileReference } from '../interfaces';
+import { Diagnostic, FileReference } from '../interfaces';
 import { Program } from '../Program';
 import util from '../util';
 import { BrsFile } from './BrsFile';

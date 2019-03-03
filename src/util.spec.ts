@@ -1,5 +1,4 @@
-import { assert, expect } from 'chai';
-import { O_NOATIME } from 'constants';
+import { expect } from 'chai';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
@@ -10,14 +9,13 @@ let cwd = process.cwd();
 let rootConfigPath = path.join(process.cwd(), 'brsconfig.json');
 let rootConfigDir = path.dirname(rootConfigPath);
 let vfs = {};
-let vfsStub;
 //shorthand for normalizing a path
 let n = path.normalize;
 
 describe('util', () => {
     beforeEach(() => {
         vfs = {};
-        vfsStub = sinon.stub(util, 'getFileContents').callsFake((filePath) => {
+        sinon.stub(util, 'getFileContents').callsFake((filePath) => {
             if (vfs[filePath]) {
                 return vfs[filePath];
             } else {

@@ -65,7 +65,6 @@ export class FunctionType implements BrsType {
     }
 
     public toString() {
-        let paramText = '';
         let paramTexts = [];
         for (let param of this.params) {
             paramTexts.push(`${param.name}${param.isRequired ? '' : '?'} as ${param.type.toString()}`);

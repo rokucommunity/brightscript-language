@@ -1,8 +1,6 @@
 import { assert, expect } from 'chai';
-import { EventEmitter } from 'events';
 import * as path from 'path';
 
-import { diagnosticMessages } from './DiagnosticMessages';
 import { XmlFile } from './files/XmlFile';
 import { Program } from './Program';
 import { XmlContext } from './XmlContext';

@@ -6,7 +6,7 @@ import { FileChangeType, FileEvent } from 'vscode-languageserver';
 import Uri from 'vscode-uri';
 
 import { BrsConfig } from './BrsConfig';
-import { Diagnostic, FileObj } from './interfaces';
+import { Diagnostic } from './interfaces';
 import { Program } from './Program';
 import util from './util';
 import { Watcher } from './Watcher';
@@ -99,19 +99,16 @@ export class ProgramBuilder {
         //clear the console
         util.clearConsole();
         let cancellationToken = { isCanceled: false };
-        let isCompleted = false;
         //wait for the previous run to complete
         let runPromise = this.cancelLastRun().then(() => {
             //start the new run
             return this._runOnce(cancellationToken);
         }).then(() => {
             //track if the run completed
-            isCompleted = true;
             return this.printDiagnostics();
         }, async (err) => {
             await this.printDiagnostics();
             //track if the run completed
-            isCompleted = true;
             throw err;
         });
 

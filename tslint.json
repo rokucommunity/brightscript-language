@@ -13,6 +13,7 @@
             "never"
         ],
         "arrow-return-shorthand": false,
+        "no-duplicate-imports": true,
         "no-floating-promises": true,
         "class-name": true,
         "comment-format": false,
