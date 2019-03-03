@@ -72,6 +72,29 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it('supports `then` as object property', async () => {
+            await file.parse(`
+                function Main()
+                    promise = {
+                        then: sub()
+                        end sub
+                    }
+                    promise.then()
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports function as parameter type', async () => {
+            await file.parse(`
+                sub Main()
+                    doWork = function(callback as function)
+                    end function
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it.skip('supports writing numbers with decimal but no trailing digit', async () => {
             await file.parse(`
                 function Main()
