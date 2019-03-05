@@ -19,6 +19,9 @@ export class Program {
          */
         public options: BrsConfig
     ) {
+        //allow unlimited listeners
+        this.emitter.setMaxListeners(0);
+
         this.options = util.normalizeConfig(options);
 
         //normalize the root dir path

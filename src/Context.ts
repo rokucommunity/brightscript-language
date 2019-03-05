@@ -16,6 +16,8 @@ export class Context {
         public name: string,
         private matcher: (file: File) => boolean | void
     ) {
+        //allow unlimited listeners
+        this.emitter.setMaxListeners(0);
     }
 
     /**

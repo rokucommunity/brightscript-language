@@ -18,6 +18,9 @@ export class XmlFile {
         public program: Program
     ) {
         this.extension = path.extname(pathAbsolute).toLowerCase();
+
+        //allow unlimited listeners
+        this.emitter.setMaxListeners(0);
     }
 
     /**
