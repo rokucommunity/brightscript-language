@@ -720,5 +720,34 @@ describe('BrsFile', () => {
             expect(hover.range).to.eql(Range.create(2, 20, 2, 29));
             expect(hover.contents).to.equal('sub sayMyName(name as string) as void');
         });
+
+        it('handles mixed case `then` partions of conditionals', async () => {
+            let mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true then
+                        print "works"
+                    end if
+                end sub
+            `);
+
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+            mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true Then
+                        print "works"
+                    end if
+                end sub
+            `);
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+
+            mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true THEN
+                        print "works"
+                    end if
+                end sub
+            `);
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+        });
     });
 });
