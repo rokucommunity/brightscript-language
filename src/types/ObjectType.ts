@@ -35,17 +35,17 @@ export class ObjectType implements BrsType {
         if (targetType instanceof DynamicType) {
             return true;
         } else if (targetType instanceof ObjectType) {
-            //the target must have all properties that this object has
-            for (let prop of this.properties) {
-                let targetProp = targetType.getProperty(prop.name);
+            //this object must have all the properties that the target has
+            for (let targetProp of targetType.properties) {
+                let thisProp = this.getProperty(targetProp.name);
 
-                //the target does not have this property
-                if (!targetProp) {
+                //this doesn't have the desired property from target
+                if (!thisProp) {
                     return false;
                 }
 
-                //if the types are not same-like
-                if (targetProp.type.isAssignableTo(prop.type) === false) {
+                //if the types are not same-like, fail
+                if (thisProp.type.isAssignableTo(targetProp.type) === false) {
                     return false;
                 }
             }
