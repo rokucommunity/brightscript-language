@@ -114,9 +114,14 @@
             }
         },
         "emitFullPaths": {
-            "description": " Emit full paths to files when printing diagnostics to the console.",
+            "description": "Emit full paths to files when printing diagnostics to the console.",
             "type": "boolean",
             "default": false
+        },
+        "strictTypeChecking": {
+            "description": "If enabled, errors will be raised when variables are changed from one data type to another",
+            "type": "boolean",
+            "default": true
         }
     }
 }

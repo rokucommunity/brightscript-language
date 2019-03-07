@@ -1,5 +1,6 @@
 import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
+import { UninitializedType } from './UninitializedType';
 
 export class FunctionType implements BrsType {
     constructor(
@@ -18,7 +19,7 @@ export class FunctionType implements BrsType {
      */
     public isSub: boolean = false;
 
-    public params = [] as Array<{ name: string; type: BrsType; isRequired: boolean }>;
+    public params = [] as { name: string; type: BrsType; isRequired: boolean }[];
 
     public setName(name: string) {
         this.name = name;
@@ -35,7 +36,7 @@ export class FunctionType implements BrsType {
     }
 
     public isAssignableTo(targetType: BrsType) {
-        if (targetType instanceof DynamicType) {
+        if (targetType instanceof DynamicType || targetType instanceof UninitializedType) {
             return true;
         } else if (targetType instanceof FunctionType) {
             //compare all parameters
@@ -71,5 +72,15 @@ export class FunctionType implements BrsType {
         }
         return `${this.isSub ? 'sub' : 'function'} ${this.name}(${paramTexts.join(', ')}) as ${this.returnType.toString()}`;
 
+    }
+
+    public clone() {
+        let theClone = new FunctionType(this.returnType.clone());
+        theClone.isSub = this.isSub;
+        theClone.name = this.name;
+        for (let param of this.params) {
+            theClone.addParameter(param.name, param.type.clone(), param.isRequired);
+        }
+        return theClone;
     }
 }

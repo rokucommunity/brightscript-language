@@ -17,4 +17,9 @@ export class InterfaceType implements BrsType {
         //TODO make this match the actual interface of the object
         return 'interface';
     }
+
+    public clone() {
+        //no need to waste memory on a copy, these are all identical
+        return this;
+    }
 }

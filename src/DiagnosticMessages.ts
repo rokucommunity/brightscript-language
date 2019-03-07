@@ -59,5 +59,9 @@ export let diagnosticMessages = {
     File_not_referenced_by_any_file_1013: {
         message: 'This file is not referenced by any other file in the project.',
         code: 1013
+    },
+    Type_a_is_not_assignable_to_type_b_1014: {
+        message: 'Type "{0}" is not assignable to type "{1}"',
+        code: 1014
     }
 };

@@ -3,12 +3,14 @@ import { DoubleType } from './DoubleType';
 import { DynamicType } from './DynamicType';
 import { IntegerType } from './IntegerType';
 import { LongIntegerType } from './LongIntegerType';
+import { UninitializedType } from './UninitializedType';
 
 export class FloatType implements BrsType {
     public isAssignableTo(targetType: BrsType) {
         return (
             targetType instanceof FloatType ||
-            targetType instanceof DynamicType
+            targetType instanceof DynamicType ||
+            targetType instanceof UninitializedType
         );
     }
 
@@ -28,5 +30,10 @@ export class FloatType implements BrsType {
 
     public toString() {
         return 'float';
+    }
+
+    public clone() {
+        //no need to waste memory on a copy, these are all identical
+        return this;
     }
 }

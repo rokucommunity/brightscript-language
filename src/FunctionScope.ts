@@ -1,7 +1,7 @@
 import * as brs from 'brs';
 import { Range } from 'vscode-languageserver';
 
-import { VariableDeclaration } from './interfaces';
+import { Assignment, CallableParam } from './interfaces';
 
 export class FunctionScope {
     constructor(
@@ -23,17 +23,18 @@ export class FunctionScope {
      * The parent scope of this scope
      */
     public parentScope: FunctionScope;
-    public variableDeclarations = [] as VariableDeclaration[];
+    public parameters = [] as CallableParam[];
+    public assignments = [] as Assignment[];
 
     /**
      * Find all variable declarations above the given line index
      * @param lineIndex
      */
     public getVariablesAbove(lineIndex: number) {
-        let results = [] as VariableDeclaration[];
-        for (let variableDeclaration of this.variableDeclarations) {
-            if (variableDeclaration.lineIndex < lineIndex) {
-                results.push(variableDeclaration);
+        let results = [] as Assignment[];
+        for (let variable of this.assignments) {
+            if (variable.nameRange.start.line < lineIndex) {
+                results.push(variable);
             } else {
                 break;
             }
@@ -43,7 +44,7 @@ export class FunctionScope {
 
     public getVariableByName(name: string) {
         name = name.toLowerCase();
-        for (let variableDeclaration of this.variableDeclarations) {
+        for (let variableDeclaration of this.assignments) {
             if (variableDeclaration.name.toLowerCase() === name) {
                 return variableDeclaration;
             }

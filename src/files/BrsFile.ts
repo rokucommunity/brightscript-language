@@ -3,13 +3,15 @@ import * as path from 'path';
 import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
 import { Context } from '../Context';
+import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Callable, CallableArg, CallableParam, Diagnostic, ExpressionCall } from '../interfaces';
+import { Assignment, Callable, CallableArg, CallableParam, Diagnostic, ExpressionCall } from '../interfaces';
 import { Program } from '../Program';
 import { BrsType } from '../types/BrsType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { StringType } from '../types/StringType';
+import { UninitializedType } from '../types/UninitializedType';
 import { VoidType } from '../types/VoidType';
 import util from '../util';
 
@@ -70,7 +72,6 @@ export class BrsFile {
 
     /**
      * Calculate the AST for this file
-     * @param fileContents
      */
     public async parse(fileContents?: string) {
         if (this.wasProcessed) {
@@ -164,26 +165,74 @@ export class BrsFile {
             //compute the range of this func
             scope.bodyRange = util.getBodyRangeForFunc(func);
 
+            //keep track of every variable so we know which assignemnts are the "initialization" and which ones are "set new value"
+            let nameList = new NameList<Assignment>();
+
             //add every parameter
             for (let param of func.parameters) {
-                scope.variableDeclarations.push({
+                let callableParam = {
                     nameRange: util.locationToRange(param.name.location),
-                    lineIndex: scope.bodyRange.start.line,
+                    isOptional: !!param.defaultValue,
                     name: param.name.text,
                     //TODO which is it? `type` or `kind`?
                     type: util.valueKindToBrsType(param.type || (param as any).kind)
-                });
+                } as CallableParam;
+
+                scope.parameters.push(callableParam);
+
+                let assignment = {
+                    currentType: new UninitializedType(),
+                    incomingType: callableParam.type,
+                    nameRange: callableParam.nameRange,
+                    name: callableParam.name
+                } as Assignment;
+
+                //TODO - should we detect duplicate parameter names here, or does `brs` already do that?
+                nameList.add(assignment);
+                scope.assignments.push(assignment);
             }
             //add every variable assignment to the scope
             for (let statement of func.body.statements) {
                 //if this is a variable assignment
                 if (statement instanceof brs.parser.Stmt.Assignment) {
-                    scope.variableDeclarations.push({
+
+                    let previous: Assignment;
+                    //when in strict mode, the variable's FIRST assignment is enforced throughout all assignments
+                    if (this.program.options.strictTypeChecking) {
+                        previous = nameList.getFirst(statement.name.text);
+                    } else {
+                        //in non-strict mode, the type is fluid
+                        previous = nameList.getLast(statement.name.text);
+                    }
+                    //incoming type should be set to uninitialized when this is the first assignment
+                    let incomingType = previous ? previous.incomingType : new UninitializedType();
+                    let assignment = {
                         nameRange: util.locationToRange(statement.name.location),
                         lineIndex: statement.name.location.start.line - 1,
                         name: statement.name.text,
-                        type: this.getBRSTypeFromAssignment(statement, scope)
-                    });
+                        currentType: incomingType,
+                        incomingType: this.getBRSTypeFromAssignment(statement, scope)
+                    } as Assignment;
+
+                    //only do type checking in strict mode
+                    if (this.program.options.strictTypeChecking) {
+                        if (assignment.incomingType.isAssignableTo(assignment.currentType) === false) {
+                            this.diagnostics.push({
+                                code: diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.code,
+                                message: util.stringFormat(
+                                    diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.message,
+                                    assignment.incomingType.toString(),
+                                    assignment.currentType.toString()
+                                ),
+                                file: this,
+                                location: assignment.nameRange,
+                                severity: 'error'
+                            });
+                        }
+                    }
+
+                    scope.assignments.push(assignment);
+                    nameList.add(assignment);
                 }
                 //TODO support things inside of loops, conditionals, etc
             }
@@ -248,7 +297,7 @@ export class BrsFile {
             } else if (assignment.value instanceof brs.parser.Expr.Variable) {
                 let variableName = assignment.value.name.text;
                 let variable = scope.getVariableByName(variableName);
-                return variable.type;
+                return variable.incomingType;
             }
         } catch (e) {
             //do nothing. Just return dynamic
@@ -290,8 +339,9 @@ export class BrsFile {
                     name: param.name.text,
                     type: util.valueKindToBrsType(param.type.kind),
                     isOptional: !!param.defaultValue,
-                    isRestArgument: false
-                };
+                    isRestArgument: false,
+                    nameRange: util.locationToRange(param.name.location)
+                } as CallableParam;
                 params.push(callableParam);
                 let isRequired = !param.defaultValue;
                 functionType.addParameter(callableParam.name, callableParam.type, isRequired);
@@ -424,7 +474,7 @@ export class BrsFile {
         for (let variable of variables) {
             results.push({
                 label: variable.name,
-                kind: variable.type instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
+                kind: variable.incomingType instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
             });
         }
         return results;
@@ -446,15 +496,16 @@ export class BrsFile {
             //get the function scope for this position (if exists)
             let functionScope = this.getFunctionScopeAtPosition(position);
             if (functionScope) {
+
                 //find any variable with this name
-                for (let varDeclaration of functionScope.variableDeclarations) {
+                for (let variable of functionScope.assignments) {
                     //we found a variable declaration with this token text!
-                    if (varDeclaration.name.toLowerCase() === lowerTokenText) {
+                    if (variable.name.toLowerCase() === lowerTokenText) {
                         let typeText: string;
-                        if (varDeclaration.type instanceof FunctionType) {
-                            typeText = varDeclaration.type.toString();
+                        if (variable.incomingType instanceof FunctionType) {
+                            typeText = variable.incomingType.toString();
                         } else {
-                            typeText = `${varDeclaration.name} as ${varDeclaration.type.toString()}`;
+                            typeText = `${variable.name} as ${variable.incomingType.toString()}`;
                         }
                         return {
                             range: util.locationToRange(token.location),
@@ -482,5 +533,28 @@ export class BrsFile {
     }
 
     public dispose() {
+    }
+}
+
+class NameList<T extends { name: string }> {
+    public data = {} as { [lowerName: string]: T[] };
+    public add(value: T) {
+        let lowerName = value.name.toLowerCase();
+        if (!this.data[lowerName]) {
+            this.data[lowerName] = [];
+        }
+        this.data[lowerName].push(value);
+    }
+
+    public getLast(name: string) {
+        let lowerName = name.toLowerCase();
+        let list = this.data[lowerName];
+        return list && list.length > 0 ? list[list.length - 1] : undefined;
+    }
+
+    public getFirst(name: string) {
+        let lowerName = name.toLowerCase();
+        let list = this.data[lowerName];
+        return list && list.length > 0 ? list[0] : undefined;
     }
 }

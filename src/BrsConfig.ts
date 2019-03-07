@@ -64,4 +64,9 @@ export interface BrsConfig {
      * Emit full paths to files when printing diagnostics to the console. Defaults to false
      */
     emitFullPaths?: boolean;
+
+    /**
+     * If enabled, errors will be raised when variables are changed from one data type to another
+     */
+    strictTypeChecking?: boolean;
 }

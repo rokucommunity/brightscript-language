@@ -1,12 +1,9 @@
 import { BrsType } from './BrsType';
-import { DynamicType } from './DynamicType';
 
 export class UninitializedType implements BrsType {
     public isAssignableTo(targetType: BrsType) {
-        return (
-            targetType instanceof UninitializedType ||
-            targetType instanceof DynamicType
-        );
+        //this type is never assignable to anything
+        return false;
     }
 
     public isConvertibleTo(targetType: BrsType) {
@@ -15,5 +12,9 @@ export class UninitializedType implements BrsType {
 
     public toString() {
         return 'uninitialized';
+    }
+    public clone() {
+        //no need to waste memory on a copy, these are all identical
+        return this;
     }
 }

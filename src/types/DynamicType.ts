@@ -17,4 +17,9 @@ export class DynamicType implements BrsType {
     public toString() {
         return 'dynamic';
     }
+
+    public clone() {
+        //no need to waste memory on a copy, these are all identical
+        return this;
+    }
 }

@@ -1,14 +1,15 @@
 import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
+import { UninitializedType } from './UninitializedType';
 
 export class ArrayType implements BrsType {
-    constructor(...innerTypes: BrsType[]) {
+    constructor(innerTypes: BrsType[]) {
         this.innerTypes = innerTypes;
     }
     public innerTypes: BrsType[] = [];
 
     public isAssignableTo(targetType: BrsType) {
-        if (targetType instanceof DynamicType) {
+        if (targetType instanceof DynamicType || targetType instanceof UninitializedType) {
             return true;
         } else if (!(targetType instanceof ArrayType)) {
             return false;
@@ -35,5 +36,11 @@ export class ArrayType implements BrsType {
 
     public toString() {
         return `Array<${this.innerTypes.map((x) => x.toString()).join(' | ')}>`;
+    }
+
+    public clone() {
+        let innerTypes = this.innerTypes.map((x) => x.clone());
+        let theClone = new ArrayType(innerTypes);
+        return theClone;
     }
 }

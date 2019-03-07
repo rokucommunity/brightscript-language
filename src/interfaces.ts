@@ -69,6 +69,10 @@ export interface CallableParam {
      * Indicates that an unlimited number of arguments can be passed in
      */
     isRestArgument?: boolean;
+    /**
+     * The range for the name of this param
+     */
+    nameRange: Range;
 }
 
 export interface FileObj {
@@ -113,18 +117,22 @@ export interface File {
     getDiagnostics(): Diagnostic[];
 }
 
-export interface VariableDeclaration {
+export interface Assignment {
     name: string;
-    type: BrsType;
+    /**
+     * The type on the left-hand of the assignment (i.e. a = b, this would be the type of a).
+     * If this is the first assignemnt for this object, the currentType should be set to uninitialized.
+     */
+    currentType: BrsType;
+
+    /**
+     * The type on the right-hand of the assignment. I.e. a = b, this would be the type of b.
+     */
+    incomingType: BrsType;
     /**
      * The range for the variable name
      */
     nameRange: Range;
-    /**
-     * Since only one variable can be declared at a time,
-     * we only need to know the line index
-     */
-    lineIndex: number;
 }
 
 //copied from brs (since it's not exported from there)

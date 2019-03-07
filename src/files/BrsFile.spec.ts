@@ -2,7 +2,8 @@ import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
-import { Callable, CallableArg, Diagnostic, VariableDeclaration } from '../interfaces';
+import { diagnosticMessages } from '../DiagnosticMessages';
+import { Assignment, Callable, CallableArg, Diagnostic } from '../interfaces';
 import { Program } from '../Program';
 import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
@@ -531,26 +532,28 @@ describe('BrsFile', () => {
                     end sub)
                 end sub
             `);
-            expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[0].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
-                lineIndex: 2,
+            expect(file.functionScopes[0].assignments).to.be.length(1);
+            expect(file.functionScopes[0].assignments[0]).to.deep.include(<Assignment>{
                 name: 'sayHi'
             });
-            expect(file.functionScopes[0].variableDeclarations[0].type).instanceof(FunctionType);
+            expect(file.functionScopes[0].assignments[0].nameRange.start.line).to.equal(2);
 
-            expect(file.functionScopes[1].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[1].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
-                lineIndex: 3,
+            expect(file.functionScopes[0].assignments[0].incomingType).instanceof(FunctionType);
+
+            expect(file.functionScopes[1].assignments).to.be.length(1);
+
+            expect(file.functionScopes[1].assignments[0]).to.deep.include(<Assignment>{
                 name: 'age'
             });
-            expect(file.functionScopes[1].variableDeclarations[0].type).instanceof(IntegerType);
+            expect(file.functionScopes[1].assignments[0].nameRange.start.line).to.equal(3);
+            expect(file.functionScopes[1].assignments[0].incomingType).instanceof(IntegerType);
 
-            expect(file.functionScopes[2].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[2].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
-                lineIndex: 7,
+            expect(file.functionScopes[2].assignments).to.be.length(1);
+            expect(file.functionScopes[2].assignments[0]).to.deep.include(<Assignment>{
                 name: 'name'
             });
-            expect(file.functionScopes[2].variableDeclarations[0].type).instanceof(StringType);
+            expect(file.functionScopes[2].assignments[0].nameRange.start.line).to.equal(7);
+            expect(file.functionScopes[2].assignments[0].incomingType).instanceof(StringType);
         });
 
         it('finds value from global return', async () => {
@@ -564,12 +567,12 @@ describe('BrsFile', () => {
                 end function
             `);
 
-            expect(file.functionScopes[0].variableDeclarations).to.be.length(1);
-            expect(file.functionScopes[0].variableDeclarations[0]).to.deep.include(<VariableDeclaration>{
-                lineIndex: 2,
+            expect(file.functionScopes[0].assignments).to.be.length(1);
+            expect(file.functionScopes[0].assignments[0]).to.deep.include(<Assignment>{
                 name: 'myName'
             });
-            expect(file.functionScopes[0].variableDeclarations[0].type).instanceof(StringType);
+            expect(file.functionScopes[0].assignments[0].nameRange.start.line).to.equal(2);
+            expect(file.functionScopes[0].assignments[0].incomingType).instanceof(StringType);
         });
 
         it('finds variable type from other variable', async () => {
@@ -580,12 +583,12 @@ describe('BrsFile', () => {
                 end sub
             `);
 
-            expect(file.functionScopes[0].variableDeclarations).to.be.length(2);
-            expect(file.functionScopes[0].variableDeclarations[1]).to.deep.include(<VariableDeclaration>{
-                lineIndex: 3,
+            expect(file.functionScopes[0].assignments).to.be.length(2);
+            expect(file.functionScopes[0].assignments[1]).to.deep.include(<Assignment>{
                 name: 'nameCopy'
             });
-            expect(file.functionScopes[0].variableDeclarations[1].type).instanceof(StringType);
+            expect(file.functionScopes[0].assignments[1].nameRange.start.line).to.equal(3);
+            expect(file.functionScopes[0].assignments[1].incomingType).instanceof(StringType);
         });
 
         it('sets proper range for functions', async () => {
@@ -748,6 +751,21 @@ describe('BrsFile', () => {
                 end sub
             `);
             expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+        });
+    });
+
+    describe('strict mode', () => {
+        it.only('catches basic local assignment type mismatches', async () => {
+            program.options.strictTypeChecking = true;
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    name = "cat"
+                    name = 12
+                end sub
+            `);
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(1);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.code);
         });
     });
 });

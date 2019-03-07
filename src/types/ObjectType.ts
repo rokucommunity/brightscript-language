@@ -1,5 +1,6 @@
 import { BrsType } from './BrsType';
 import { DynamicType } from './DynamicType';
+import { UninitializedType } from './UninitializedType';
 
 export class ObjectType implements BrsType {
     /**
@@ -32,7 +33,7 @@ export class ObjectType implements BrsType {
     }
 
     public isAssignableTo(targetType: BrsType) {
-        if (targetType instanceof DynamicType) {
+        if (targetType instanceof DynamicType || targetType instanceof UninitializedType) {
             return true;
         } else if (targetType instanceof ObjectType) {
             //this object must have all the properties that the target has
@@ -62,5 +63,13 @@ export class ObjectType implements BrsType {
 
     public toString() {
         return 'object';
+    }
+
+    public clone(): BrsType {
+        let theClone = new ObjectType();
+        for (let prop of this.properties) {
+            theClone.addProperty(prop.name, prop.type.clone());
+        }
+        return theClone;
     }
 }

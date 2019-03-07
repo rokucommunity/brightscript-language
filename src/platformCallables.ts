@@ -232,7 +232,7 @@ let runtimeFunctions = [{
     file: platformFile,
     params: [{
         name: 'filename',
-        type: new ArrayType(new StringType())
+        type: new ArrayType([new StringType()])
     }, {
         name: 'arg',
         type: new DynamicType(),
@@ -391,7 +391,7 @@ A '*' matches zero or more arbitrary characters.
 The character class '[...]' matches any single character specified within the brackets. The closing bracket is treated as a member of the character class if it immediately follows the opening bracket. i.e. '[]]' matches a single close bracket. Within the class '-' can be used to specify a range unless it is the first or last character. e.g. '[A-Cf-h]' is equivalent to '[ABCfgh]'.
 A character class can be negated by specifying '^' as the first character. To match a literal '^' place it elsewhere within the class.
 The characters '?', '*' and '[' lose their special meaning if preceded by a single '\'. A single '\' can be matched as '\\'.`,
-        type: new FunctionType(new ArrayType(new StringType())),
+        type: new FunctionType(new ArrayType([new StringType()])),
         file: platformFile,
         params: [{
             name: 'path',

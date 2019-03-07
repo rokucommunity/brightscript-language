@@ -318,8 +318,9 @@ export class Context {
     private diagnosticDetectShadowedLocalVars(file: BrsFile | XmlFile, callablesByLowerName: { [lowerName: string]: CallableContainer[] }) {
         //loop through every function scope
         for (let scope of file.functionScopes) {
+            let paramsAndVars = [...scope.parameters, ...scope.assignments];
             //every var declaration in this scope
-            for (let varDeclaration of scope.variableDeclarations) {
+            for (let varDeclaration of paramsAndVars) {
                 let globalCallableContainer = callablesByLowerName[varDeclaration.name.toLowerCase()];
                 //if we found a collision
                 if (globalCallableContainer && globalCallableContainer.length > 0) {
