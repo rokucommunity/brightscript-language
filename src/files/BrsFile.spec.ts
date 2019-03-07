@@ -2,14 +2,13 @@ import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
-import { Callable, CallableArg, Diagnostic, ExpressionCall, VariableDeclaration } from '../interfaces';
+import { Callable, CallableArg, Diagnostic, VariableDeclaration } from '../interfaces';
 import { Program } from '../Program';
 import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
-import { VoidType } from '../types/VoidType';
 import util from '../util';
 import { BrsFile } from './BrsFile';
 
@@ -69,6 +68,29 @@ describe('BrsFile', () => {
                     x -= 1
                     print x
                 end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports `then` as object property', async () => {
+            await file.parse(`
+                function Main()
+                    promise = {
+                        then: sub()
+                        end sub
+                    }
+                    promise.then()
+                end function
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports function as parameter type', async () => {
+            await file.parse(`
+                sub Main()
+                    doWork = function(callback as function)
+                    end function
+                end sub
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
@@ -697,6 +719,35 @@ describe('BrsFile', () => {
 
             expect(hover.range).to.eql(Range.create(2, 20, 2, 29));
             expect(hover.contents).to.equal('sub sayMyName(name as string) as void');
+        });
+
+        it('handles mixed case `then` partions of conditionals', async () => {
+            let mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true then
+                        print "works"
+                    end if
+                end sub
+            `);
+
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+            mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true Then
+                        print "works"
+                    end if
+                end sub
+            `);
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
+
+            mainFile = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    if true THEN
+                        print "works"
+                    end if
+                end sub
+            `);
+            expect(mainFile.getDiagnostics()).to.be.lengthOf(0);
         });
     });
 });

@@ -15,14 +15,15 @@ let testProjectsPath = path.join(__dirname, '..', 'testProjects');
 let sinon = sinonImport.createSandbox();
 let rootDir = process.cwd();
 let program: Program;
-beforeEach(() => {
-    program = new Program({ rootDir: rootDir });
-});
-afterEach(() => {
-    sinon.restore();
-});
 
 describe('Program', () => {
+    beforeEach(() => {
+        program = new Program({ rootDir: rootDir });
+    });
+    afterEach(() => {
+        sinon.restore();
+    });
+
     describe('platformContext', () => {
         it('returns all callables when asked', () => {
             expect(program.platformContext.getAllCallables().length).to.be.greaterThan(0);
@@ -439,7 +440,6 @@ describe('Program', () => {
             let brsPath = path.resolve(`${rootDir}/components/COMPONENT1.brs`);
             await program.addOrReplaceFile(brsPath, '');
 
-            let context = program.contexts[`components${path.sep}component1.xml`];
             //validate
             await program.validate();
             let diagnostics = program.getDiagnostics();
@@ -484,7 +484,7 @@ describe('Program', () => {
 
         it('handles when the brs file is added before the component', async () => {
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
-            let brsFile = await program.addOrReplaceFile(brsPath, '');
+            await program.addOrReplaceFile(brsPath, '');
 
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
             let xmlFile = await program.addOrReplaceFile(xmlPath, `
@@ -501,7 +501,7 @@ describe('Program', () => {
         it('reloads referenced fles when xml file changes', async () => {
             program.options.ignoreErrorCodes.push(1013);
             let brsPath = path.normalize(`${rootDir}/components/component1.brs`);
-            let brsFile = await program.addOrReplaceFile(brsPath, '');
+            await program.addOrReplaceFile(brsPath, '');
 
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
             let xmlFile = await program.addOrReplaceFile(xmlPath, `
@@ -530,7 +530,7 @@ describe('Program', () => {
     describe('getCompletions', () => {
         it('finds all file paths when initiated on xml uri', async () => {
             let xmlPath = path.normalize(`${rootDir}/components/component1.xml`);
-            let xmlFile = await program.addOrReplaceFile(xmlPath, `
+            await program.addOrReplaceFile(xmlPath, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="HeroScene" extends="Scene">
                     <script type="text/brightscript" uri="" />
@@ -630,6 +630,39 @@ describe('Program', () => {
     });
 
     describe('xml context', () => {
+        it.skip('does not fail on base components with many children', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub DoSomething()
+                end sub
+            `);
+
+            //add a brs file with invalid syntax
+            await program.addOrReplaceFile(`${rootDir}/components/base.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="BaseScene" extends="Scene">
+                    <script type="text/brightscript" uri="pkg:/source/lib.brs" />
+                </component>
+            `);
+            let childCount = 20;
+            //add many children, we should never encounter an error
+            for (let i = 0; i < childCount; i++) {
+                await program.addOrReplaceFile(`${rootDir}/components/child${i}.xml`, `
+                    <?xml version="1.0" encoding="utf-8" ?>
+                    <component name="Child${i}" extends="BaseScene">
+                        <script type="text/brightscript" uri="pkg:/source/lib.brs" />
+                    </component>
+                `);
+            }
+            await program.validate();
+            let diagnostics = program.getDiagnostics();
+
+            let shadowedDiagnositcs = diagnostics.filter((x) => x.code === diagnosticMessages.Shadows_ancestor_function_1010.code);
+
+            //the children should all have diagnostics about shadowing their parent lib.brs file.
+            //If not, then the parent-child attachment was severed somehow
+            expect(shadowedDiagnositcs).to.be.lengthOf(childCount);
+        });
+
         it('detects script import changes', async () => {
             //create the xml file without script imports
             let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
@@ -645,7 +678,7 @@ describe('Program', () => {
             let libFile = await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `'comment`);
 
             //change the xml file to have a script import
-            let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+            xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="MyScene" extends="Scene">
                     <script type="text/brightscript" uri="pkg:/source/lib.brs" />
@@ -658,7 +691,7 @@ describe('Program', () => {
             expect(program.contexts[xmlFile.pkgPath].files[libFile.pathAbsolute]).to.exist;
 
             //reload the xml file again, removing the script import.
-            let xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
+            xmlFile = await program.addOrReplaceFile(`${rootDir}/components/component.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
                 <component name="MyScene" extends="Scene">
                 </component>

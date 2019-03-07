@@ -1,10 +1,8 @@
 import * as brs from 'brs';
-import { outputFile } from 'fs-extra';
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
 import { Context } from '../Context';
-import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
 import { Callable, CallableArg, CallableParam, Diagnostic, ExpressionCall } from '../interfaces';
 import { Program } from '../Program';
@@ -196,15 +194,6 @@ export class BrsFile {
         }
     }
 
-    private getClosestLineIndex(ancestors: any[]) {
-        for (let i = ancestors.length - 1; i >= 0; i--) {
-            let ancestor = ancestors[i];
-            if (ancestor.name && typeof ancestor.name.line === 'number') {
-                return ancestor.name.line - 1;
-            }
-        }
-    }
-
     /**
      * Given a set of statements and top-level ast,
      * find the closest function ancestor for the given key
@@ -329,7 +318,6 @@ export class BrsFile {
             if (!statement.func) {
                 continue;
             }
-            let func = statement as any;
             let bodyStatements = statement.func.body.statements;
             for (let bodyStatement of bodyStatements) {
                 if (bodyStatement.expression && bodyStatement.expression instanceof brs.parser.Expr.Call) {

@@ -1,12 +1,11 @@
 import { EventEmitter } from 'events';
-import { CompletionItem, CompletionItemKind, MarkupContent, Range } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
-import { Callable, CallableContainer, Diagnostic, File } from './interfaces';
+import { CallableContainer, Diagnostic, File } from './interfaces';
 import { Program } from './Program';
-import { FunctionType } from './types/FunctionType';
 import util from './util';
 
 /**
@@ -17,6 +16,8 @@ export class Context {
         public name: string,
         private matcher: (file: File) => boolean | void
     ) {
+        //allow unlimited listeners
+        this.emitter.setMaxListeners(0);
     }
 
     /**
@@ -349,8 +350,6 @@ export class Context {
         //validate all expression calls
         for (let expCall of file.functionCalls) {
             let lowerName = expCall.name.toLowerCase();
-
-            let callable: any;
 
             //get the local scope for this expression
             let scope = file.getFunctionScopeAtPosition(expCall.nameRange.start);

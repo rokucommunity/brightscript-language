@@ -1,5 +1,4 @@
 import * as chokidar from 'chokidar';
-import { watch } from 'fs';
 
 import { BrsConfig } from './BrsConfig';
 

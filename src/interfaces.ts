@@ -1,4 +1,4 @@
-import { Position, Range } from 'vscode-languageserver';
+import { Range } from 'vscode-languageserver';
 
 import { Context } from './Context';
 import { BrsFile } from './files/BrsFile';

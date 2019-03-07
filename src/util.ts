@@ -1,7 +1,6 @@
 import * as brs from 'brs';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
-import { utils } from 'mocha';
 import * as moment from 'moment';
 import * as path from 'path';
 import * as rokuDeploy from 'roku-deploy';
@@ -10,7 +9,7 @@ import Uri from 'vscode-uri';
 import * as xml2js from 'xml2js';
 
 import { BrsConfig } from './BrsConfig';
-import { Callable, CallableContainer, ValueKind } from './interfaces';
+import { CallableContainer, ValueKind } from './interfaces';
 import { BooleanType } from './types/BooleanType';
 import { BrsType } from './types/BrsType';
 import { DoubleType } from './types/DoubleType';

@@ -34,7 +34,6 @@ export class XmlContext extends Context {
 
     public attachProgram(program: Program) {
         super.attachProgram(program);
-
         //if the xml file has an unresolved parent, look for its parent on every file add
         this.programHandles.push(
             this.program.on('file-added', (file) => {
