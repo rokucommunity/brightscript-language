@@ -7,7 +7,7 @@ import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
-import { Diagnostic, File } from './interfaces';
+import { Diagnostic } from './interfaces';
 import { platformFile } from './platformCallables';
 import util from './util';
 import { XmlContext } from './XmlContext';
@@ -144,11 +144,11 @@ export class Program {
 
         //get the extension of the file
         if (fileExtension === '.brs' || fileExtension === '.bs') {
-            let brsFile = new BrsFile(pathAbsolute, pkgPath, this);
+            let brsFile = this.files[pathAbsolute] = new BrsFile(pathAbsolute, pkgPath, this);
             await brsFile.parse(fileContents);
             file = brsFile;
         } else if (fileExtension === '.xml') {
-            let xmlFile = new XmlFile(pathAbsolute, pkgPath, this);
+            let xmlFile = this.files[pathAbsolute] = new XmlFile(pathAbsolute, pkgPath, this);
             await xmlFile.parse(fileContents);
             file = xmlFile;
 
@@ -165,14 +165,13 @@ export class Program {
             this.contexts[context.name] = context;
         } else {
             //TODO do we actually need to implement this? Figure out how to handle img paths
-            let genericFile = <any>{
-                pathAbsolute: pathAbsolute,
-                pkgPath: pkgPath,
-                wasProcessed: true
-            } as File;
-            file = <any>genericFile;
+            // let genericFile = this.files[pathAbsolute] = <any>{
+            //     pathAbsolute: pathAbsolute,
+            //     pkgPath: pkgPath,
+            //     wasProcessed: true
+            // } as File;
+            // file = <any>genericFile;
         }
-        this.files[pathAbsolute] = file;
 
         //notify all listeners about this file change
         this.emit('file-added', file);

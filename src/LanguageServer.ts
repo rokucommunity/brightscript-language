@@ -172,9 +172,16 @@ export class LanguageServer {
             this.connection.sendNotification('build-status', `success`);
         } catch (e) {
             //send a message explaining what went wrong
-            this.connection.sendNotification('critical-failure', `BrightScript language server failed to start: \n${e.message}`);
+            this.sendCriticalFailure(`BrightScript language server failed to start: \n${e.message}`);
         }
         this.sendDiagnostics();
+    }
+
+    /**
+     * Send a critical failure notification to the client, which should show a notification of some kind
+     */
+    private sendCriticalFailure(message: string) {
+        this.connection.sendNotification('critical-failure', message);
     }
 
     /**
@@ -316,18 +323,24 @@ export class LanguageServer {
         await this.waitAllProgramFirstRuns();
         let filePath = Uri.parse(textDocument.uri).fsPath;
         let documentText = textDocument.getText();
-        await Promise.all(
-            this.workspaces.map((x) => {
-                //only add or replace existing files. All of the files in the project should
-                //have already been loaded by other means
-                if (x.builder.program.hasFile(filePath)) {
-                    return x.builder.program.addOrReplaceFile(filePath, documentText);
-                }
-            })
-        );
-        await Promise.all(
-            this.workspaces.map((x) => x.builder.program.validate())
-        );
+
+        try {
+            await Promise.all(
+                this.workspaces.map((x) => {
+                    //only add or replace existing files. All of the files in the project should
+                    //have already been loaded by other means
+                    if (x.builder.program.hasFile(filePath)) {
+                        return x.builder.program.addOrReplaceFile(filePath, documentText);
+                    }
+                })
+            );
+
+            await Promise.all(
+                this.workspaces.map((x) => x.builder.program.validate())
+            );
+        } catch (e) {
+            this.sendCriticalFailure(`Critical error parsing/validating ${filePath}: ${e.message}`);
+        }
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
     }

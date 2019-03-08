@@ -8,6 +8,8 @@ import { XmlFile } from './files/XmlFile';
 import { Diagnostic } from './interfaces';
 import { Program } from './Program';
 import util from './util';
+import { BrsFile } from './files/BrsFile';
+import { promises } from 'fs';
 let n = path.normalize;
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
@@ -30,6 +32,30 @@ describe('Program', () => {
         });
     });
     describe('addFile', () => {
+        describe('parseError', () => {
+            let orig;
+            beforeEach(() => {
+                orig = BrsFile.prototype.parse;
+                BrsFile.prototype.parse = () => {
+                    return Promise.reject(new Error('some error'));
+                };
+            });
+            afterEach(() => {
+                BrsFile.prototype.parse = orig;
+            });
+
+            it('still adds the file even when it errors', async () => {
+                try {
+                    //add a file, which will immediately error during parse (because of the beforeEach above)
+                    await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `'comment`);
+                    assert.fail(null, null, 'Should have thrown exception');
+                } catch (e) {
+                    //the file should still be in the files list
+                    expect(program.hasFile(`${rootDir}/source/main.brs`)).to.be.true;
+                }
+            });
+        });
+
         it('works with different cwd', async () => {
             let projectDir = path.join(testProjectsPath, 'project2');
             let program = new Program({ cwd: projectDir });
