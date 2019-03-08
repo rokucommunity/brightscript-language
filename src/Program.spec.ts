@@ -4,12 +4,11 @@ import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from './DiagnosticMessages';
+import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
 import { Diagnostic } from './interfaces';
 import { Program } from './Program';
 import util from './util';
-import { BrsFile } from './files/BrsFile';
-import { promises } from 'fs';
 let n = path.normalize;
 
 let testProjectsPath = path.join(__dirname, '..', 'testProjects');
