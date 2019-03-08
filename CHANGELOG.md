@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.1.17] - 2019-03-07
+## Fixed
+ - Upgraded to brs@0.13.0-nightly.20190307 which fixed parse error with many of the assignment operators on objects. ([see this issue](https://github.com/sjbarag/brs/issues/173)).
+
+
+
 ## [0.1.16] - 2019-03-06
 ### Fixed
  - Upgraded to brs@0.13.0-nightly.20190306 which fixed the mixed-case `Then` regression ([see this issue](https://github.com/sjbarag/brs/issues/187)).
@@ -47,6 +53,7 @@ Initial project release.
 
 
 
+[0.1.17]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.13...v0.1.14
