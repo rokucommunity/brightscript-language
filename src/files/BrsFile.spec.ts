@@ -678,6 +678,7 @@ describe('BrsFile', () => {
 
             //hover over the `name = 1` line
             let hover = file.getHover(Position.create(2, 24));
+            expect(hover).to.exist;
             expect(hover.range).to.eql(Range.create(2, 20, 2, 24));
 
             //hover over the `name` parameter declaration
@@ -685,6 +686,21 @@ describe('BrsFile', () => {
             expect(hover).to.exist;
             expect(hover.range).to.eql(Range.create(1, 32, 1, 36));
         });
+
+        //ignore this for now...it's not a huge deal
+        it.skip('does not match on keywords or data types', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main(name as string)
+                end sub
+                sub as()
+                end sub
+            `);
+            //hover over the `as`
+            expect(file.getHover(Position.create(1, 31))).not.to.exist;
+            //hover over the `string`
+            expect(file.getHover(Position.create(1, 36))).not.to.exist;
+        });
+
         it('finds declared function', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 function Main(count = 1)

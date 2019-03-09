@@ -440,8 +440,16 @@ export class BrsFile {
         //get the token at the position
         let token = this.getTokenAt(position);
 
-        //if no token found or token does not look like an identifier, there's nothing to show
-        if (!token || /[\w\d_]+/gi.test(token.text) === false) {
+        let hoverTokenTypes = [
+            Lexeme.Identifier,
+            Lexeme.Function,
+            Lexeme.EndFunction,
+            Lexeme.Sub,
+            Lexeme.EndSub
+        ];
+
+        //throw out invalid tokens and the wrong kind of tokens
+        if (!token || hoverTokenTypes.indexOf(token.kind) === -1) {
             return null;
         }
 
