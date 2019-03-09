@@ -6,8 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.1.18] - 2019-03-08
+### Fixed
+ - issue where only top-level variables were being found. Now all variables are found throughout the entire function scope.  
+ - runtime error when getting hover result.
+ - issue with hover that would not find top-level function parameter types.
+
+
 ## [0.1.17] - 2019-03-08
-## Fixed
+### Fixed
  - Upgraded to brs@0.13.0-nightly.20190307 which fixed assignment operator parse errors. ([see this issue](https://github.com/sjbarag/brs/issues/173)).
 
 
@@ -53,6 +60,7 @@ Initial project release.
 
 
 
+[0.1.18]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.14...v0.1.15
