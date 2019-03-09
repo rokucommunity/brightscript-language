@@ -305,8 +305,8 @@ export class LanguageServer {
             this.workspaces.map((x) => x.builder.program.getHover(pathAbsolute, params.position))
         ) as Hover[];
 
-        //for now, just return the first hover found. TODO handle multiple hover results
-        let hover = hovers[0];
+        //return the first non-falsey hover. TODO is there a way to handle multiple hover results?
+        let hover = hovers.filter((x) => !!x)[0];
 
         //TODO improve this to support more than just .brs files
         if (hover && hover.contents) {
