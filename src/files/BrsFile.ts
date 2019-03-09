@@ -163,12 +163,18 @@ export class BrsFile {
 
             //compute the range of this func
             scope.bodyRange = util.getBodyRangeForFunc(func);
+            scope.range = Range.create(
+                func.keyword.location.start.line - 1,
+                func.keyword.location.start.column,
+                func.end.location.end.line - 1,
+                func.end.location.end.column
+            );
 
             //add every parameter
             for (let param of func.parameters) {
                 scope.variableDeclarations.push({
                     nameRange: util.locationToRange(param.name.location),
-                    lineIndex: scope.bodyRange.start.line,
+                    lineIndex: param.name.location.start.line - 1,
                     name: param.name.text,
                     type: util.valueKindToBrsType(param.type.kind)
                 });
@@ -397,7 +403,7 @@ export class BrsFile {
             functionScopes = this.functionScopes;
         }
         for (let scope of functionScopes) {
-            if (util.rangeContains(scope.bodyRange, position)) {
+            if (util.rangeContains(scope.range, position)) {
                 //see if any of that scope's children match the position also, and give them priority
                 let childScope = this.getFunctionScopeAtPosition(position, scope.childrenScopes);
                 if (childScope) {

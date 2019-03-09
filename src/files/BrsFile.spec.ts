@@ -515,6 +515,15 @@ describe('BrsFile', () => {
     });
 
     describe('createFunctionScopes', async () => {
+        it('creates range properly', async () => {
+            await file.parse(`
+                sub Main()
+                    name = 'bob"
+                end sub
+            `);
+            expect(file.functionScopes[0].range).to.eql(Range.create(1, 16, 3, 23));
+        });
+
         it('creates scopes for parent and child functions', async () => {
             await file.parse(`
                 sub Main()
@@ -658,7 +667,7 @@ describe('BrsFile', () => {
     });
 
     describe('getHover', () => {
-        it.only('works with typed code', async () => {
+        it('works for param types', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub DoSomething(name as string)
                     name = 1
@@ -667,8 +676,14 @@ describe('BrsFile', () => {
                 end sub
             `);
 
+            //hover over the `name = 1` line
             let hover = file.getHover(Position.create(2, 24));
             expect(hover.range).to.eql(Range.create(2, 20, 2, 24));
+
+            //hover over the `name` parameter declaration
+            hover = file.getHover(Position.create(1, 34));
+            expect(hover).to.exist;
+            expect(hover.range).to.eql(Range.create(1, 32, 1, 36));
         });
         it('finds declared function', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `

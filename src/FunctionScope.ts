@@ -16,6 +16,12 @@ export class FunctionScope {
     public bodyRange: Range;
 
     /**
+     * The full range of this function. Starts at the position of the `f` in function or `s` in sub,
+     * and ends after the final `n` in `end function` or `b` in end sub.
+     */
+    public range: Range;
+
+    /**
      * The scopes that are children of this scope
      */
     public childrenScopes = [] as FunctionScope[];
