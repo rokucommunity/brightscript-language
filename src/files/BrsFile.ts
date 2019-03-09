@@ -54,7 +54,7 @@ export class BrsFile {
      * The AST for this file
      */
     private ast: brs.parser.Stmt.Statement[];
-    private tokens: brs.lexer.Token[];
+    private tokens = [] as brs.lexer.Token[];
 
     /**
      * Get the token at the specified position
