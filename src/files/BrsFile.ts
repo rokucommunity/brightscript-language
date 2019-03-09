@@ -180,23 +180,32 @@ export class BrsFile {
                     type: util.valueKindToBrsType(param.type.kind)
                 });
             }
-            //add every variable assignment to the scope
-            for (let statement of func.body.statements) {
-                //if this is a variable assignment
-                if (statement instanceof brs.parser.Stmt.Assignment) {
-                    scope.variableDeclarations.push({
-                        nameRange: util.locationToRange(statement.name.location),
-                        lineIndex: statement.name.location.start.line - 1,
-                        name: statement.name.text,
-                        type: this.getBRSTypeFromAssignment(statement, scope)
-                    });
-                }
-                //TODO support things inside of loops, conditionals, etc
-            }
+
             this.scopesByFunc.set(func, scope);
 
             //find every statement in the scope
             this.functionScopes.push(scope);
+        }
+
+        //find every variable assignment in the whole file
+        let assignmentStatements = util.findAllDeep<brs.parser.Stmt.Assignment>(this.ast, (x) => x instanceof brs.parser.Stmt.Assignment);
+
+        for (let kvp of assignmentStatements) {
+            let statement = kvp.value;
+            let nameRange = util.locationToRange(statement.name.location);
+
+            //find this statement's function scope
+            let scope = this.getFunctionScopeAtPosition(nameRange.start);
+
+            //skip variable declarations that are outside of any scope
+            if (scope) {
+                scope.variableDeclarations.push({
+                    nameRange: nameRange,
+                    lineIndex: statement.name.location.start.line - 1,
+                    name: statement.name.text,
+                    type: this.getBRSTypeFromAssignment(statement, scope)
+                });
+            }
         }
     }
 

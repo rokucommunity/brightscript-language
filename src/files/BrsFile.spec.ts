@@ -539,6 +539,22 @@ describe('BrsFile', () => {
             expect(file.functionScopes).to.length(3);
         });
 
+        it('outer function does not capture inner statements', async () => {
+            await file.parse(`
+                sub Main()
+                    name = "john"
+                    sayHi = sub()
+                        age = 12
+                    end sub
+                end sub
+            `);
+            let outerScope = file.getFunctionScopeAtPosition(Position.create(2, 25));
+            expect(outerScope.variableDeclarations).to.be.lengthOf(2);
+
+            let innerScope = file.getFunctionScopeAtPosition(Position.create(4, 10));
+            expect(innerScope.variableDeclarations).to.be.lengthOf(1);
+        });
+
         it('finds variables declared in function scopes', async () => {
             await file.parse(`
                 sub Main()
@@ -571,6 +587,19 @@ describe('BrsFile', () => {
                 name: 'name'
             });
             expect(file.functionScopes[2].variableDeclarations[0].type).instanceof(StringType);
+        });
+
+        it('finds variable declarations inside of if statements', async () => {
+            await file.parse(`
+                sub Main()
+                    if true then
+                        theLength = 1
+                    end if
+                end sub
+            `);
+            let scope = file.getFunctionScopeAtPosition(Position.create(3, 0));
+            expect(scope.variableDeclarations[0]).to.exist;
+            expect(scope.variableDeclarations[0].name).to.equal('theLength');
         });
 
         it('finds value from global return', async () => {
