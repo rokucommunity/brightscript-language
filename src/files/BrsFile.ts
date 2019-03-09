@@ -170,8 +170,7 @@ export class BrsFile {
                     nameRange: util.locationToRange(param.name.location),
                     lineIndex: scope.bodyRange.start.line,
                     name: param.name.text,
-                    //TODO which is it? `type` or `kind`?
-                    type: util.valueKindToBrsType(param.type || (param as any).kind)
+                    type: util.valueKindToBrsType(param.type.kind)
                 });
             }
             //add every variable assignment to the scope

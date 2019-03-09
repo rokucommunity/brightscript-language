@@ -658,6 +658,18 @@ describe('BrsFile', () => {
     });
 
     describe('getHover', () => {
+        it.only('works with typed code', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething(name as string)
+                    name = 1
+                    sayMyName = function(name as string)
+                    end function
+                end sub
+            `);
+
+            let hover = file.getHover(Position.create(2, 24));
+            expect(hover.range).to.eql(Range.create(2, 20, 2, 24));
+        });
         it('finds declared function', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 function Main(count = 1)
