@@ -207,7 +207,7 @@ class Util {
      * @param params
      */
     public stringFormat(subject: string, ...args) {
-        return subject.replace(/{(\d+)}/g, function(match, num) {
+        return subject.replace(/{(\d+)}/g, (match, num) => {
             return typeof args[num] !== 'undefined' ? args[num] : match;
         });
     }
@@ -443,7 +443,7 @@ class Util {
      */
     public parseXml(text: string) {
         return new Promise<any>((resolve, reject) => {
-            xml2js.parseString(text, function(err, data) {
+            xml2js.parseString(text, (err, data) => {
                 if (err) {
                     reject(err);
                 } else {
