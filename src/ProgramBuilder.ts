@@ -381,7 +381,9 @@ export class ProgramBuilder {
     }
 
     public dispose() {
-        this.watcher.dispose();
+        if (this.watcher) {
+            this.watcher.dispose();
+        }
         this.program.dispose();
     }
 }

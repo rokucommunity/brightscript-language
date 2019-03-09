@@ -1,3 +1,4 @@
+import * as path from 'path';
 import {
     CompletionItem,
     Connection,
@@ -26,11 +27,7 @@ export class LanguageServer {
     }
     private connection: Connection;
 
-    private workspaces = [] as Array<{
-        firstRunPromise: Promise<any>;
-        builder: ProgramBuilder;
-        workspacePath: string;
-    }>;
+    private workspaces = [] as Workspace[];
 
     private hasConfigurationCapability = false;
 
@@ -77,22 +74,22 @@ export class LanguageServer {
         this.connection.onHover(this.onHover.bind(this));
 
         /*
-       this.connection.onDidOpenTextDocument((params) => {
-            // A text document got opened in VSCode.
-            // params.uri uniquely identifies the document. For documents store on disk this is a file URI.
-            // params.text the initial full content of the document.
-           this.connection.console.log(`${params.textDocument.uri} opened.`);
+        this.connection.onDidOpenTextDocument((params) => {
+             // A text document got opened in VSCode.
+             // params.uri uniquely identifies the document. For documents store on disk this is a file URI.
+             // params.text the initial full content of the document.
+            this.connection.console.log(`${params.textDocument.uri} opened.`);
         });
-       this.connection.onDidChangeTextDocument((params) => {
-            // The content of a text document did change in VSCode.
-            // params.uri uniquely identifies the document.
-            // params.contentChanges describe the content changes to the document.
-           this.connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
+        this.connection.onDidChangeTextDocument((params) => {
+             // The content of a text document did change in VSCode.
+             // params.uri uniquely identifies the document.
+             // params.contentChanges describe the content changes to the document.
+            this.connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
         });
-       this.connection.onDidCloseTextDocument((params) => {
-            // A text document got closed in VSCode.
-            // params.uri uniquely identifies the document.
-           this.connection.console.log(`${params.textDocument.uri} closed.`);
+        this.connection.onDidCloseTextDocument((params) => {
+             // A text document got closed in VSCode.
+             // params.uri uniquely identifies the document.
+            this.connection.console.log(`${params.textDocument.uri} closed.`);
         });
         */
 
@@ -108,17 +105,6 @@ export class LanguageServer {
      * @param params
      */
     private async onInitialize(params: InitializeParams) {
-        //start up a new BrightScript program builder in watch mode,
-        //disable all output file generation and deployments, as this
-        //is purely for the language server options
-        let workspacePaths = params.workspaceFolders.map((x) => {
-            return util.getPathFromUri(x.uri);
-        });
-        if (workspacePaths.length === 0) {
-            workspacePaths.push(util.getPathFromUri(params.rootUri));
-        }
-        this.createWorkspaces(workspacePaths);
-
         let clientCapabilities = params.capabilities;
 
         // Does the client support the `workspace/configuration` request?
@@ -144,15 +130,26 @@ export class LanguageServer {
      * @param params
      */
     private async onInitialized(params: InitializedParams) {
+
         if (this.hasConfigurationCapability) {
             // Register for all configuration changes.
-            this.connection.client.register(
+            await this.connection.client.register(
                 DidChangeConfigurationNotification.type,
                 undefined
             );
         }
+
+        //ask the client for all workspace folders
+        let workspaceFolders = await this.connection.workspace.getWorkspaceFolders();
+        let workspacePaths = workspaceFolders.map((x) => {
+            return util.getPathFromUri(x.uri);
+        });
+
+        await this.createWorkspaces(workspacePaths);
+
         if (this.clientHasWorkspaceFolderCapability) {
-            this.connection.workspace.onDidChangeWorkspaceFolders((evt) => {
+            this.connection.workspace.onDidChangeWorkspaceFolders(async (evt) => {
+                //remove programs for removed workspace folders
                 for (let removed of evt.removed) {
                     let workspacePath = util.getPathFromUri(removed.uri);
                     let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
@@ -161,19 +158,11 @@ export class LanguageServer {
                         this.workspaces.splice(this.workspaces.indexOf(workspace), 1);
                     }
                 }
-                this.createWorkspaces(evt.added.map((x) => util.getPathFromUri(x.uri)));
-                this.connection.console.log('Workspace folder change event received.');
+                //create programs for new workspace folders
+                await this.createWorkspaces(evt.added.map((x) => util.getPathFromUri(x.uri)));
             });
         }
-        //send all diagnostics
-        //send all of the initial diagnostics for the whole project
-        try {
-            await this.waitAllProgramFirstRuns();
-            this.connection.sendNotification('build-status', `success`);
-        } catch (e) {
-            //send a message explaining what went wrong
-            this.sendCriticalFailure(`BrightScript language server failed to start: \n${e.message}`);
-        }
+        await this.waitAllProgramFirstRuns();
         this.sendDiagnostics();
     }
 
@@ -188,7 +177,19 @@ export class LanguageServer {
      * Wait for all programs' first run to complete
      */
     private async waitAllProgramFirstRuns() {
-        await Promise.all(this.workspaces.map((x) => x.firstRunPromise));
+        let status;
+        for (let workspace of this.workspaces) {
+            try {
+                await workspace.firstRunPromise;
+            } catch (e) {
+                status = 'critical-error';
+                //the first run failed...that won't change unless we reload the workspace, so replace with resolved promise
+                //so we don't show this error again
+                workspace.firstRunPromise = Promise.resolve();
+                this.sendCriticalFailure(`BrightScript language server failed to start: \n${e.message}`);
+            }
+        }
+        this.connection.sendNotification('build-status', status ? status : 'success');
     }
 
     /**
@@ -196,28 +197,60 @@ export class LanguageServer {
      * it is skipped.
      * @param workspaceFolders
      */
-    private createWorkspaces(workspacePaths: string[]) {
-        for (let workspacePath of workspacePaths) {
-            let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
-            //skip this workspace if we already have it
-            if (workspace) {
-                continue;
-            }
-            let builder = new ProgramBuilder();
-            let firstRunPromise = builder.run({
-                cwd: <string>workspacePath,
-                watch: false,
-                skipPackage: true,
-                deploy: false
-            }).catch((err) => {
-                console.error(err);
-            });
-            this.workspaces.push({
-                builder: builder,
-                firstRunPromise: firstRunPromise,
-                workspacePath: workspacePath
-            });
+    private async createWorkspaces(workspacePaths: string[]) {
+        return await Promise.all(
+            workspacePaths.map((workspacePath) => this.createWorkspace(workspacePath))
+        );
+    }
+
+    private async createWorkspace(workspacePath: string) {
+        let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
+        //skip this workspace if we already have it
+        if (workspace) {
+            return;
         }
+        let builder = new ProgramBuilder();
+
+        //load config from client for this workspace
+        let config = await this.connection.workspace.getConfiguration({
+            scopeUri: Uri.parse(workspacePath).toString(),
+            section: 'brightscript'
+        });
+        let cwd = workspacePath;
+        let configFilePath = config.configFile ? path.resolve(workspacePath, config.configFile) : 'brsconfig.json';
+
+        //if the config file exists, use it and its folder as cwd
+        if (await util.fileExists(configFilePath)) {
+            cwd = path.dirname(configFilePath);
+        } else {
+            //config file doesn't exist...let `brightscript-language` resolve the default way
+            configFilePath = undefined;
+        }
+
+        let firstRunPromise = builder.run({
+            cwd: cwd,
+            project: configFilePath,
+            watch: false,
+            skipPackage: true,
+            deploy: false
+        }).catch((err) => {
+            console.error(err);
+        });
+        let newWorkspace = {
+            builder: builder,
+            firstRunPromise: firstRunPromise,
+            workspacePath: workspacePath,
+            isFirstRunComplete: false,
+            isFirstRunSuccessful: false
+        } as Workspace;
+        this.workspaces.push(newWorkspace);
+        firstRunPromise.then(() => {
+            newWorkspace.isFirstRunComplete = true;
+            newWorkspace.isFirstRunSuccessful = true;
+        }).catch((e) => {
+            newWorkspace.isFirstRunComplete = true;
+            newWorkspace.isFirstRunSuccessful = false;
+        });
     }
 
     /**
@@ -225,8 +258,9 @@ export class LanguageServer {
      * @param textDocumentPosition
      */
     private async onCompletion(textDocumentPosition: TextDocumentPositionParams) {
-        //wait for the program to load
+        //ensure programs are initialized
         await this.waitAllProgramFirstRuns();
+
         let filePath = util.getPathFromUri(textDocumentPosition.textDocument.uri);
 
         let completions = Array.prototype.concat.apply([],
@@ -259,20 +293,57 @@ export class LanguageServer {
         return item;
     }
 
-    private onDidChangeConfiguration(change: DidChangeConfigurationParams) {
-        //TODO implement some settings? Perhaps the location of brsconfig.json?
+    /**
+     * Reload all specified workspaces, or all workspaces if no workspaces are specified
+     */
+    private async reloadWorkspaces(workspaces?: Workspace[]) {
+        workspaces = workspaces ? workspaces : [...this.workspaces];
+        await Promise.all(
+            workspaces.map(async (workspace) => {
+                //ensure the workspace has finished starting up
+                try {
+                    await workspace.firstRunPromise;
+                } catch (e) { }
 
-        // if (this.hasConfigurationCapability) {
-        //     // Reset all cached document settings
-        //     this.documentSettings.clear();
-        // } else {
-        //     this.globalSettings = <ExampleSettings>(
-        //         (change.settings.languageServerExample || this.defaultSettings)
-        //     );
-        // }
+                let idx = this.workspaces.indexOf(workspace);
+                if (idx > -1) {
+                    //remove this workspace
+                    this.workspaces.splice(idx, 1);
+                    //dispose this workspace
+                    workspace.builder.dispose();
+                }
+                //create a new workspace/brs program
+                await this.createWorkspace(workspace.workspacePath);
+            })
+        );
+        //wait for all of the programs to finish starting up
+        await this.waitAllProgramFirstRuns();
 
-        // // Revalidate all open text documents
-        // this.documents.all().forEach(this.validateTextDocument);
+        //validate each workspace
+        await Promise.all(
+            this.workspaces.map((x) => {
+                //only validate workspaces with a working builder (i.e. no critical runtime errors)
+                if (x.isFirstRunComplete && x.isFirstRunSuccessful) {
+                    return x.builder.program.validate();
+                }
+            })
+        );
+
+        //send all diagnostics
+        this.sendDiagnostics();
+
+        this.documents.all().forEach(this.validateTextDocument.bind(this));
+    }
+
+    private async onDidChangeConfiguration(change: DidChangeConfigurationParams) {
+        if (this.hasConfigurationCapability) {
+            await this.reloadWorkspaces();
+            // Reset all cached document settings
+        } else {
+            // this.globalSettings = <ExampleSettings>(
+            //     (change.settings.languageServerExample || this.defaultSettings)
+            // );
+        }
     }
 
     /**
@@ -283,6 +354,9 @@ export class LanguageServer {
      * @param params
      */
     private async onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
+        //ensure programs are initialized
+        await this.waitAllProgramFirstRuns();
+
         this.connection.sendNotification('build-status', 'building');
 
         await Promise.all(
@@ -299,7 +373,10 @@ export class LanguageServer {
         this.connection.sendNotification('build-status', 'success');
     }
 
-    private onHover(params: TextDocumentPositionParams) {
+    private async onHover(params: TextDocumentPositionParams) {
+        //ensure programs are initialized
+        await this.waitAllProgramFirstRuns();
+
         let pathAbsolute = util.getPathFromUri(params.textDocument.uri);
         let hovers = Array.prototype.concat.call([],
             this.workspaces.map((x) => x.builder.program.getHover(pathAbsolute, params.position))
@@ -319,8 +396,9 @@ export class LanguageServer {
     private async validateTextDocument(textDocument: TextDocument): Promise<void> {
         this.connection.sendNotification('build-status', 'building');
 
-        //make sure the server has finished loading
+        //ensure programs are initialized
         await this.waitAllProgramFirstRuns();
+
         let filePath = Uri.parse(textDocument.uri).fsPath;
         let documentText = textDocument.getText();
 
@@ -399,4 +477,12 @@ export class LanguageServer {
         //save the new list of diagnostics
         this.latestDiagnosticsByFile = issuesByFile;
     }
+}
+
+interface Workspace {
+    firstRunPromise: Promise<any>;
+    builder: ProgramBuilder;
+    workspacePath: string;
+    isFirstRunComplete: boolean;
+    isFirstRunSuccessful: boolean;
 }
