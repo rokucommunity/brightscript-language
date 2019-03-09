@@ -1,4 +1,5 @@
 import * as brs from 'brs';
+const Lexeme = brs.lexer.Lexeme;
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
