@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.17] - 2019-03-07
 ## Fixed
- - Upgraded to brs@0.13.0-nightly.20190307 which fixed parse error with many of the assignment operators on objects. ([see this issue](https://github.com/sjbarag/brs/issues/173)).
+ - Upgraded to brs@0.13.0-nightly.20190307 which fixed assignment operator parse errors. ([see this issue](https://github.com/sjbarag/brs/issues/173)).
 
 
 
