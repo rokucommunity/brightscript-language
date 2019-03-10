@@ -73,15 +73,11 @@ export class BrsFile {
      * Calculate the AST for this file
      * @param fileContents
      */
-    public async parse(fileContents?: string) {
+    public async parse(fileContents: string) {
         if (this.wasProcessed) {
             throw new Error(`File was already processed. Create a new file instead. ${this.pathAbsolute}`);
         }
 
-        //load from disk if file contents are not provided
-        if (typeof fileContents !== 'string') {
-            fileContents = await util.getFileContents(this.pathAbsolute);
-        }
         //split the text into lines
         let lines = util.getLines(fileContents);
 

@@ -9,7 +9,6 @@ import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
-import util from '../util';
 import { BrsFile } from './BrsFile';
 
 let sinon = sinonImport.createSandbox();
@@ -221,16 +220,6 @@ describe('BrsFile', () => {
             } catch (e) {
                 //test passes
             }
-        });
-
-        it('loads file contents from disk when necessary', async () => {
-            let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
-            expect(stub.called).to.be.false;
-
-            let file = new BrsFile('abspath', 'relpath', program);
-            await file.parse();
-            expect(stub.called).to.be.true;
-
         });
 
         it('finds and registers duplicate callables', async () => {
