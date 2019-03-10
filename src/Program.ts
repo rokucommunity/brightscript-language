@@ -60,7 +60,7 @@ export class Program {
      * However, when running inside the LanguageServer, a second resolver will be added
      * to resolve the opened file contents from memory instead of going to disk.
      */
-    public fileResolvers = [] as Array<(pathAbsolute: string) => string | undefined | Thenable<string | undefined>>;
+    public fileResolvers = [] as FileResolver[];
 
     /**
      * Get the contents of the specified file as a string.
@@ -68,9 +68,9 @@ export class Program {
      * This allow the language server to provide file contents directly from memory.
      */
     public async getFileContents(pathAbsolute: string) {
-        let reversedResolvers = this.fileResolvers.reverse();
+        let reversedResolvers = [...this.fileResolvers].reverse();
         for (let fileResolver of reversedResolvers) {
-            let result = await Promise.resolve(fileResolver(pathAbsolute));
+            let result = await fileResolver(pathAbsolute);
             if (typeof result === 'string') {
                 return result;
             }
@@ -377,3 +377,5 @@ export class Program {
         this.platformContext.dispose();
     }
 }
+
+export type FileResolver = (pathAbsolute: string) => string | undefined | Thenable<string | undefined>;

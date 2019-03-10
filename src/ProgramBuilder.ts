@@ -7,7 +7,7 @@ import Uri from 'vscode-uri';
 
 import { BrsConfig } from './BrsConfig';
 import { Diagnostic } from './interfaces';
-import { Program } from './Program';
+import { FileResolver, Program } from './Program';
 import util from './util';
 import { Watcher } from './Watcher';
 
@@ -24,6 +24,14 @@ export class ProgramBuilder {
     private watcher: Watcher;
     public program: Program;
 
+    private fileResolvers = [] as FileResolver[];
+    public addFileResolver(fileResolver: FileResolver) {
+        this.fileResolvers.push(fileResolver);
+        if (this.program) {
+            this.program.fileResolvers.push(fileResolver);
+        }
+    }
+
     /**
      * The list of errors found in the program.
      */
@@ -38,6 +46,9 @@ export class ProgramBuilder {
         this.options = await util.normalizeAndResolveConfig(options);
 
         this.program = new Program(this.options);
+        //add the initial FileResolvers
+        this.program.fileResolvers.push(...this.fileResolvers);
+
         //parse every file in the entire project
         await this.loadAllFilesAST();
 

@@ -211,6 +211,15 @@ export class LanguageServer {
         }
         let builder = new ProgramBuilder();
 
+        //anytime the program wants to load a file, check with our in-memory document cache first
+        builder.addFileResolver((pathAbsolute) => {
+            let pathUri = Uri.file(pathAbsolute).toString();
+            let document = this.documents.get(pathUri);
+            if (document) {
+                return document.getText();
+            }
+        });
+
         //load config from client for this workspace
         let config = await this.connection.workspace.getConfiguration({
             scopeUri: Uri.parse(workspacePath).toString(),
@@ -309,7 +318,7 @@ export class LanguageServer {
                 if (idx > -1) {
                     //remove this workspace
                     this.workspaces.splice(idx, 1);
-                    //dispose this workspace
+                    //dispose this workspace's resources
                     workspace.builder.dispose();
                 }
                 //create a new workspace/brs program
@@ -331,8 +340,6 @@ export class LanguageServer {
 
         //send all diagnostics
         this.sendDiagnostics();
-
-        this.documents.all().forEach(this.validateTextDocument.bind(this));
     }
 
     private async onDidChangeConfiguration(change: DidChangeConfigurationParams) {

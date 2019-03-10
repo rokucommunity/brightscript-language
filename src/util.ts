@@ -52,7 +52,9 @@ class Util {
      * @param filePath
      */
     public async  getFileContents(filePath: string) {
-        return (await fsExtra.readFile(filePath)).toString();
+        let file = await fsExtra.readFile(filePath);
+        let fileContents = file.toString();
+        return fileContents;
     }
 
     /**
