@@ -25,6 +25,32 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not error with boolean in RHS of set statement', async () => {
+            await file.parse(`
+                sub main()
+                    foo = {
+                        bar: false
+                    }
+                    foo.bar = true and false or 3 > 4
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('does not error with boolean in RHS of set statement', async () => {
+            await file.parse(`
+                sub main()
+                    m = {
+                        isTrue: false
+                    }
+                    m.isTrue = true = true
+                    m.isTrue = m.isTrue = true
+                    m.isTrue = m.isTrue = m.isTrue
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('does not error with `stop` as object key', async () => {
             await file.parse(`
                 function GetObject()
