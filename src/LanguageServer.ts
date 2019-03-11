@@ -250,7 +250,8 @@ export class LanguageServer {
             firstRunPromise: firstRunPromise,
             workspacePath: workspacePath,
             isFirstRunComplete: false,
-            isFirstRunSuccessful: false
+            isFirstRunSuccessful: false,
+            configFilePath: configFilePath
         } as Workspace;
         this.workspaces.push(newWorkspace);
         firstRunPromise.then(() => {
@@ -365,6 +366,18 @@ export class LanguageServer {
         await this.waitAllProgramFirstRuns();
 
         this.connection.sendNotification('build-status', 'building');
+
+        //reload any workspace whose brsconfig.json file has changed
+        {
+            let workspacesToReload = [] as Workspace[];
+            let filePaths = params.changes.map((x) => util.getPathFromUri(x.uri));
+            for (let workspace of this.workspaces) {
+                if (filePaths.indexOf(workspace.configFilePath) > -1) {
+                    workspacesToReload.push(workspace);
+                }
+            }
+            await this.reloadWorkspaces(workspacesToReload);
+        }
 
         await Promise.all(
             this.workspaces.map((x) => x.builder.handleFileChanges(params.changes))
@@ -492,4 +505,5 @@ interface Workspace {
     workspacePath: string;
     isFirstRunComplete: boolean;
     isFirstRunSuccessful: boolean;
+    configFilePath?: string;
 }
