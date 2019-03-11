@@ -517,4 +517,5 @@ class Util {
     }
 }
 
-export default new Util();
+export let util = new Util();
+export default util;
