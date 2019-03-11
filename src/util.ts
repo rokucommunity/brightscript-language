@@ -117,6 +117,9 @@ class Util {
                 result = Object.assign({}, baseProjectConfig, projectConfig);
             } else {
                 result = projectConfig;
+                let ancestors = parentProjectPaths ? parentProjectPaths : [];
+                ancestors.push(configFilePath);
+                (result as any)._ancestors = parentProjectPaths;
             }
 
             //make any paths in the config absolute (relative to the CURRENT config file)
