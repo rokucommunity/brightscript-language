@@ -4,10 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [0.1.20] - 2019-03-11
+### Fixed
+ - targeted EXACTLY brs@0.13.0-nightly.20190310 to fix a weird npm dependency issue that is resolving to 0.13.0-rc.3 for some reason.
+
+
+
+### [0.1.19] - 2019-03-10
+### Fixed
+ - Upgraded to brs@0.13.0-nightly.20190310 to fix RHS boolean assignment parse errors (see [this issue](https://github.com/sjbarag/brs/issues/156))
+ - LanguageServer
+   - hover bug in multi-root workspace that was only showing hovers for the first workspace
+   - support loading brsconfig.json path as a setting from a connected languageclient (i.e. vscode)
+   - reload workspace if brsconfig.json has changed
+
+
+
+## [0.1.18] - 2019-03-08
+### Fixed
+ - issue where only top-level variables were being found. Now all variables are found throughout the entire function scope.  
+ - runtime error when getting hover result.
+ - issue with hover that would not find top-level function parameter types.
 
 
 ## [0.1.17] - 2019-03-08
-## Fixed
+### Fixed
  - Upgraded to brs@0.13.0-nightly.20190307 which fixed assignment operator parse errors. ([see this issue](https://github.com/sjbarag/brs/issues/173)).
 
 
@@ -53,6 +74,9 @@ Initial project release.
 
 
 
+[0.1.20]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.19...v0.1.20
+[0.1.19]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.18...v0.1.19
+[0.1.18]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.14...v0.1.15

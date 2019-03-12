@@ -1,6 +1,10 @@
 
 export interface BrsConfig {
     /**
+     * The inheritance tree for all parent configs used to generate this config. Do not set this, it is computed.
+     */
+    _ancestors?: string[];
+    /**
      * A path to a project file. This is really only passed in from the command line, and should not be present in brsconfig.json files
      */
     project?: string;

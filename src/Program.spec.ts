@@ -31,6 +31,45 @@ describe('Program', () => {
         });
     });
     describe('addFile', () => {
+        describe('fileResolvers', () => {
+            it('loads brs file contents from disk when necessary', async () => {
+                let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
+                expect(stub.called).to.be.false;
+
+                //resolve lib.brs from memory instead of going to disk
+                program.fileResolvers.push((pathAbsolute) => {
+                    if (pathAbsolute === n(`${rootDir}/source/lib.brs`)) {
+                        return `'comment`;
+                    }
+                });
+                await program.addOrReplaceFile(`${rootDir}/source/lib.brs`);
+
+                expect(stub.called).to.be.false;
+
+                //load main.brs from disk
+                await program.addOrReplaceFile(`${rootDir}/source/main.brs`);
+                expect(stub.called).to.be.true;
+            });
+
+            it('loads xml file contents from disk when necessary', async () => {
+                let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
+                expect(stub.called).to.be.false;
+
+                program.fileResolvers.push((pathAbsolute) => {
+                    if (pathAbsolute === n(`${rootDir}/components/A.xml`)) {
+                        return `<?xml version="1.0" encoding="utf-8" ?>`;
+                    }
+                });
+                await program.addOrReplaceFile(`${rootDir}/components/A.xml`);
+                expect(stub.called).to.be.false;
+
+                await program.addOrReplaceFile(`${rootDir}/components/B.brs`);
+                expect(stub.called).to.be.true;
+
+            });
+
+        });
+
         describe('parseError', () => {
             let orig;
             beforeEach(() => {

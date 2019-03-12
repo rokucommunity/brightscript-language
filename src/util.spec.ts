@@ -30,6 +30,23 @@ describe('util', () => {
         process.chdir(cwd);
     });
 
+    describe('loadConfigFile', () => {
+        it('returns proper list of ancestor project paths', async () => {
+            vfs[n(`${cwd}/child.json`)] = `{"extends": "parent.json"}`;
+            vfs[n(`${cwd}/parent.json`)] = `{"extends": "grandparent.json"}`;
+            vfs[n(`${cwd}/grandparent.json`)] = `{"extends": "greatgrandparent.json"}`;
+            vfs[n(`${cwd}/greatgrandparent.json`)] = `{}`;
+            let config = await util.loadConfigFile('child.json');
+            expect(config._ancestors).to.eql([n(`${cwd}/child.json`), n(`${cwd}/parent.json`), n(`${cwd}/grandparent.json`), n(`${cwd}/greatgrandparent.json`)]);
+        });
+
+        it('returns empty ancestors list for non-extends files', async () => {
+            vfs[n(`${cwd}/child.json`)] = `{}`;
+            let config = await util.loadConfigFile('child.json');
+            expect(config._ancestors).to.eql([n(`${cwd}/child.json`)]);
+        });
+    });
+
     describe('getConfigFilePath', async () => {
         it('returns undefined when it does not find the file', async () => {
             let configFilePath = await util.getConfigFilePath(path.join(process.cwd(), 'testProjects', 'project1'));

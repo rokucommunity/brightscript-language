@@ -6,7 +6,6 @@ import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-lang
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { Diagnostic, FileReference } from '../interfaces';
 import { Program } from '../Program';
-import util from '../util';
 import { BrsFile } from './BrsFile';
 import { XmlFile } from './XmlFile';
 let n = path.normalize;
@@ -142,16 +141,6 @@ describe('XmlFile', () => {
             } catch (e) {
                 //test passes
             }
-        });
-
-        it('loads file contents from disk when necessary', async () => {
-            let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
-            expect(stub.called).to.be.false;
-
-            let file = new XmlFile('abspath', 'relpath', null);
-            await file.parse();
-            expect(stub.called).to.be.true;
-
         });
 
         it('resolves relative paths', async () => {

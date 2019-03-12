@@ -52,7 +52,9 @@ class Util {
      * @param filePath
      */
     public async  getFileContents(filePath: string) {
-        return (await fsExtra.readFile(filePath)).toString();
+        let file = await fsExtra.readFile(filePath);
+        let fileContents = file.toString();
+        return fileContents;
     }
 
     /**
@@ -115,6 +117,9 @@ class Util {
                 result = Object.assign({}, baseProjectConfig, projectConfig);
             } else {
                 result = projectConfig;
+                let ancestors = parentProjectPaths ? parentProjectPaths : [];
+                ancestors.push(configFilePath);
+                (result as any)._ancestors = parentProjectPaths;
             }
 
             //make any paths in the config absolute (relative to the CURRENT config file)
@@ -207,7 +212,7 @@ class Util {
      * @param params
      */
     public stringFormat(subject: string, ...args) {
-        return subject.replace(/{(\d+)}/g, function(match, num) {
+        return subject.replace(/{(\d+)}/g, (match, num) => {
             return typeof args[num] !== 'undefined' ? args[num] : match;
         });
     }
@@ -443,7 +448,7 @@ class Util {
      */
     public parseXml(text: string) {
         return new Promise<any>((resolve, reject) => {
-            xml2js.parseString(text, function(err, data) {
+            xml2js.parseString(text, (err, data) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -512,4 +517,5 @@ class Util {
     }
 }
 
-export default new Util();
+export let util = new Util();
+export default util;

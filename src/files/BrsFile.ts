@@ -1,4 +1,5 @@
 import * as brs from 'brs';
+const Lexeme = brs.lexer.Lexeme;
 import * as path from 'path';
 import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
@@ -56,7 +57,7 @@ export class BrsFile {
      * The AST for this file
      */
     private ast: brs.parser.Stmt.Statement[];
-    private tokens: brs.lexer.Token[];
+    private tokens = [] as brs.lexer.Token[];
 
     /**
      * Get the token at the specified position
@@ -73,15 +74,11 @@ export class BrsFile {
     /**
      * Calculate the AST for this file
      */
-    public async parse(fileContents?: string) {
+    public async parse(fileContents: string) {
         if (this.wasProcessed) {
             throw new Error(`File was already processed. Create a new file instead. ${this.pathAbsolute}`);
         }
 
-        //load from disk if file contents are not provided
-        if (typeof fileContents !== 'string') {
-            fileContents = await util.getFileContents(this.pathAbsolute);
-        }
         //split the text into lines
         let lines = util.getLines(fileContents);
 
@@ -135,11 +132,16 @@ export class BrsFile {
     private createFunctionScopes(lines: string[], statements: any, parent?: FunctionScope) {
         //find every function
         let functions = util.findAllDeep<brs.parser.Expr.Function>(this.ast, (x) => x instanceof brs.parser.Expr.Function);
+        let nameListByScope = new Map<FunctionScope, NameList<Assignment>>();
 
         //create a functionScope for every function
         for (let kvp of functions) {
             let func = kvp.value;
             let scope = new FunctionScope(func);
+
+            //keeps track of assignments for this function
+            let nameList = new NameList<Assignment>();
+            nameListByScope.set(scope, nameList);
 
             let ancestors = this.getAncestors(statements, kvp.key);
 
@@ -164,9 +166,12 @@ export class BrsFile {
 
             //compute the range of this func
             scope.bodyRange = util.getBodyRangeForFunc(func);
-
-            //keep track of every variable so we know which assignemnts are the "initialization" and which ones are "set new value"
-            let nameList = new NameList<Assignment>();
+            scope.range = Range.create(
+                func.keyword.location.start.line - 1,
+                func.keyword.location.start.column,
+                func.end.location.end.line - 1,
+                func.end.location.end.column
+            );
 
             //add every parameter
             for (let param of func.parameters) {
@@ -175,7 +180,7 @@ export class BrsFile {
                     isOptional: !!param.defaultValue,
                     name: param.name.text,
                     //TODO which is it? `type` or `kind`?
-                    type: util.valueKindToBrsType(param.type || (param as any).kind)
+                    type: util.valueKindToBrsType(param.type.kind)
                 } as CallableParam;
 
                 scope.parameters.push(callableParam);
@@ -191,55 +196,73 @@ export class BrsFile {
                 nameList.add(assignment);
                 scope.assignments.push(assignment);
             }
-            //add every variable assignment to the scope
-            for (let statement of func.body.statements) {
-                //if this is a variable assignment
-                if (statement instanceof brs.parser.Stmt.Assignment) {
+            //variable assignments will be handled outside of the loop
 
-                    let previous: Assignment;
-                    //when in strict mode, the variable's FIRST assignment is enforced throughout all assignments
-                    if (this.program.options.strictTypeChecking) {
-                        previous = nameList.getFirst(statement.name.text);
-                    } else {
-                        //in non-strict mode, the type is fluid
-                        previous = nameList.getLast(statement.name.text);
-                    }
-                    //incoming type should be set to uninitialized when this is the first assignment
-                    let incomingType = previous ? previous.incomingType : new UninitializedType();
-                    let assignment = {
-                        nameRange: util.locationToRange(statement.name.location),
-                        lineIndex: statement.name.location.start.line - 1,
-                        name: statement.name.text,
-                        currentType: incomingType,
-                        incomingType: this.getBRSTypeFromAssignment(statement, scope)
-                    } as Assignment;
-
-                    //only do type checking in strict mode
-                    if (this.program.options.strictTypeChecking) {
-                        if (assignment.incomingType.isAssignableTo(assignment.currentType) === false) {
-                            this.diagnostics.push({
-                                code: diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.code,
-                                message: util.stringFormat(
-                                    diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.message,
-                                    assignment.incomingType.toString(),
-                                    assignment.currentType.toString()
-                                ),
-                                file: this,
-                                location: assignment.nameRange,
-                                severity: 'error'
-                            });
-                        }
-                    }
-
-                    scope.assignments.push(assignment);
-                    nameList.add(assignment);
-                }
-                //TODO support things inside of loops, conditionals, etc
-            }
             this.scopesByFunc.set(func, scope);
 
             //find every statement in the scope
             this.functionScopes.push(scope);
+        }
+        this.setAssignmentsForFunctionScopes(nameListByScope);
+    }
+
+    private setAssignmentsForFunctionScopes(nameListByScope: Map<FunctionScope, NameList<Assignment>>) {
+
+        //keep track of every variable so we know which assignemnts are the "initialization" and which ones are "set new value"
+
+        //find every variable assignment in the whole file
+        let assignmentStatements = util.findAllDeep<brs.parser.Stmt.Assignment>(this.ast, (x) => x instanceof brs.parser.Stmt.Assignment);
+
+        for (let kvp of assignmentStatements) {
+            let statement = kvp.value;
+            let nameRange = util.locationToRange(statement.name.location);
+
+            //find this statement's function scope
+            let scope = this.getFunctionScopeAtPosition(nameRange.start);
+
+            //skip variable declarations that are outside of any scope
+            if (!scope) {
+                continue;
+            }
+            let nameList = nameListByScope.get(scope);
+
+            let previous: Assignment;
+            //when in strict mode, the variable's FIRST assignment is enforced throughout all assignments
+            if (this.program.options.strictTypeChecking) {
+                previous = nameList.getFirst(statement.name.text);
+            } else {
+                //in non-strict mode, the type is fluid
+                previous = nameList.getLast(statement.name.text);
+            }
+            //incoming type should be set to uninitialized when this is the first assignment
+            let incomingType = previous ? previous.incomingType : new UninitializedType();
+            let assignment = {
+                nameRange: util.locationToRange(statement.name.location),
+                lineIndex: statement.name.location.start.line - 1,
+                name: statement.name.text,
+                currentType: incomingType,
+                incomingType: this.getBRSTypeFromAssignment(statement, scope)
+            } as Assignment;
+
+            //only do type checking in strict mode
+            if (this.program.options.strictTypeChecking) {
+                if (assignment.incomingType.isAssignableTo(assignment.currentType) === false) {
+                    this.diagnostics.push({
+                        code: diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.code,
+                        message: util.stringFormat(
+                            diagnosticMessages.Type_a_is_not_assignable_to_type_b_1014.message,
+                            assignment.incomingType.toString(),
+                            assignment.currentType.toString()
+                        ),
+                        file: this,
+                        location: assignment.nameRange,
+                        severity: 'error'
+                    });
+                }
+            }
+
+            scope.assignments.push(assignment);
+            nameList.add(assignment);
         }
     }
 
@@ -448,7 +471,7 @@ export class BrsFile {
             functionScopes = this.functionScopes;
         }
         for (let scope of functionScopes) {
-            if (util.rangeContains(scope.bodyRange, position)) {
+            if (util.rangeContains(scope.range, position)) {
                 //see if any of that scope's children match the position also, and give them priority
                 let childScope = this.getFunctionScopeAtPosition(position, scope.childrenScopes);
                 if (childScope) {
@@ -484,8 +507,16 @@ export class BrsFile {
         //get the token at the position
         let token = this.getTokenAt(position);
 
-        //if no token found or token does not look like an identifier, there's nothing to show
-        if (!token || /[\w\d_]+/gi.test(token.text) === false) {
+        let hoverTokenTypes = [
+            Lexeme.Identifier,
+            Lexeme.Function,
+            Lexeme.EndFunction,
+            Lexeme.Sub,
+            Lexeme.EndSub
+        ];
+
+        //throw out invalid tokens and the wrong kind of tokens
+        if (!token || hoverTokenTypes.indexOf(token.kind) === -1) {
             return null;
         }
 

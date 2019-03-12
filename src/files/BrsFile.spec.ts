@@ -10,7 +10,6 @@ import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
-import util from '../util';
 import { BrsFile } from './BrsFile';
 
 let sinon = sinonImport.createSandbox();
@@ -27,6 +26,32 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not error with boolean in RHS of set statement', async () => {
+            await file.parse(`
+                sub main()
+                    foo = {
+                        bar: false
+                    }
+                    foo.bar = true and false or 3 > 4
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('does not error with boolean in RHS of set statement', async () => {
+            await file.parse(`
+                sub main()
+                    m = {
+                        isTrue: false
+                    }
+                    m.isTrue = true = true
+                    m.isTrue = m.isTrue = true
+                    m.isTrue = m.isTrue = m.isTrue
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('does not error with `stop` as object key', async () => {
             await file.parse(`
                 function GetObject()
@@ -222,16 +247,6 @@ describe('BrsFile', () => {
             } catch (e) {
                 //test passes
             }
-        });
-
-        it('loads file contents from disk when necessary', async () => {
-            let stub = sinon.stub(util, 'getFileContents').returns(Promise.resolve(''));
-            expect(stub.called).to.be.false;
-
-            let file = new BrsFile('abspath', 'relpath', program);
-            await file.parse();
-            expect(stub.called).to.be.true;
-
         });
 
         it('finds and registers duplicate callables', async () => {
@@ -516,6 +531,15 @@ describe('BrsFile', () => {
     });
 
     describe('createFunctionScopes', async () => {
+        it('creates range properly', async () => {
+            await file.parse(`
+                sub Main()
+                    name = 'bob"
+                end sub
+            `);
+            expect(file.functionScopes[0].range).to.eql(Range.create(1, 16, 3, 23));
+        });
+
         it('creates scopes for parent and child functions', async () => {
             await file.parse(`
                 sub Main()
@@ -529,6 +553,22 @@ describe('BrsFile', () => {
                 end sub
             `);
             expect(file.functionScopes).to.length(3);
+        });
+
+        it('outer function does not capture inner statements', async () => {
+            await file.parse(`
+                sub Main()
+                    name = "john"
+                    sayHi = sub()
+                        age = 12
+                    end sub
+                end sub
+            `);
+            let outerScope = file.getFunctionScopeAtPosition(Position.create(2, 25));
+            expect(outerScope.assignments).to.be.lengthOf(2);
+
+            let innerScope = file.getFunctionScopeAtPosition(Position.create(4, 10));
+            expect(innerScope.assignments).to.be.lengthOf(1);
         });
 
         it('finds variables declared in function scopes', async () => {
@@ -565,6 +605,19 @@ describe('BrsFile', () => {
             });
             expect(file.functionScopes[2].assignments[0].nameRange.start.line).to.equal(7);
             expect(file.functionScopes[2].assignments[0].incomingType).instanceof(StringType);
+        });
+
+        it('finds variable declarations inside of if statements', async () => {
+            await file.parse(`
+                sub Main()
+                    if true then
+                        theLength = 1
+                    end if
+                end sub
+            `);
+            let scope = file.getFunctionScopeAtPosition(Position.create(3, 0));
+            expect(scope.assignments[0]).to.exist;
+            expect(scope.assignments[0].name).to.equal('theLength');
         });
 
         it('finds value from global return', async () => {
@@ -661,6 +714,40 @@ describe('BrsFile', () => {
     });
 
     describe('getHover', () => {
+        it('works for param types', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub DoSomething(name as string)
+                    name = 1
+                    sayMyName = function(name as string)
+                    end function
+                end sub
+            `);
+
+            //hover over the `name = 1` line
+            let hover = file.getHover(Position.create(2, 24));
+            expect(hover).to.exist;
+            expect(hover.range).to.eql(Range.create(2, 20, 2, 24));
+
+            //hover over the `name` parameter declaration
+            hover = file.getHover(Position.create(1, 34));
+            expect(hover).to.exist;
+            expect(hover.range).to.eql(Range.create(1, 32, 1, 36));
+        });
+
+        //ignore this for now...it's not a huge deal
+        it.skip('does not match on keywords or data types', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main(name as string)
+                end sub
+                sub as()
+                end sub
+            `);
+            //hover over the `as`
+            expect(file.getHover(Position.create(1, 31))).not.to.exist;
+            //hover over the `string`
+            expect(file.getHover(Position.create(1, 36))).not.to.exist;
+        });
+
         it('finds declared function', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 function Main(count = 1)

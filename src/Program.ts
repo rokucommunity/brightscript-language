@@ -47,6 +47,35 @@ export class Program {
         //the global context inherits from platform context
         globalContext.attachParentContext(this.platformContext);
         this.contexts[globalContext.name] = globalContext;
+
+        //add the default file resolver
+        this.fileResolvers.push((pathAbsolute) => {
+            return util.getFileContents(pathAbsolute);
+        });
+    }
+
+    /**
+     * A list of functions that will be used to load file contents.
+     * In most cases, there will only be the "read from filesystem" resolver.
+     * However, when running inside the LanguageServer, a second resolver will be added
+     * to resolve the opened file contents from memory instead of going to disk.
+     */
+    public fileResolvers = [] as FileResolver[];
+
+    /**
+     * Get the contents of the specified file as a string.
+     * This walks backwards through the file resolvers until we get a value.
+     * This allow the language server to provide file contents directly from memory.
+     */
+    public async getFileContents(pathAbsolute: string) {
+        let reversedResolvers = [...this.fileResolvers].reverse();
+        for (let fileResolver of reversedResolvers) {
+            let result = await fileResolver(pathAbsolute);
+            if (typeof result === 'string') {
+                return result;
+            }
+        }
+        throw new Error(`Could not load file "${pathAbsolute}"`);
     }
 
     /**
@@ -133,6 +162,11 @@ export class Program {
      */
     public async addOrReplaceFile(pathAbsolute: string, fileContents?: string) {
         pathAbsolute = util.normalizeFilePath(pathAbsolute);
+
+        //load the file contents by file path if not provided
+        if (fileContents === undefined) {
+            fileContents = await this.getFileContents(pathAbsolute);
+        }
 
         //if the file is already loaded, remove it
         if (this.hasFile(pathAbsolute)) {
@@ -343,3 +377,5 @@ export class Program {
         this.platformContext.dispose();
     }
 }
+
+export type FileResolver = (pathAbsolute: string) => string | undefined | Thenable<string | undefined>;
