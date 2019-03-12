@@ -59,5 +59,16 @@ export let diagnosticMessages = {
     File_not_referenced_by_any_file_1013: {
         message: 'This file is not referenced by any other file in the project.',
         code: 1013
+    },
+    Unknown_diagnostic_code_1014: {
+        message: 'Unknown diagnostic code {0}',
+        code: 1014
     }
 };
+
+let allCodes = [];
+for (let key in diagnosticMessages) {
+    allCodes.push(diagnosticMessages[key].code);
+}
+
+export let diagnosticCodes = allCodes;

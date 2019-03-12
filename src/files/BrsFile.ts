@@ -4,8 +4,9 @@ import * as path from 'path';
 import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vscode-languageserver';
 
 import { Context } from '../Context';
+import { diagnosticCodes, diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Callable, CallableArg, CallableParam, Diagnostic, ExpressionCall } from '../interfaces';
+import { Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, ExpressionCall } from '../interfaces';
 import { Program } from '../Program';
 import { BrsType } from '../types/BrsType';
 import { DynamicType } from '../types/DynamicType';
@@ -45,6 +46,8 @@ export class BrsFile {
         return [...this.diagnostics];
     }
 
+    public commentFlags = [] as CommentFlag[];
+
     public callables = [] as Callable[];
 
     public functionCalls = [] as ExpressionCall[];
@@ -80,6 +83,8 @@ export class BrsFile {
 
         //split the text into lines
         let lines = util.getLines(fileContents);
+
+        this.getIgnores(lines);
 
         let lexResult = brs.lexer.Lexer.scan(fileContents);
 
@@ -121,6 +126,110 @@ export class BrsFile {
         }
 
         return standardizedDiagnostics;
+    }
+
+    /**
+     * Find all comment flags in the source code. These enable or disable diagnostic messages.
+     * @param lines - the lines of the program
+     */
+    public getIgnores(lines: string[]) {
+        let allCodesExcept1014 = diagnosticCodes.filter((x) => x !== diagnosticMessages.Unknown_diagnostic_code_1014.code);
+        this.commentFlags = [];
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            let line = lines[lineIndex];
+            let nextLineLength = lines[lineIndex + 1] ? lines[lineIndex + 1].length : Number.MAX_SAFE_INTEGER;
+
+            //brs:disable-next-line and brs:disable-line
+            {
+                let searches = [{
+                    text: 'brs:disable-next-line',
+                    lineOffset: 1,
+                    getAffectedRange: () => {
+                        return Range.create(lineIndex + 1, 0, lineIndex + 1, nextLineLength);
+                    }
+                }, {
+                    text: 'brs:disable-line',
+                    lineOffset: 0,
+                    getAffectedRange: (idx: number) => {
+                        return Range.create(lineIndex, 0, lineIndex, idx);
+                    }
+                }];
+
+                for (let search of searches) {
+                    //find the disable-next-line
+                    let idx = line.indexOf(search.text);
+                    if (idx > -1) {
+                        let affectedRange = search.getAffectedRange(idx);
+                        let stmt = line.substring(idx).trim();
+                        stmt = stmt.replace(search.text, '');
+                        stmt = stmt.trim();
+
+                        let commentFlag: CommentFlag;
+
+                        //statement to disable EVERYTHING
+                        if (stmt.length === 0) {
+                            commentFlag = {
+                                file: this,
+                                //null means all codes
+                                codes: null,
+                                range: Range.create(lineIndex, idx, lineIndex, idx + search.text.length),
+                                affectedRange: affectedRange
+                            };
+
+                            //disable specific rules on the next line
+                        } else if (stmt.indexOf(':') === 0) {
+                            stmt = stmt.replace(':', '');
+                            let codeStrings = stmt.split(' ');
+                            let codes = [] as number[];
+                            //starting position + magic text + 1 for the colon
+                            let offset = idx + search.text.length + 1;
+                            for (let code of codeStrings) {
+                                let trimmedCode = code.trim();
+                                let codeInt = parseInt(trimmedCode);
+                                //skip whitespace entries
+                                if (trimmedCode.length === 0) {
+                                    //skip
+
+                                    //add a warning for unknown codes
+                                } else if (isNaN(codeInt)) {
+                                    this.diagnostics.push({
+                                        code: diagnosticMessages.Unknown_diagnostic_code_1014.code,
+                                        message: util.stringFormat(diagnosticMessages.Unknown_diagnostic_code_1014.message, trimmedCode),
+                                        file: this,
+                                        location: Range.create(lineIndex, offset, lineIndex, offset + code.length),
+                                        severity: 'warning'
+                                    });
+                                    offset += code.length;
+
+                                } else {
+                                    codes.push(codeInt);
+                                }
+                            }
+                            if (codes.length > 0) {
+                                commentFlag = {
+                                    file: this,
+                                    codes: codes,
+                                    range: Range.create(lineIndex, idx, lineIndex, line.length),
+                                    affectedRange: affectedRange,
+                                };
+                            }
+                        }
+
+                        if (commentFlag) {
+                            this.commentFlags.push(commentFlag);
+
+                            //add an ignore for everything in this comment except for Unknown_diagnostic_code_1014
+                            this.commentFlags.push({
+                                affectedRange: commentFlag.range,
+                                range: commentFlag.range,
+                                codes: allCodesExcept1014,
+                                file: this
+                            });
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public scopesByFunc = new Map<brs.parser.Expr.Function, FunctionScope>();

@@ -2,7 +2,7 @@ import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
-import { Callable, CallableArg, Diagnostic, VariableDeclaration } from '../interfaces';
+import { Callable, CallableArg, CommentFlag, Diagnostic, VariableDeclaration } from '../interfaces';
 import { Program } from '../Program';
 import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
@@ -10,6 +10,7 @@ import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
 import { BrsFile } from './BrsFile';
+import util from '../util';
 
 let sinon = sinonImport.createSandbox();
 describe('BrsFile', () => {
@@ -22,6 +23,98 @@ describe('BrsFile', () => {
     });
     afterEach(() => {
         sinon.restore();
+    });
+
+    describe('comment flags', () => {
+        describe('brs:disable-next-line', () => {
+            it('works for all', async () => {
+                let file: BrsFile = (await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub Main()
+                        'brs:disable-next-line
+                        name = "bob
+                    end sub
+                `) as any);
+                expect(file.commentFlags[0]).to.exist;
+                expect(file.commentFlags[0]).to.deep.include({
+                    codes: null,
+                    range: Range.create(2, 25, 2, 46),
+                    affectedRange: Range.create(3, 0, 3, 35)
+                } as CommentFlag);
+                await program.validate();
+                //the "unterminated string" error should be filtered out
+                expect(program.getDiagnostics()).to.be.lengthOf(0);
+            });
+
+            it('works for specific codes', async () => {
+                let file: BrsFile = (await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub Main()
+                        'brs:disable-next-line: 1000, 1001
+                        name = "bob
+                    end sub
+                `) as any);
+                expect(file.commentFlags[0]).to.exist;
+                expect(file.commentFlags[0]).to.deep.include({
+                    codes: [1000, 1001],
+                    range: Range.create(2, 25, 2, 58),
+                    affectedRange: Range.create(3, 0, 3, 35)
+                } as CommentFlag);
+                //the "unterminated string" error should be filtered out
+                expect(program.getDiagnostics()).to.be.lengthOf(0);
+            });
+        });
+
+        describe('brs:disable-line', () => {
+            it('works for all', async () => {
+                let file: BrsFile = (await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub Main()
+                        name = "bob 'brs:disable-line
+                    end sub
+                `) as any);
+                expect(file.commentFlags[0]).to.exist;
+                expect(file.commentFlags[0]).to.deep.include({
+                    codes: null,
+                    range: Range.create(2, 37, 2, 53),
+                    affectedRange: Range.create(2, 0, 2, 37)
+                } as CommentFlag);
+                await program.validate();
+                //the "unterminated string" error should be filtered out
+                expect(program.getDiagnostics()).to.be.lengthOf(0);
+            });
+
+            it('works for specific codes', async () => {
+                await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub main()
+                        'should not have any errors
+                        DoSomething(1) 'brs:disable-line:1002
+                        'should have an error because the param-count error is not being suppressed
+                        DoSomething(1) 'brs:disable-line:1000
+                    end sub
+                    sub DoSomething()
+                    end sub
+                `);
+
+                await program.validate();
+
+                expect(program.getDiagnostics()).to.be.lengthOf(1);
+                expect(program.getDiagnostics()[0]).to.deep.include({
+                    location: Range.create(5, 24, 5, 35)
+                } as Diagnostic);
+            });
+
+            it('handles the erraneous `stop` keyword', async () => {
+                //the current version of BRS causes parse errors after the `parse` keyword, showing error in comments
+                //the program should ignore all diagnostics found in brs:* comment lines EXCEPT
+                //for the diagnostics about using unknown error codes
+                await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub main()
+                        stop 'brs:disable-line
+                        print "need a valid line to fix stop error"
+                    end sub
+                `);
+                await program.validate();
+                expect(program.getDiagnostics()).to.be.lengthOf(0);
+            });
+        });
     });
 
     describe('parse', () => {
