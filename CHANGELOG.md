@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+
+### [0.1.21] - 2019-03-12
+### Added
+ - the ability to supress warnings and errors on a per-line basis with `brs:disable-next-line` and `brs:disable-line`. 
+
+
+
 ### [0.1.20] - 2019-03-11
 ### Fixed
  - targeted EXACTLY brs@0.13.0-nightly.20190310 to fix a weird npm dependency issue that is resolving to 0.13.0-rc.3 for some reason.
