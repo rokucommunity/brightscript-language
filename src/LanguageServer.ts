@@ -12,6 +12,7 @@ import {
     InitializeParams,
     ProposedFeatures,
     ServerCapabilities,
+    SignatureHelp,
     TextDocument,
     TextDocumentPositionParams,
     TextDocuments,
@@ -71,6 +72,8 @@ export class LanguageServer {
         // the completion list.
         this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
 
+        this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
+
         this.connection.onHover(this.onHover.bind(this));
 
         /*
@@ -120,7 +123,10 @@ export class LanguageServer {
                 completionProvider: {
                     resolveProvider: true
                 },
-                hoverProvider: true
+                hoverProvider: true,
+                signatureHelpProvider: {
+                    triggerCharacters: ['(', ',']
+                }
             } as ServerCapabilities
         };
     }
@@ -162,8 +168,11 @@ export class LanguageServer {
                 await this.createWorkspaces(evt.added.map((x) => util.getPathFromUri(x.uri)));
             });
         }
-        await this.waitAllProgramFirstRuns();
-        this.sendDiagnostics();
+
+        //don't wait for the first runs in this thread...it slows down the language server startup
+        this.waitAllProgramFirstRuns().then(() => {
+            this.sendDiagnostics();
+        });
     }
 
     /**
@@ -286,6 +295,28 @@ export class LanguageServer {
             result.push(completion);
         }
         return result;
+    }
+
+    /**
+     * Provide function signatures
+     * @param params
+     */
+    private async onSignatureHelp(params: TextDocumentPositionParams) {
+        await this.waitAllProgramFirstRuns();
+        let filePath = util.getPathFromUri(params.textDocument.uri);
+
+        let signatureHelps = [] as SignatureHelp[];
+        for (let workspace of this.workspaces) {
+            if (workspace.builder.program.hasFile(filePath)) {
+                signatureHelps.push(
+                    //get the signature help from this prorgam
+                    workspace.builder.program.getSignatureHelp(filePath, params.position)
+                );
+            }
+        }
+
+        //vscode only accepts a single signature help, so just return the signature help from the first program.
+        return signatureHelps[0];
     }
 
     /**

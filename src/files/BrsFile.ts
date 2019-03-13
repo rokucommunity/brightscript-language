@@ -403,7 +403,9 @@ export class BrsFile {
                     name: param.name.text,
                     type: util.valueKindToBrsType(param.type.kind),
                     isOptional: !!param.defaultValue,
-                    isRestArgument: false
+                    isRestArgument: false,
+                    //TODO populate this from brsdoc
+                    documentation: null
                 };
                 params.push(callableParam);
                 let isRequired = !param.defaultValue;
@@ -541,6 +543,15 @@ export class BrsFile {
             });
         }
         return results;
+    }
+
+    public getFunctionCallAtPosition(position: Position): FunctionCall | undefined {
+        for (let call of this.functionCalls) {
+            //TODO this won't support things like CallA(CallB()), so you should fix that
+            if (util.rangeContains(call.range, position)) {
+                return call;
+            }
+        }
     }
 
     public getHover(position: Position): Hover {

@@ -68,6 +68,10 @@ export interface CallableArg {
 export interface CallableParam {
     name: string;
     type: BrsType;
+    /**
+     * Documentation about this parameter. Derived from brsdoc comments above the method.
+     */
+    documentation: string;
     isOptional?: boolean;
     /**
      * Indicates that an unlimited number of arguments can be passed in

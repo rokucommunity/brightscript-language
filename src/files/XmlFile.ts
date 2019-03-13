@@ -4,7 +4,7 @@ import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vsco
 
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Callable, Diagnostic, ExpressionCall, File, FileReference } from '../interfaces';
+import { Callable, Diagnostic, FunctionCall, File, FileReference } from '../interfaces';
 import { Program } from '../Program';
 import util from '../util';
 
@@ -45,7 +45,7 @@ export class XmlFile {
     public callables = [] as Callable[];
 
     //TODO implement the xml CDATA parsing, which would populate this list
-    public functionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as FunctionCall[];
 
     public functionScopes = [] as FunctionScope[];
 
@@ -383,6 +383,10 @@ export class XmlFile {
     public getHover(position: Position): Hover {
         //TODO implement
         // let result = {} as Hover;
+        return null;
+    }
+
+    public getFunctionCallAtPosition(position: Position): FunctionCall | undefined {
         return null;
     }
 

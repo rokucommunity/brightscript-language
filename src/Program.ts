@@ -1,13 +1,13 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
-import { Position, Range } from 'vscode-languageserver';
+import { ParameterInformation, Position, Range, SignatureHelp } from 'vscode-languageserver';
 
 import { BrsConfig } from './BrsConfig';
 import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
-import { Diagnostic } from './interfaces';
+import { Callable, Diagnostic } from './interfaces';
 import { platformFile } from './platformCallables';
 import util from './util';
 import { XmlContext } from './XmlContext';
@@ -354,6 +354,56 @@ export class Program {
         let fileCompletions = file.getCompletions(position, context);
         let contextCompletions = context.getCallablesAsCompletions();
         return [...fileCompletions, ...contextCompletions];
+    }
+
+    /**
+     * Get the signature
+     * @param pathAbsolute
+     * @param position
+     */
+    public getSignatureHelp(pathAbsolute: string, position: Position) {
+        //find the method currently being invoked
+        let file = this.getFile(pathAbsolute);
+        let functionCall = file.getFunctionCallAtPosition(position);
+        //if there isn't a function there, nothing more needs to be done
+        if (!functionCall) {
+            return undefined;
+        }
+        let contextsForFile = this.getContextsForFile(file);
+        //find the function in every context. it's fine if some contexts don't have the function, because that will
+        //result in an error in code anyway
+        let callables = contextsForFile.map(x => x.getCallableByName(functionCall.name));
+
+        //remove duplicate functions (caused by loading same file in multiple contexts, these should be the same reference)
+        let distinctCallables = [] as Callable[];
+        for (let callable of callables) {
+            if (distinctCallables.indexOf(callable) === -1) {
+                distinctCallables.push(callable);
+            }
+        }
+
+        let signatureHelp = {
+            signatures: []
+        } as SignatureHelp;
+
+        for (let callable of distinctCallables) {
+            let params = callable.params.map((param) => {
+                return {
+                    label: param.name,
+                    documentation: param.documentation
+                } as ParameterInformation;
+            });
+
+            signatureHelp.signatures.push({
+                documentation: callable.documentation || callable.shortDescription,
+                label: callable.type.toString(),
+                parameters: params
+            });
+            //set the first parameter as active as a test. TODO fix this
+            signatureHelp.activeSignature = 0;
+            signatureHelp.activeParameter = 0;
+        }
+        return signatureHelp;
     }
 
     public getHover(pathAbsolute: string, position: Position) {
