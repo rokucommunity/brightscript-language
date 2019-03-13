@@ -478,8 +478,16 @@ export class Context {
      * Determine if the context already has this file in its files list
      * @param file
      */
-    public hasFile(file: BrsFile | XmlFile) {
-        if (this.files[file.pathAbsolute]) {
+    public hasFile(pathAbsolute: string);
+    public hasFile(file: BrsFile | XmlFile);
+    public hasFile(file: BrsFile | XmlFile | string) {
+        let pathAbsolute: string;
+        if (file instanceof BrsFile || file instanceof XmlFile) {
+            pathAbsolute = file.pathAbsolute;
+        } else {
+            pathAbsolute = file;
+        }
+        if (this.files[pathAbsolute]) {
             return true;
         } else {
             return false;

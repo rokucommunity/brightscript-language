@@ -1,8 +1,10 @@
 import { assert, expect } from 'chai';
+import * as pick from 'object.pick';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
+import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
@@ -793,6 +795,88 @@ describe('Program', () => {
 
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+        });
+    });
+
+    describe('getCompletions', () => {
+        beforeEach(() => {
+            //remove the platform stuff to simplify the tests
+            program.platformContext = new Context('platform', () => false);
+            program.contexts.global.attachParentContext(program.platformContext);
+        });
+
+        it('returns all functions in scope', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+
+                end sub
+
+                sub ActionA()
+                end sub
+            `);
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub ActionB()
+                end sub
+            `);
+
+            await program.validate();
+
+            let completions = program
+                //get completions
+                .getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10))
+                //only keep the label property for this test
+                .map(x => pick(x, 'label'));
+
+            expect(completions).to.deep.include({ label: 'Main' });
+            expect(completions).to.deep.include({ label: 'ActionA' });
+            expect(completions).to.deep.include({ label: 'ActionB' });
+        });
+
+        it('returns all variables in scope', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    name = "bob"
+                    age = 20
+                    shoeSize = 12.5
+                end sub
+                sub ActionA()
+                end sub
+            `);
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub ActionB()
+                end sub
+            `);
+
+            await program.validate();
+
+            let completions = program.getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10));
+            let labels = completions.map(x => pick(x, 'label'));
+
+            expect(labels).to.deep.include({ label: 'Main' });
+            expect(labels).to.deep.include({ label: 'ActionA' });
+            expect(labels).to.deep.include({ label: 'ActionB' });
+            expect(labels).to.deep.include({ label: 'name' });
+            expect(labels).to.deep.include({ label: 'age' });
+            expect(labels).to.deep.include({ label: 'shoeSize' });
+        });
+
+        it('returns empty set when out of range', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, '');
+            expect(program.getCompletions(`${rootDir}/source/main.brs`, Position.create(99, 99))).to.be.empty;
+        });
+
+        it('finds parameters', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main(count = 1)
+                    firstName = "bob"
+                    age = 21
+                    shoeSize = 10
+                end sub
+            `);
+            let completions = program.getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10));
+            let labels = completions.map(x => pick(x, 'label'));
+
+            expect(labels).to.deep.include({ label: 'count' });
         });
     });
 });

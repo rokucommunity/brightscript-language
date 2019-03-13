@@ -12,6 +12,7 @@
             true,
             "never"
         ],
+        "arrow-parens": false,
         "arrow-return-shorthand": false,
         "no-duplicate-imports": true,
         "no-floating-promises": true,

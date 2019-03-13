@@ -72,6 +72,32 @@ describe('Context', () => {
     });
 
     describe('addFile', () => {
+        it('detects callables from all loaded files', async () => {
+            program.platformContext = new Context('platform', () => false);
+            program.contexts.global.attachParentContext(program.platformContext);
+
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+
+                end sub
+
+                sub ActionA()
+                end sub
+            `);
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub ActionB()
+                end sub
+            `);
+
+            await program.validate();
+
+            expect(program.contexts.global.hasFile(`${rootDir}/source/main.brs`));
+            expect(program.contexts.global.hasFile(`${rootDir}/source/lib.brs`));
+            expect(program.getDiagnostics()).to.be.lengthOf(0);
+            expect(program.contexts.global.getOwnCallables()).is.lengthOf(3);
+            expect(program.contexts.global.getAllCallables()).is.lengthOf(3);
+        });
+
         it('picks up new callables', async () => {
             //we have global callables, so get that initial number
             let originalLength = context.getAllCallables().length;

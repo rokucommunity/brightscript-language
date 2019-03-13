@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
-import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 
 import { Callable, CallableArg, CommentFlag, Diagnostic, VariableDeclaration } from '../interfaces';
 import { Program } from '../Program';
@@ -778,49 +778,6 @@ describe('BrsFile', () => {
             expect(file.functionScopes).to.be.length(2);
             expect(file.functionScopes[0].bodyRange).to.eql(Range.create(2, 0, 5, 16));
             expect(file.functionScopes[1].bodyRange).to.eql(Range.create(3, 0, 4, 20));
-        });
-    });
-
-    describe('getCompletions', () => {
-        it('returns empty set when out of range', async () => {
-            await file.parse('');
-            expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
-        });
-
-        it('finds only variables declared above', async () => {
-            await file.parse(`
-                sub Main()
-                    firstName = "bob"
-                    age = 21
-                    shoeSize = 10
-                end sub
-            `);
-            let completions = file.getCompletions(Position.create(3, 26));
-            expect(completions).to.be.lengthOf(1);
-            expect(completions[0]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'firstName'
-            });
-        });
-
-        it('finds parameters', async () => {
-            await file.parse(`
-                sub Main(count = 1)
-                    firstName = "bob"
-                    age = 21
-                    shoeSize = 10
-                end sub
-            `);
-            let completions = file.getCompletions(Position.create(3, 26));
-            expect(completions).to.be.lengthOf(2);
-            expect(completions[0]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'count'
-            });
-            expect(completions[1]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'firstName'
-            });
         });
     });
 

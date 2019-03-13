@@ -533,7 +533,7 @@ export class BrsFile {
         }
 
         let results = [] as CompletionItem[];
-        let variables = functionScope.getVariablesAbove(position.line);
+        let variables = functionScope.variableDeclarations;
         for (let variable of variables) {
             results.push({
                 label: variable.name,
