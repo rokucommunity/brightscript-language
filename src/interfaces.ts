@@ -44,7 +44,11 @@ export interface Callable {
     isDepricated?: boolean;
 }
 
-export interface ExpressionCall {
+export interface FunctionCall {
+    /**
+     * The full range of this function call (from the start of the function name to its closing paren)
+     */
+    range: Range;
     functionScope: FunctionScope;
     file: File;
     name: string;

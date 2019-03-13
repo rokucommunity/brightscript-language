@@ -6,7 +6,7 @@ import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vsco
 import { Context } from '../Context';
 import { diagnosticCodes, diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, ExpressionCall } from '../interfaces';
+import { Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, FunctionCall } from '../interfaces';
 import { Program } from '../Program';
 import { BrsType } from '../types/BrsType';
 import { DynamicType } from '../types/DynamicType';
@@ -50,7 +50,7 @@ export class BrsFile {
 
     public callables = [] as Callable[];
 
-    public functionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as FunctionCall[];
 
     public functionScopes = [] as FunctionScope[];
 
@@ -486,8 +486,8 @@ export class BrsFile {
                             });
                         }
                     }
-
-                    let expCall: ExpressionCall = {
+                    let functionCall: FunctionCall = {
+                        range: util.brsRangeFromPositions(expression.location.start, expression.closingParen.location.end),
                         functionScope: this.getFunctionScopeAtPosition(Position.create(calleeRange.start.line, calleeRange.start.character)),
                         file: this,
                         name: functionName,
@@ -495,7 +495,7 @@ export class BrsFile {
                         //TODO keep track of parameters
                         args: args
                     };
-                    this.functionCalls.push(expCall);
+                    this.functionCalls.push(functionCall);
                 }
             }
         }

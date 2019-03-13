@@ -385,17 +385,19 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
-                    DoB()
+                    DoB("a")
                 end function
-                function DoB()
-                     DoC()
+                function DoB(a as string)
+                    DoC()
                 end function
             `);
             expect(file.functionCalls.length).to.equal(2);
 
+            expect(file.functionCalls[0].range).to.eql(Range.create(2, 20, 2, 28));
             expect(file.functionCalls[0].nameRange).to.eql(Range.create(2, 20, 2, 23));
 
-            expect(file.functionCalls[1].nameRange).to.eql(Range.create(5, 21, 5, 24));
+            expect(file.functionCalls[1].range).to.eql(Range.create(5, 20, 5, 25));
+            expect(file.functionCalls[1].nameRange).to.eql(Range.create(5, 20, 5, 23));
         });
 
         it('sanitizes brs errors', async () => {

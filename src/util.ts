@@ -568,7 +568,26 @@ class Util {
         }
         return tokens;
     }
+    /**
+     * The BRS library uses 1-based line indexes, and 0 based column indexes.
+     * However, vscode expects zero-based for everything.
+     * @param start - the location.start object from brs
+     * @param end - the location.end object from brs
+     */
+    public brsRangeFromPositions(start: BrsPosition, end: BrsPosition) {
+        return Range.create(
+            start.line - 1,
+            start.column,
+            end.line - 1,
+            end.column
+        );
+    }
 }
 
 export let util = new Util();
 export default util;
+
+interface BrsPosition {
+    line: number;
+    column: number;
+}
