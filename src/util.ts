@@ -10,7 +10,7 @@ import * as xml2js from 'xml2js';
 
 import { BrsConfig } from './BrsConfig';
 import { BrsFile } from './files/BrsFile';
-import { CallableContainer, ValueKind, Diagnostic } from './interfaces';
+import { CallableContainer, Diagnostic, ValueKind } from './interfaces';
 import { BooleanType } from './types/BooleanType';
 import { BrsType } from './types/BrsType';
 import { DoubleType } from './types/DoubleType';
@@ -534,6 +534,39 @@ class Util {
                 }
             }
         }
+    }
+
+    /**
+     * Given a string, extract each item split by whitespace
+     * @param text
+     */
+    public tokenizeByWhitespace(text: string) {
+        let tokens = [] as Array<{ startIndex: number; text: string }>;
+        let currentToken = null;
+        for (let i = 0; i < text.length; i++) {
+            let char = text[i];
+            //if we hit whitespace
+            if (char === ' ' || char === '\t') {
+                if (currentToken) {
+                    tokens.push(currentToken);
+                    currentToken = null;
+                }
+
+                //we hit non-whitespace
+            } else {
+                if (!currentToken) {
+                    currentToken = {
+                        startIndex: i,
+                        text: ''
+                    };
+                }
+                currentToken.text += char;
+            }
+        }
+        if (currentToken) {
+            tokens.push(currentToken);
+        }
+        return tokens;
     }
 }
 

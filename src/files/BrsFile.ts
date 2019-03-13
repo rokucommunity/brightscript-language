@@ -96,7 +96,7 @@ export class BrsFile {
         let errors = [...lexResult.errors, ...<any>parseResult.errors];
 
         //convert the brs library's errors into our format
-        this.diagnostics = this.standardizeLexParseErrors(errors, lines);
+        this.diagnostics.push(...this.standardizeLexParseErrors(errors, lines));
 
         this.ast = <any>parseResult.statements;
 
@@ -142,13 +142,13 @@ export class BrsFile {
             //brs:disable-next-line and brs:disable-line
             {
                 let searches = [{
-                    text: 'brs:disable-next-line',
+                    text: `'brs:disable-next-line`,
                     lineOffset: 1,
                     getAffectedRange: () => {
                         return Range.create(lineIndex + 1, 0, lineIndex + 1, nextLineLength);
                     }
                 }, {
-                    text: 'brs:disable-line',
+                    text: `'brs:disable-line`,
                     lineOffset: 0,
                     getAffectedRange: (idx: number) => {
                         return Range.create(lineIndex, 0, lineIndex, idx);
@@ -179,28 +179,21 @@ export class BrsFile {
                             //disable specific rules on the next line
                         } else if (stmt.indexOf(':') === 0) {
                             stmt = stmt.replace(':', '');
-                            let codeStrings = stmt.split(' ');
                             let codes = [] as number[];
-                            //starting position + magic text + 1 for the colon
+                            //starting position + search.text length + 1 for the colon
                             let offset = idx + search.text.length + 1;
-                            for (let code of codeStrings) {
-                                let trimmedCode = code.trim();
-                                let codeInt = parseInt(trimmedCode);
-                                //skip whitespace entries
-                                if (trimmedCode.length === 0) {
-                                    //skip
-
-                                    //add a warning for unknown codes
-                                } else if (isNaN(codeInt)) {
+                            let codeTokens = util.tokenizeByWhitespace(stmt);
+                            for (let codeToken of codeTokens) {
+                                let codeInt = parseInt(codeToken.text);
+                                //add a warning for unknown codes
+                                if (diagnosticCodes.indexOf(codeInt) === -1) {
                                     this.diagnostics.push({
                                         code: diagnosticMessages.Unknown_diagnostic_code_1014.code,
-                                        message: util.stringFormat(diagnosticMessages.Unknown_diagnostic_code_1014.message, trimmedCode),
+                                        message: util.stringFormat(diagnosticMessages.Unknown_diagnostic_code_1014.message, codeToken.text),
                                         file: this,
-                                        location: Range.create(lineIndex, offset, lineIndex, offset + code.length),
+                                        location: Range.create(lineIndex, offset + codeToken.startIndex, lineIndex, offset + codeToken.startIndex + codeToken.text.length),
                                         severity: 'warning'
                                     });
-                                    offset += code.length;
-
                                 } else {
                                     codes.push(codeInt);
                                 }

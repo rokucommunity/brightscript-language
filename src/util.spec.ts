@@ -231,4 +231,58 @@ describe('util', () => {
             expect(util.padLeft('', Number.MAX_VALUE, ' ')).to.be.lengthOf(1000);
         });
     });
+
+    describe('tokenizeByWhitespace', () => {
+        it('works with single chars', () => {
+            expect(util.tokenizeByWhitespace('a b c')).to.deep.equal([{
+                startIndex: 0,
+                text: 'a'
+            }, {
+                startIndex: 2,
+                text: 'b'
+            },
+            {
+                startIndex: 4,
+                text: 'c'
+            }]);
+        });
+
+        it('works with tabs', () => {
+            expect(util.tokenizeByWhitespace('a\tb\t c')).to.deep.equal([{
+                startIndex: 0,
+                text: 'a'
+            }, {
+                startIndex: 2,
+                text: 'b'
+            },
+            {
+                startIndex: 5,
+                text: 'c'
+            }]);
+
+            it('works with leading whitespace', () => {
+                expect(util.tokenizeByWhitespace('  \ta\tb\t c')).to.deep.equal([{
+                    startIndex: 4,
+                    text: 'a'
+                }, {
+                    startIndex: 6,
+                    text: 'b'
+                },
+                {
+                    startIndex: 9,
+                    text: 'c'
+                }]);
+            });
+
+            it('works with multiple characters in a word', () => {
+                expect(util.tokenizeByWhitespace('abc 123')).to.deep.equal([{
+                    startIndex: 0,
+                    text: 'abc'
+                }, {
+                    startIndex: 4,
+                    text: '123'
+                }]);
+            });
+        });
+    });
 });

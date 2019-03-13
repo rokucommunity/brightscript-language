@@ -10,7 +10,6 @@ import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
 import { StringType } from '../types/StringType';
 import { BrsFile } from './BrsFile';
-import util from '../util';
 
 let sinon = sinonImport.createSandbox();
 describe('BrsFile', () => {
@@ -37,7 +36,7 @@ describe('BrsFile', () => {
                 expect(file.commentFlags[0]).to.exist;
                 expect(file.commentFlags[0]).to.deep.include({
                     codes: null,
-                    range: Range.create(2, 25, 2, 46),
+                    range: Range.create(2, 24, 2, 46),
                     affectedRange: Range.create(3, 0, 3, 35)
                 } as CommentFlag);
                 await program.validate();
@@ -55,12 +54,34 @@ describe('BrsFile', () => {
                 expect(file.commentFlags[0]).to.exist;
                 expect(file.commentFlags[0]).to.deep.include({
                     codes: [1000, 1001],
-                    range: Range.create(2, 25, 2, 58),
+                    range: Range.create(2, 24, 2, 58),
                     affectedRange: Range.create(3, 0, 3, 35)
                 } as CommentFlag);
                 //the "unterminated string" error should be filtered out
                 expect(program.getDiagnostics()).to.be.lengthOf(0);
             });
+
+            it('adds diagnostics for unknown diagnostic codes', async () => {
+                await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                    sub main()
+                        print "hi" 'brs:disable-line: 123456 999999   aaaab
+                    end sub
+                `);
+
+                await program.validate();
+
+                expect(program.getDiagnostics()).to.be.lengthOf(3);
+                expect(program.getDiagnostics()[0]).to.deep.include({
+                    location: Range.create(2, 54, 2, 60)
+                } as Diagnostic);
+                expect(program.getDiagnostics()[1]).to.deep.include({
+                    location: Range.create(2, 61, 2, 67)
+                } as Diagnostic);
+                expect(program.getDiagnostics()[2]).to.deep.include({
+                    location: Range.create(2, 70, 2, 75)
+                } as Diagnostic);
+            });
+
         });
 
         describe('brs:disable-line', () => {
@@ -73,8 +94,8 @@ describe('BrsFile', () => {
                 expect(file.commentFlags[0]).to.exist;
                 expect(file.commentFlags[0]).to.deep.include({
                     codes: null,
-                    range: Range.create(2, 37, 2, 53),
-                    affectedRange: Range.create(2, 0, 2, 37)
+                    range: Range.create(2, 36, 2, 53),
+                    affectedRange: Range.create(2, 0, 2, 36)
                 } as CommentFlag);
                 await program.validate();
                 //the "unterminated string" error should be filtered out
