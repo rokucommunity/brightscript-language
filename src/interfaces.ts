@@ -158,3 +158,16 @@ export interface CallableContainer {
     callable: Callable;
     context: Context;
 }
+
+export interface CommentFlag {
+    file: BrsFile;
+    /**
+     * The location of the ignore comment.
+     */
+    range: Range;
+    /**
+     * The range that this flag applies to (i.e. the lines that should be suppressed/re-enabled)
+     */
+    affectedRange: Range;
+    codes: number[] | null;
+}

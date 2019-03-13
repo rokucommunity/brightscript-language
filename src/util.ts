@@ -9,7 +9,8 @@ import Uri from 'vscode-uri';
 import * as xml2js from 'xml2js';
 
 import { BrsConfig } from './BrsConfig';
-import { CallableContainer, ValueKind } from './interfaces';
+import { BrsFile } from './files/BrsFile';
+import { CallableContainer, Diagnostic, ValueKind } from './interfaces';
 import { BooleanType } from './types/BooleanType';
 import { BrsType } from './types/BrsType';
 import { DoubleType } from './types/DoubleType';
@@ -514,6 +515,58 @@ class Util {
 
         let files = await rokuDeploy.getFilePaths(options.files, path.dirname(options.outFile), rootDir);
         return files;
+    }
+
+    /**
+     * Determine whether this diagnostic should be supressed or not, based on brs comment-flags
+     * @param diagnostic
+     */
+    public diagnosticIsSuppressed(diagnostic: Diagnostic) {
+        //for now, we only support suppressing brs file diagnostics
+        if (diagnostic.file instanceof BrsFile) {
+            for (let flag of diagnostic.file.commentFlags) {
+                //this diagnostic is affected by this flag
+                if (this.rangeContains(flag.affectedRange, diagnostic.location.start)) {
+                    //if the flag acts upon this diagnostic's code
+                    if (flag.codes === null || flag.codes.indexOf(diagnostic.code) > -1) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Given a string, extract each item split by whitespace
+     * @param text
+     */
+    public tokenizeByWhitespace(text: string) {
+        let tokens = [] as Array<{ startIndex: number; text: string }>;
+        let currentToken = null;
+        for (let i = 0; i < text.length; i++) {
+            let char = text[i];
+            //if we hit whitespace
+            if (char === ' ' || char === '\t') {
+                if (currentToken) {
+                    tokens.push(currentToken);
+                    currentToken = null;
+                }
+
+                //we hit non-whitespace
+            } else {
+                if (!currentToken) {
+                    currentToken = {
+                        startIndex: i,
+                        text: ''
+                    };
+                }
+                currentToken.text += char;
+            }
+        }
+        if (currentToken) {
+            tokens.push(currentToken);
+        }
+        return tokens;
     }
 }
 

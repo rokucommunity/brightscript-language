@@ -60,8 +60,19 @@ export let diagnosticMessages = {
         message: 'This file is not referenced by any other file in the project.',
         code: 1013
     },
-    Type_a_is_not_assignable_to_type_b_1014: {
-        message: 'Type "{0}" is not assignable to type "{1}"',
+    Unknown_diagnostic_code_1014: {
+        message: 'Unknown diagnostic code {0}',
         code: 1014
+    },
+    Type_a_is_not_assignable_to_type_b_1015: {
+        message: 'Type "{0}" is not assignable to type "{1}"',
+        code: 1015
     }
 };
+
+let allCodes = [];
+for (let key in diagnosticMessages) {
+    allCodes.push(diagnosticMessages[key].code);
+}
+
+export let diagnosticCodes = allCodes;

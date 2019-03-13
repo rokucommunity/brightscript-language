@@ -112,15 +112,22 @@ export class Context {
      * Get the list of errors for this context. It's calculated on the fly, so
      * call this sparingly.
      */
-    public getDiagnostics(): Diagnostic[] {
+    public getDiagnostics() {
         let diagnosticLists = [this.diagnostics] as Diagnostic[][];
         //add diagnostics from every referenced file
         for (let filePath in this.files) {
             let ctxFile = this.files[filePath];
             diagnosticLists.push(ctxFile.file.getDiagnostics());
         }
-        let result = Array.prototype.concat.apply([], diagnosticLists);
-        return result;
+        let allDiagnostics = Array.prototype.concat.apply([], diagnosticLists) as Diagnostic[];
+
+        let filteredDiagnostics = allDiagnostics.filter((x) => {
+            return !util.diagnosticIsSuppressed(x);
+        });
+
+        //filter out diangostics that match any of the comment flags
+
+        return filteredDiagnostics;
     }
 
     /**
