@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+### [0.1.23] - 2019-03-14
+### Fixed
+ - `command-line-usage` and `command-line-args` were both moved to dependencies so the cli will work. v0.1.22 did the wrong thing, this fixes it.
+
+
+
 ### [0.1.22] - 2019-03-14
 ### Changed
  - Completion provider now provides all in-scope variables instead of variables only at or above the cursor
@@ -90,6 +96,7 @@ Initial project release.
 
 
 
+[0.1.23]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.19...v0.1.20
