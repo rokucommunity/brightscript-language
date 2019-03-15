@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+### [0.2.0] - 2019-03-15
+### Added
+ - Very basic `go to definition` support for an xml component. Currently only supports finding a component's parent component.
+
+
+
 ### [0.1.23] - 2019-03-14
 ### Fixed
  - `command-line-usage` and `command-line-args` were both moved to dependencies so the cli will work. v0.1.22 did the wrong thing, this fixes it.
@@ -96,6 +102,7 @@ Initial project release.
 
 
 
+[0.2.0]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.23...v0.2.0
 [0.1.23]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.20...v0.1.21
@@ -107,4 +114,4 @@ Initial project release.
 [0.1.15]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.2...v0.1.13
-[0.1.2]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.1...v0.1.2
+[0.1.2]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.1...v0.1.2
