@@ -24,7 +24,7 @@ describe('XmlContext', () => {
     });
     describe('onProgramFileRemove', () => {
         it('handles file-removed event when file does not have component name', async () => {
-            xmlFile.parentComponentName = 'Scene';
+            xmlFile.parentName = 'Scene';
             xmlFile.componentName = 'ParentComponent';
             let namelessComponent = await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>

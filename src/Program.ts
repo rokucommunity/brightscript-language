@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
-import { Position, Range } from 'vscode-languageserver';
+import { Location, Position, Range } from 'vscode-languageserver';
 
 import { BrsConfig } from './BrsConfig';
 import { Context } from './Context';
@@ -354,6 +354,23 @@ export class Program {
         let fileCompletions = file.getCompletions(position, context);
         let contextCompletions = context.getCallablesAsCompletions();
         return [...fileCompletions, ...contextCompletions];
+    }
+
+    /**
+     * Given a position in a file, if the position is sitting on some type of identifier,
+     * go to the definition of that identifier (where this thing was first defined)
+     */
+    public getDefinition(pathAbsolute: string, position: Position): Location[] {
+        let file = this.getFile(pathAbsolute);
+        if (!file) {
+            return [];
+        }
+        let results = [] as Location[];
+        let contexts = this.getContextsForFile(file);
+        for (let context of contexts) {
+            results = results.concat(...context.getDefinition(file, position));
+        }
+        return results;
     }
 
     public getHover(pathAbsolute: string, position: Position) {

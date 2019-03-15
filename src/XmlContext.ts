@@ -1,4 +1,4 @@
-import { Range } from 'vscode-languageserver';
+import { Location, Position, Range } from 'vscode-languageserver';
 
 import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
@@ -68,9 +68,9 @@ export class XmlContext extends Context {
             //incoming file has a component name
             file.componentName &&
             //this xml file has a parent
-            this.xmlFile.parentComponentName &&
+            this.xmlFile.parentName &&
             //incoming file has same name as parent
-            file.componentName.toLowerCase() === this.xmlFile.parentComponentName.toLowerCase()
+            file.componentName.toLowerCase() === this.xmlFile.parentName.toLowerCase()
         ) {
             this.isValidated = false;
             this.xmlFile.detachParent();
@@ -92,11 +92,11 @@ export class XmlContext extends Context {
             //xml file has no parent
             !this.xmlFile.parent &&
             //xml file WANTS a parent
-            this.xmlFile.parentComponentName &&
+            this.xmlFile.parentName &&
             //incoming file is an xml file
             file instanceof XmlFile &&
             //xml file's name matches the desired parent name
-            file.componentName === this.xmlFile.parentComponentName
+            file.componentName === this.xmlFile.parentName
         ) {
             this.isValidated = false;
             this.xmlFile.attachParent(file);
@@ -146,6 +146,26 @@ export class XmlContext extends Context {
             }
 
         }
+    }
+
+    /**
+     * Get the definition (where was this thing first defined) of the symbol under the position
+     */
+    public getDefinition(file: BrsFile | XmlFile, position: Position): Location[] {
+        let results = [] as Location[];
+        //if the position is within the file's parent component name
+        if (
+            file instanceof XmlFile &&
+            file.parent &&
+            file.parentNameRange &&
+            util.rangeContains(file.parentNameRange, position)
+        ) {
+            results.push({
+                range: Range.create(0, 0, 0, 0),
+                uri: util.pathToUri(file.parent.pathAbsolute)
+            });
+        }
+        return results;
     }
 
     /**

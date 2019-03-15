@@ -14,8 +14,10 @@ describe('XmlFile', () => {
     let rootDir = process.cwd();
     let program: Program;
     let sinon = sinonImport.createSandbox();
+    let file: XmlFile;
     beforeEach(() => {
         program = new Program({ rootDir: rootDir });
+        file = new XmlFile(`${rootDir}/components/MainComponent.xml`, 'components/MainComponent.xml', program);
     });
     afterEach(() => {
         sinon.restore();
@@ -73,7 +75,7 @@ describe('XmlFile', () => {
                 <script type="text/brightscript" uri="ChildScene.brs" />
                 </component>
             `);
-            expect(file.parentComponentName).to.equal('ParentScene');
+            expect(file.parentName).to.equal('ParentScene');
             expect(file.componentName).to.equal('ChildScene');
         });
 
@@ -230,6 +232,32 @@ describe('XmlFile', () => {
             };
             file.ownScriptImports.push(<any>scriptImport);
             expect(file.getAllScriptImports()).to.be.lengthOf(1);
+        });
+    });
+
+    describe('findExtendsPosition', () => {
+        it('works for single-line', () => {
+            expect(file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="BaseScene">
+                </component>
+            `)).to.eql(Range.create(2, 54, 2, 63));
+        });
+
+        it('works for multi-line', () => {
+            expect(file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene"
+                    extends="BaseScene">
+                </component>
+            `)).to.eql(Range.create(3, 29, 3, 38));
+        });
+        it('does not throw when unable to find extends', () => {
+            file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene">
+                </component>
+            `);
         });
     });
 });

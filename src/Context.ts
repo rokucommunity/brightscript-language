@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { CompletionItem, CompletionItemKind, Range } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Location, Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
@@ -509,6 +509,14 @@ export class Context {
             });
         }
         return completions;
+    }
+
+    /**
+     * Get the definition (where was this thing first defined) of the symbol under the position
+     */
+    public getDefinition(file: BrsFile | XmlFile, position: Position): Location[] {
+        //TODO implement for brs files
+        return [];
     }
 }
 

@@ -489,8 +489,19 @@ class Util {
         return subject;
     }
 
-    public getPathFromUri(uri: string) {
+    /**
+     * Given a URI, convert that to a regular fs path
+     * @param uri
+     */
+    public uriToPath(uri: string) {
         return path.normalize(Uri.parse(uri).fsPath);
+    }
+
+    /**
+     * Given a file path, convert it to a URI string
+     */
+    public pathToUri(pathAbsolute: string) {
+        return Uri.file(pathAbsolute).toString();
     }
 
     /**

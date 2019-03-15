@@ -5,11 +5,10 @@ import {
     createConnection,
     Diagnostic,
     DidChangeConfigurationNotification,
-    DidChangeConfigurationParams,
     DidChangeWatchedFilesParams,
     Hover,
-    InitializedParams,
     InitializeParams,
+    Location,
     ProposedFeatures,
     ServerCapabilities,
     TextDocument,
@@ -71,6 +70,8 @@ export class LanguageServer {
         // the completion list.
         this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
 
+        this.connection.onDefinition(this.onDefinition.bind(this));
+
         this.connection.onHover(this.onHover.bind(this));
 
         /*
@@ -120,6 +121,7 @@ export class LanguageServer {
                 completionProvider: {
                     resolveProvider: true
                 },
+                definitionProvider: true,
                 hoverProvider: true
             } as ServerCapabilities
         };
@@ -129,7 +131,7 @@ export class LanguageServer {
      * Called when the client has finished initializing
      * @param params
      */
-    private async onInitialized(params: InitializedParams) {
+    private async onInitialized() {
 
         if (this.hasConfigurationCapability) {
             // Register for all configuration changes.
@@ -142,7 +144,7 @@ export class LanguageServer {
         //ask the client for all workspace folders
         let workspaceFolders = await this.connection.workspace.getWorkspaceFolders();
         let workspacePaths = workspaceFolders.map((x) => {
-            return util.getPathFromUri(x.uri);
+            return util.uriToPath(x.uri);
         });
 
         await this.createWorkspaces(workspacePaths);
@@ -151,7 +153,7 @@ export class LanguageServer {
             this.connection.workspace.onDidChangeWorkspaceFolders(async (evt) => {
                 //remove programs for removed workspace folders
                 for (let removed of evt.removed) {
-                    let workspacePath = util.getPathFromUri(removed.uri);
+                    let workspacePath = util.uriToPath(removed.uri);
                     let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
                     if (workspace) {
                         workspace.builder.dispose();
@@ -159,7 +161,7 @@ export class LanguageServer {
                     }
                 }
                 //create programs for new workspace folders
-                await this.createWorkspaces(evt.added.map((x) => util.getPathFromUri(x.uri)));
+                await this.createWorkspaces(evt.added.map((x) => util.uriToPath(x.uri)));
             });
         }
         await this.waitAllProgramFirstRuns();
@@ -257,7 +259,7 @@ export class LanguageServer {
         firstRunPromise.then(() => {
             newWorkspace.isFirstRunComplete = true;
             newWorkspace.isFirstRunSuccessful = true;
-        }).catch((e) => {
+        }).catch(() => {
             newWorkspace.isFirstRunComplete = true;
             newWorkspace.isFirstRunSuccessful = false;
         });
@@ -271,7 +273,7 @@ export class LanguageServer {
         //ensure programs are initialized
         await this.waitAllProgramFirstRuns();
 
-        let filePath = util.getPathFromUri(textDocumentPosition.textDocument.uri);
+        let filePath = util.uriToPath(textDocumentPosition.textDocument.uri);
 
         let completions = Array.prototype.concat.apply([],
             this.workspaces.map((x) => {
@@ -343,7 +345,7 @@ export class LanguageServer {
         this.sendDiagnostics();
     }
 
-    private async onDidChangeConfiguration(change: DidChangeConfigurationParams) {
+    private async onDidChangeConfiguration() {
         if (this.hasConfigurationCapability) {
             await this.reloadWorkspaces();
             // Reset all cached document settings
@@ -370,7 +372,7 @@ export class LanguageServer {
         //reload any workspace whose brsconfig.json file has changed
         {
             let workspacesToReload = [] as Workspace[];
-            let filePaths = params.changes.map((x) => util.getPathFromUri(x.uri));
+            let filePaths = params.changes.map((x) => util.uriToPath(x.uri));
             for (let workspace of this.workspaces) {
                 if (filePaths.indexOf(workspace.configFilePath) > -1) {
                     workspacesToReload.push(workspace);
@@ -397,7 +399,7 @@ export class LanguageServer {
         //ensure programs are initialized
         await this.waitAllProgramFirstRuns();
 
-        let pathAbsolute = util.getPathFromUri(params.textDocument.uri);
+        let pathAbsolute = util.uriToPath(params.textDocument.uri);
         let hovers = Array.prototype.concat.call([],
             this.workspaces.map((x) => x.builder.program.getHover(pathAbsolute, params.position))
         ) as Hover[];
@@ -441,6 +443,23 @@ export class LanguageServer {
         }
         this.sendDiagnostics();
         this.connection.sendNotification('build-status', 'success');
+    }
+
+    private async onDefinition(params: TextDocumentPositionParams): Promise<Location[]> {
+        //WARNING: This only works for a few small xml cases because the vscode-brightscript-language extension
+        //already implemented this feature, and I haven't had time to port all of that functionality over to
+        //this codebase
+        //TODO implement for brightscript also
+        await this.waitAllProgramFirstRuns();
+        let results = [] as Location[];
+
+        let pathAbsolute = util.uriToPath(params.textDocument.uri);
+        for (let workspace of this.workspaces) {
+            results = results.concat(
+                ...workspace.builder.program.getDefinition(pathAbsolute, params.position)
+            );
+        }
+        return results;
     }
 
     /**

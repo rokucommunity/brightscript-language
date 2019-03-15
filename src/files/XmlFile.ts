@@ -23,6 +23,8 @@ export class XmlFile {
         this.emitter.setMaxListeners(0);
     }
 
+    public parentNameRange: Range;
+
     /**
      * The extension for this file
      */
@@ -52,7 +54,7 @@ export class XmlFile {
     /**
      * The name of the component that this component extends
      */
-    public parentComponentName: string;
+    public parentName: string;
 
     /**
      * The name of the component declared in this xml file
@@ -72,6 +74,8 @@ export class XmlFile {
         //split the text into lines
         let lines = util.getLines(fileContents);
 
+        this.parentNameRange = this.findExtendsPosition(fileContents);
+
         //create a range of the entire file
         this.fileRange = Range.create(0, 0, lines.length, lines[lines.length - 1].length - 1);
 
@@ -82,7 +86,7 @@ export class XmlFile {
             if (parsedXml && parsedXml.component) {
                 if (parsedXml.component.$) {
                     this.componentName = parsedXml.component.$.name;
-                    this.parentComponentName = parsedXml.component.$.extends;
+                    this.parentName = parsedXml.component.$.extends;
                 }
                 let componentRange: Range;
 
@@ -113,7 +117,7 @@ export class XmlFile {
                     });
                 }
                 //parent component name not defined
-                if (!this.parentComponentName) {
+                if (!this.parentName) {
                     this.parseDiagnistics.push({
                         code: diagnosticMessages.Component_missing_extends_attribute_1007.code,
                         message: diagnosticMessages.Component_missing_extends_attribute_1007.message,
@@ -339,6 +343,30 @@ export class XmlFile {
             }
         }
         return result;
+    }
+
+    /**
+     * Scan the xml and find the range of the parent component's name in the `extends="ParentComponentName"` attribute of the component
+     */
+    public findExtendsPosition(fullText: string) {
+        let regexp = /.*<component[^>]*((extends\s*=\s*")(\w*)")/gms;
+        let match = regexp.exec(fullText);
+        if (match) {
+            let extendsText = match[1]; // `extends="something"`
+            let extendsToFirstQuote = match[2]; // `extends="`
+            let componentName = match[3]; // `something`
+            let lines = util.getLines(match[0]);
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                let line = lines[lineIndex];
+                let extendsIdx = line.indexOf(extendsText);
+                //we found the line index
+                if (extendsIdx > -1) {
+                    let colStartIndex = extendsIdx + extendsToFirstQuote.length;
+                    let colEndIndex = colStartIndex + componentName.length;
+                    return Range.create(lineIndex, colStartIndex, lineIndex, colEndIndex);
+                }
+            }
+        }
     }
 
     public emitter = new EventEmitter();
