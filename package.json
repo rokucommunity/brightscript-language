@@ -1,6 +1,6 @@
 {
   "name": "brightscript-language",
-  "version": "0.1.23",
+  "version": "0.2.0",
   "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
     "prepare": "npm run build",
