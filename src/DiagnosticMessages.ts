@@ -63,6 +63,10 @@ export let diagnosticMessages = {
     Unknown_diagnostic_code_1014: {
         message: 'Unknown diagnostic code {0}',
         code: 1014
+    },
+    Script_src_cannot_be_empty_1015: {
+        message: 'Script import cannot be empty or whitespace',
+        code: 1015
     }
 };
 

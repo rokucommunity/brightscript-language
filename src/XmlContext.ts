@@ -177,9 +177,19 @@ export class XmlContext extends Context {
             let referencedFile = this.getFileByRelativePath(scriptImport.pkgPath);
             //if we can't find the file
             if (!referencedFile) {
+                let message: string;
+                let code: number;
+                if (scriptImport.text.trim().length === 0) {
+                    message = diagnosticMessages.Script_src_cannot_be_empty_1015.message;
+                    code = diagnosticMessages.Script_src_cannot_be_empty_1015.code;
+                } else {
+                    message = diagnosticMessages.Referenced_file_does_not_exist_1004.message;
+                    code = diagnosticMessages.Referenced_file_does_not_exist_1004.code;
+                }
+
                 this.diagnostics.push({
-                    message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
-                    code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                    message: message,
+                    code: code,
                     location: Range.create(
                         scriptImport.lineIndex,
                         scriptImport.columnIndexBegin,
@@ -190,7 +200,7 @@ export class XmlContext extends Context {
                     severity: 'error',
                 });
             } else {
-                //if the script import path is not identical in case to the actual path, add a warning
+                //if the character casing of the script import path does not match that of the actual path
                 if (scriptImport.pkgPath !== referencedFile.file.pkgPath) {
                     this.diagnostics.push({
                         message: util.stringFormat(
