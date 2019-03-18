@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
-import { Location, Position, Range } from 'vscode-languageserver';
+import { CompletionItem, Location, Position, Range } from 'vscode-languageserver';
 
 import { BrsConfig } from './BrsConfig';
 import { Context } from './Context';
@@ -339,6 +339,8 @@ export class Program {
      * @param columnIndex
      */
     public getCompletions(pathAbsolute: string, position: Position) {
+        let completions = [] as CompletionItem[];
+
         let file = this.getFile(pathAbsolute);
         if (!file) {
             return [];
@@ -351,9 +353,12 @@ export class Program {
         }
         let context = contexts[0];
 
-        let fileCompletions = file.getCompletions(position, context);
-        let contextCompletions = context.getCallablesAsCompletions();
-        return [...fileCompletions, ...contextCompletions];
+        let fileResult = file.getCompletions(position, context);
+        completions.push(...fileResult.completions);
+        if (fileResult.includeContextCallables) {
+            completions.push(...context.getCallablesAsCompletions());
+        }
+        return completions;
     }
 
     /**

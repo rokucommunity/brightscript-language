@@ -613,6 +613,8 @@ describe('Program', () => {
                 kind: CompletionItemKind.File,
                 label: 'pkg:/components/component1.brs'
             });
+            //it should NOT include the platform methods
+            expect(completions).to.be.lengthOf(2);
         });
     });
 

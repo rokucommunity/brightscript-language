@@ -281,65 +281,78 @@ export class XmlFile {
      * @param lineIndex
      * @param columnIndex
      */
-    public getCompletions(position: Position): CompletionItem[] {
-        let result = [] as CompletionItem[];
+    public getCompletions(position: Position) {
+        let result = {
+            completions: [] as CompletionItem[],
+            includeContextCallables: false,
+        };
+        let scriptImport = this.getScriptImportAtPosition(position);
+        if (scriptImport) {
+            result.completions = [...this.getScriptImportCompletions(scriptImport)];
+        }
+        return result;
+    }
+
+    private getScriptImportAtPosition(position: Position) {
         let scriptImport = this.ownScriptImports.find((x) => {
             return x.lineIndex === position.line &&
                 //column between start and end
                 position.character >= x.columnIndexBegin &&
                 position.character <= x.columnIndexEnd;
         });
-        //the position is within a script import. Provide path completions
-        if (scriptImport) {
-            //get a list of all scripts currently being imported
-            let currentImports = this.ownScriptImports.map((x) => x.pkgPath);
+        return scriptImport;
+    }
 
-            //restrict to only .brs files
-            for (let key in this.program.files) {
-                let file = this.program.files[key];
-                if (
-                    //is a brightscript file
-                    (file.extension === '.bs' || file.extension === '.brs') &&
-                    //not already referenced in this file
-                    currentImports.indexOf(file.pkgPath) === -1
-                ) {
-                    //the text range to replace if the user selects this result
-                    let range = {
-                        start: {
-                            character: scriptImport.columnIndexBegin,
-                            line: scriptImport.lineIndex
-                        },
-                        end: {
-                            character: scriptImport.columnIndexEnd,
-                            line: scriptImport.lineIndex
-                        }
-                    } as Range;
+    private getScriptImportCompletions(scriptImport: FileReference) {
+        let result = [] as CompletionItem[];
+        //get a list of all scripts currently being imported
+        let currentImports = this.ownScriptImports.map((x) => x.pkgPath);
 
-                    //add the relative path
-                    let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
-                    let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
+        //restrict to only .brs files
+        for (let key in this.program.files) {
+            let file = this.program.files[key];
+            if (
+                //is a brightscript file
+                (file.extension === '.bs' || file.extension === '.brs') &&
+                //not already referenced in this file
+                currentImports.indexOf(file.pkgPath) === -1
+            ) {
+                //the text range to replace if the user selects this result
+                let range = {
+                    start: {
+                        character: scriptImport.columnIndexBegin,
+                        line: scriptImport.lineIndex
+                    },
+                    end: {
+                        character: scriptImport.columnIndexEnd,
+                        line: scriptImport.lineIndex
+                    }
+                } as Range;
 
-                    result.push({
-                        label: relativePath,
-                        detail: file.pathAbsolute,
-                        kind: CompletionItemKind.File,
-                        textEdit: {
-                            newText: relativePath,
-                            range: range
-                        }
-                    });
+                //add the relative path
+                let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
+                let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
 
-                    //add the absolute path
-                    result.push({
-                        label: pkgPath,
-                        detail: file.pathAbsolute,
-                        kind: CompletionItemKind.File,
-                        textEdit: {
-                            newText: pkgPath,
-                            range: range
-                        }
-                    });
-                }
+                result.push({
+                    label: relativePath,
+                    detail: file.pathAbsolute,
+                    kind: CompletionItemKind.File,
+                    textEdit: {
+                        newText: relativePath,
+                        range: range
+                    }
+                });
+
+                //add the absolute path
+                result.push({
+                    label: pkgPath,
+                    detail: file.pathAbsolute,
+                    kind: CompletionItemKind.File,
+                    textEdit: {
+                        newText: pkgPath,
+                        range: range
+                    }
+                });
             }
         }
         return result;

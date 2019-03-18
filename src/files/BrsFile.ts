@@ -525,22 +525,29 @@ export class BrsFile {
     }
 
     public getCompletions(position: Position, context?: Context) {
+        let result = {
+            completions: [] as CompletionItem[],
+            includeContextCallables: true,
+        };
+
         //determine if cursor is inside a function
         let functionScope = this.getFunctionScopeAtPosition(position);
         if (!functionScope) {
+            result.includeContextCallables = false;
             //we aren't in any function scope, so just return an empty list
-            return [];
+            return result;
         }
 
-        let results = [] as CompletionItem[];
+        //TODO: if cursor is within a comment, disable completions
+
         let variables = functionScope.variableDeclarations;
         for (let variable of variables) {
-            results.push({
+            result.completions.push({
                 label: variable.name,
                 kind: variable.type instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
             });
         }
-        return results;
+        return result;
     }
 
     public getHover(position: Position): Hover {
