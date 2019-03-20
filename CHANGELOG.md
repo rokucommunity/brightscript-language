@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+### [0.2.1] - 2019-03-15
+### Changed
+ - Upgraded to brs@0.13.0-nightly.20190320
+ - exclude method completions from xml files
+ - empty script reference errors will show a more usefull error message `"Script import cannot be empty or whitespace"`
+### Fixed
+ - parse errors for type designators (i.e. `$` `%` `!` `#` at end of variable name)
+ - parse errors for multiple spaces between two-word keywords (`else     if`, etc)
+
+
+
 ### [0.2.0] - 2019-03-15
 ### Added
  - Very basic `go to definition` support for an xml component. Currently only supports finding a component's parent component.
@@ -102,6 +113,7 @@ Initial project release.
 
 
 
+[0.2.1]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.0...v0.2.1
 [0.2.0]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.23...v0.2.0
 [0.1.23]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.21...v0.1.22
