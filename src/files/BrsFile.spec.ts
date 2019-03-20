@@ -165,6 +165,31 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it('supports type designators', async () => {
+            await file.parse(`
+                sub main()
+                  name$ = "bob"
+                  age% = 1
+                  height! = 5.5
+                  salary# = 9.87654321
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports multiple spaces between two-word keywords', async () => {
+            await file.parse(`
+                sub main()
+                    if true then
+                        print "true"
+                    else    if true then
+                        print "also true"
+                    end if
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('does not error with `stop` as object key', async () => {
             await file.parse(`
                 function GetObject()

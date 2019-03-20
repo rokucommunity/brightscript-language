@@ -224,7 +224,7 @@ describe('XmlFile', () => {
         });
 
         //TODO - refine this test once cdata scripts are supported
-        it.only('prevents context completions entirely', async () => {
+        it('prevents context completions entirely', async () => {
             await program.addOrReplaceFile(`${rootDir}/components/Component1.brs`, ``);
 
             let file = await program.addOrReplaceFile(`${rootDir}/components/Component1.xml`, `
