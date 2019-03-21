@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+### [0.2.3] - 2019-03-20
+### Chaned
+ - upgraded to brs@0.13.0-nightly.20190321
+### Fixed
+ - better recovery for mismatched `end function` and `end sub` endings.
+
+
+
 ### [0.2.2] - 2019-03-20
 ### Fixed
  - Targeted EXACTLY brs@0.13.0-nightly.20190320 to prevent npm from resolving 0.13.0-rc.3. Added unit test to prevent this issue from happening again in the future. 
@@ -118,6 +127,7 @@ Initial project release.
 
 
 
+[0.2.3]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.2...v0.2.3
 [0.2.2]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.1...v0.2.2
 [0.2.1]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.0...v0.2.1
 [0.2.0]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.1.23...v0.2.0

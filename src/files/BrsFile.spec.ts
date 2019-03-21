@@ -139,6 +139,32 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not lose function scopes when mismatched end sub', async () => {
+            await file.parse(`
+                sub main()
+                    sayHi()
+                end function
+
+                sub sayHi()
+                    print "hello world"
+                end sub
+            `);
+            expect(file.functionScopes).to.be.lengthOf(2);
+        });
+
+        it('does not lose sub scope when mismatched end function', async () => {
+            await file.parse(`
+                function main()
+                    sayHi()
+                end sub
+
+                sub sayHi()
+                    print "hello world"
+                end sub
+            `);
+            expect(file.functionScopes).to.be.lengthOf(2);
+        });
+
         it('does not error with boolean in RHS of set statement', async () => {
             await file.parse(`
                 sub main()
