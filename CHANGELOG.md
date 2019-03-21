@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### [0.2.3] - 2019-03-20
-### Chaned
+### Changed
  - upgraded to brs@0.13.0-nightly.20190321
 ### Fixed
  - better recovery for mismatched `end function` and `end sub` endings.
