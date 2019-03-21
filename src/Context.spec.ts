@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 
+import { Position } from 'vscode-languageserver';
 import { Context as Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
@@ -386,6 +387,43 @@ describe('Context', () => {
             //removes parent callables when parent is detached
             childContext.detachParent();
             expect(childContext.getAllCallables()).to.be.lengthOf(0);
+        });
+    });
+
+    describe('shouldIncludeFile', () => {
+        it('should detect whether to keep a file or not', () => {
+            let context = new Context('testContext1', () => {
+                return false;
+            });
+            expect(context.shouldIncludeFile({} as any)).to.be.false;
+
+            context = new Context('testContext2', () => {
+                return true;
+            });
+            expect(context.shouldIncludeFile({} as any)).to.be.true;
+
+            //should bubble the error
+            expect(() => {
+                context = new Context('testContext2', () => {
+                    throw new Error('error');
+                });
+                context.shouldIncludeFile({} as any);
+            }).to.throw;
+        });
+    });
+
+    describe('getDefinition', () => {
+        it('returns empty list when there are no files', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, '');
+            let context = program.contexts.global;
+            expect(context.getDefinition(file, Position.create(0, 0))).to.be.lengthOf(0);
+        });
+    });
+
+    describe('getCallablesAsCompletions', () => {
+        it('returns documentation when possible', () => {
+            let completions = program.platformContext.getCallablesAsCompletions();
+            expect(completions.filter(x => !!x.documentation)).to.have.length.greaterThan(0);
         });
     });
 });
