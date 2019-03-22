@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
-
 import { Position } from 'vscode-languageserver';
+
 import { Context as Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';

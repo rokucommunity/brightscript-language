@@ -3,6 +3,7 @@
   "version": "0.2.3",
   "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
+    "preversion": "npm run build && npm run tslint",
     "prepare": "npm run build",
     "build": "rimraf out && tsc",
     "watch": "rimraf out && tsc --watch",

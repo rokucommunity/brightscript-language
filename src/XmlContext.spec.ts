@@ -1,7 +1,7 @@
 import { assert, expect } from 'chai';
 import * as path from 'path';
-
 import { Position } from 'vscode-languageserver';
+
 import { XmlFile } from './files/XmlFile';
 import { Program } from './Program';
 import util from './util';
