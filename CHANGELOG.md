@@ -6,7 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-### [0.2.3] - 2019-03-20
+## [0.2.4] - 2019-03-25
+### Changed
+ - upgraded to brs@0.13.0-nightly.20190325
+### Fixed
+ - greatly improved single-line recovery. Previously, certain syntax errors would prevent the rest of the block or file from parsing. The parser will now skip erraneous lines and attempt to recover. This _usually_ provides much better error recovery, but in certain cases can produce additional errors in the file. 
+ - bitshift assignment operators (`>>=` `<<=`) no longer cause parse errors
+ - using colons as separators for associate arrays no longer cause parse errors (e.g `obj = {x:0 : y: 1}`)
+
+
+
+## [0.2.3] - 2019-03-20
 ### Changed
  - upgraded to brs@0.13.0-nightly.20190321
 ### Fixed
@@ -14,15 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-### [0.2.2] - 2019-03-20
+## [0.2.2] - 2019-03-20
 ### Fixed
- - Targeted EXACTLY brs@0.13.0-nightly.20190320 to prevent npm from resolving 0.13.0-rc.3. Added unit test to prevent this issue from happening again in the future. 
+ - targeted EXACTLY brs@0.13.0-nightly.20190320 to prevent npm from resolving 0.13.0-rc.3. Added unit test to prevent this issue from happening again in the future. 
 
 
 
-### [0.2.1] - 2019-03-20
+## [0.2.1] - 2019-03-20
 ### Changed
- - Upgraded to brs@0.13.0-nightly.20190320
+ - upgraded to brs@0.13.0-nightly.20190320
  - exclude method completions from xml files
  - empty script reference errors will show a more usefull error message `"Script import cannot be empty or whitespace"`
 ### Fixed
@@ -31,41 +41,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-### [0.2.0] - 2019-03-15
+## [0.2.0] - 2019-03-15
 ### Added
- - Very basic `go to definition` support for an xml component. Currently only supports finding a component's parent component.
+ - very basic `go to definition` support for an xml component. Currently only supports finding a component's parent component.
 
 
 
-### [0.1.23] - 2019-03-14
+## [0.1.23] - 2019-03-14
 ### Fixed
  - `command-line-usage` and `command-line-args` were both moved to dependencies so the cli will work. v0.1.22 did the wrong thing, this fixes it.
 
 
 
-### [0.1.22] - 2019-03-14
+## [0.1.22] - 2019-03-14
 ### Changed
- - Completion provider now provides all in-scope variables instead of variables only at or above the cursor
+ - completion provider now provides all in-scope variables instead of variables only at or above the cursor
 ### Fixed
  - moved `command-line-args` from devDependencies to dependencies so that the cli is runnable when installed.
 
 
 
-### [0.1.21] - 2019-03-12
+## [0.1.21] - 2019-03-12
 ### Added
  - the ability to supress warnings and errors on a per-line basis with `brs:disable-next-line` and `brs:disable-line`. 
 
 
 
-### [0.1.20] - 2019-03-11
+## [0.1.20] - 2019-03-11
 ### Fixed
  - targeted EXACTLY brs@0.13.0-nightly.20190310 to fix a weird npm dependency issue that is resolving to 0.13.0-rc.3 for some reason.
 
 
 
-### [0.1.19] - 2019-03-10
+## [0.1.19] - 2019-03-10
 ### Fixed
- - Upgraded to brs@0.13.0-nightly.20190310 to fix RHS boolean assignment parse errors (see [this issue](https://github.com/sjbarag/brs/issues/156))
+ - upgraded to brs@0.13.0-nightly.20190310 to fix RHS boolean assignment parse errors (see [this issue](https://github.com/sjbarag/brs/issues/156))
  - LanguageServer
    - hover bug in multi-root workspace that was only showing hovers for the first workspace
    - support loading brsconfig.json path as a setting from a connected languageclient (i.e. vscode)
@@ -88,19 +98,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.16] - 2019-03-06
 ### Fixed
- - Upgraded to brs@0.13.0-nightly.20190306 which fixed the mixed-case `Then` regression ([see this issue](https://github.com/sjbarag/brs/issues/187)).
+ - upgraded to brs@0.13.0-nightly.20190306 which fixed the mixed-case `Then` regression ([see this issue](https://github.com/sjbarag/brs/issues/187)).
 
 
 
 ## [0.1.15] - 2019-03-04
 ### Fixed
- - Issue where `EventEmitter`s were capped at 10 listeners. They no longer have an upper limit (hopefully there isn't a memory leak...)
+ - issue where `EventEmitter`s were capped at 10 listeners. They no longer have an upper limit (hopefully there isn't a memory leak...)
 
 
 
 ## [0.1.14] - 2019-03-02
 ### Changed
- - Updated to latest `brs` version that:
+ - updated to latest `brs` version that:
     - allows `then` to be used as object property names
     - allows `function` to be used as a parameter type
 
@@ -108,25 +118,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.13] - 2019-02-25
 ### Fixed
- - Issue that was showing duplicate errors when file was included in multiple components ([#10](https://github.com/TwitchBronBron/brightscript-language/issues/10))
+ - issue that was showing duplicate errors when file was included in multiple components ([#10](https://github.com/TwitchBronBron/brightscript-language/issues/10))
 
 ### Misc
- - Accidentally called this release 0.1.13, when it was intended to be 0.1.3. 
+ - accidentally called this release 0.1.13, when it was intended to be 0.1.3. 
 
 
 
 ## [0.1.2] - 2019-02-25
 ### Changed
- - Updated installation instructions. 
- - Reduced npm package install size (removed test files from `dist` folder)
+ - updated installation instructions. 
+ - reduced npm package install size (removed test files from `dist` folder)
 
 
 
 ## 0.1.1 - 2019-02-25
-Initial project release. 
+initial project release. 
 
 
 
+[0.2.4]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.3...v0.2.4
 [0.2.3]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.2...v0.2.3
 [0.2.2]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.1...v0.2.2
 [0.2.1]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.0...v0.2.1
