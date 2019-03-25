@@ -319,7 +319,7 @@ describe('BrsFile', () => {
         });
 
         //skipped until `brs` supports this
-        it.skip('supports bitshift assignment operators', async () => {
+        it('supports bitshift assignment operators', async () => {
             await file.parse(`
                 function Main()
                     x = 1
@@ -332,14 +332,24 @@ describe('BrsFile', () => {
         });
 
         //skipped until `brs` supports this
-        it.skip('supports bitshift assignment operators on objects', async () => {
+        it('supports bitshift assignment operators on objects', async () => {
             await file.parse(`
                     function Main()
                         m.x = 1
                         m.x <<= 1
                         m.x >>= 1
-                        m['x'] << 1
-                        m['x'] >> 1
+                        print m.x
+                    end function
+                `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('supports bitshift assignment operators on object properties accessed by array syntax', async () => {
+            await file.parse(`
+                    function Main()
+                        m.x = 1
+                        'm['x'] << 1
+                        'm['x'] >> 1
                         print m.x
                     end function
                 `);
@@ -359,6 +369,15 @@ describe('BrsFile', () => {
         it.skip('supports library imports', async () => {
             await file.parse(`
                 Library "v30/bslCore.brs"
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports colons as separators in associative array properties', async () => {
+            await file.parse(`
+                sub Main()
+                    obj = {x:0 : y: 1}
+                end sub
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
