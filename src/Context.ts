@@ -305,8 +305,7 @@ export class Context {
                 if (expCall.args.length > maxParams || expCall.args.length < minParams) {
                     let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                     this.diagnostics.push({
-                        message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
-                        code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
+                        ...diagnosticMessages.Expected_a_arguments_but_got_b_1002(minMaxParamsText, expCallArgCount),
                         location: expCall.nameRange,
                         //TODO detect end of expression call
                         file: file,
@@ -333,12 +332,10 @@ export class Context {
                     let globalCallable = globalCallableContainer[0];
 
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Local_var_shadows_global_function_1011.message,
+                        ...diagnosticMessages.Local_var_shadows_global_function_1011(
                             varDeclaration.name,
                             globalCallable.callable.file.pkgPath
                         ),
-                        code: diagnosticMessages.Local_var_shadows_global_function_1011.code,
                         location: varDeclaration.nameRange,
                         file: file,
                         severity: 'warning'
@@ -376,8 +373,7 @@ export class Context {
             //detect calls to unknown functions
             if (!knownCallable) {
                 this.diagnostics.push({
-                    message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, expCall.name),
-                    code: diagnosticMessages.Call_to_unknown_function_1001.code,
+                    ...diagnosticMessages.Call_to_unknown_function_1001(expCall.name),
                     location: expCall.nameRange,
                     file: file,
                     severity: 'error'
@@ -423,15 +419,13 @@ export class Context {
                     }
                     let shadowedCallable = ancestorNonPlatformCallables[ancestorNonPlatformCallables.length - 1];
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Shadows_ancestor_function_1010.message,
+                        ...diagnosticMessages.Shadows_ancestor_function_1010(
                             container.callable.name,
                             container.context.name,
                             shadowedCallable.callable.file.pkgPath,
                             //grab the last item in the list, which should be the closest ancestor's version
                             shadowedCallable.context.name,
                         ),
-                        code: diagnosticMessages.Shadows_ancestor_function_1010.code,
                         location: container.callable.nameRange,
                         file: container.callable.file,
                         severity: 'hint'
@@ -446,8 +440,7 @@ export class Context {
                     let callable = callableContainer.callable;
 
                     this.diagnostics.push({
-                        message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name, callableContainer.context.name),
-                        code: diagnosticMessages.Duplicate_function_implementation_1003.code,
+                        ...diagnosticMessages.Duplicate_function_implementation_1003(callable.name, callableContainer.context.name),
                         location: Range.create(
                             callable.nameRange.start.line,
                             callable.nameRange.start.character,

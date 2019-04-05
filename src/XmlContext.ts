@@ -139,8 +139,7 @@ export class XmlContext extends Context {
                         severity: 'warning',
                         file: this.xmlFile,
                         location: Range.create(scriptImport.lineIndex, scriptImport.columnIndexBegin, scriptImport.lineIndex, scriptImport.columnIndexEnd),
-                        code: diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code,
-                        message: util.stringFormat(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.message, ancestorComponentName)
+                        ...diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009(ancestorComponentName)
                     });
                 }
             }
@@ -180,11 +179,11 @@ export class XmlContext extends Context {
                 let message: string;
                 let code: number;
                 if (scriptImport.text.trim().length === 0) {
-                    message = diagnosticMessages.Script_src_cannot_be_empty_1015.message;
-                    code = diagnosticMessages.Script_src_cannot_be_empty_1015.code;
+                    message = diagnosticMessages.Script_src_cannot_be_empty_1015().message;
+                    code = diagnosticMessages.Script_src_cannot_be_empty_1015().code;
                 } else {
-                    message = diagnosticMessages.Referenced_file_does_not_exist_1004.message;
-                    code = diagnosticMessages.Referenced_file_does_not_exist_1004.code;
+                    message = diagnosticMessages.Referenced_file_does_not_exist_1004().message;
+                    code = diagnosticMessages.Referenced_file_does_not_exist_1004().code;
                 }
 
                 this.diagnostics.push({
@@ -203,11 +202,7 @@ export class XmlContext extends Context {
                 //if the character casing of the script import path does not match that of the actual path
                 if (scriptImport.pkgPath !== referencedFile.file.pkgPath) {
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Script_import_case_mismatch_1012.message,
-                            referencedFile.file.pkgPath
-                        ),
-                        code: diagnosticMessages.Script_import_case_mismatch_1012.code,
+                        ...diagnosticMessages.Script_import_case_mismatch_1012(referencedFile.file.pkgPath),
                         location: Range.create(
                             scriptImport.lineIndex,
                             scriptImport.columnIndexBegin,

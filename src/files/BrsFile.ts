@@ -133,7 +133,7 @@ export class BrsFile {
      * @param lines - the lines of the program
      */
     public getIgnores(lines: string[]) {
-        let allCodesExcept1014 = diagnosticCodes.filter((x) => x !== diagnosticMessages.Unknown_diagnostic_code_1014.code);
+        let allCodesExcept1014 = diagnosticCodes.filter((x) => x !== diagnosticMessages.Unknown_diagnostic_code_1014(0).code);
         this.commentFlags = [];
         for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             let line = lines[lineIndex];
@@ -188,8 +188,7 @@ export class BrsFile {
                                 //add a warning for unknown codes
                                 if (diagnosticCodes.indexOf(codeInt) === -1) {
                                     this.diagnostics.push({
-                                        code: diagnosticMessages.Unknown_diagnostic_code_1014.code,
-                                        message: util.stringFormat(diagnosticMessages.Unknown_diagnostic_code_1014.message, codeToken.text),
+                                        ...diagnosticMessages.Unknown_diagnostic_code_1014(codeInt),
                                         file: this,
                                         location: Range.create(lineIndex, offset + codeToken.startIndex, lineIndex, offset + codeToken.startIndex + codeToken.text.length),
                                         severity: 'warning'

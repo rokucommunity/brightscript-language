@@ -184,7 +184,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013().code);
         });
         it('does not throw errors on shadowed init functions in components', async () => {
             await program.addOrReplaceFile(`${rootDir}/lib.brs`, `
@@ -243,7 +243,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009('').code);
             expect(diagnostics[0].severity).to.equal('warning');
         });
 
@@ -267,7 +267,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010('', '', '', '').code);
         });
 
         it('does not add info diagnostic on shadowed "init" functions', async () => {
@@ -377,7 +377,7 @@ describe('Program', () => {
 
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('').code);
         });
 
         it('detects methods from another file in a subdirectory', async () => {
@@ -489,8 +489,7 @@ describe('Program', () => {
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
                 file: program.files[xmlPath],
                 location: Range.create(3, 58, 3, 88),
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
-                code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                ...diagnosticMessages.Referenced_file_does_not_exist_1004(),
                 severity: 'error'
             });
         });
@@ -510,7 +509,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_import_case_mismatch_1012.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_import_case_mismatch_1012('').code);
         });
     });
 
@@ -526,7 +525,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004().message
             });
 
             //add the file, the error should go away
@@ -544,7 +543,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004().message
             });
         });
 
@@ -674,7 +673,7 @@ describe('Program', () => {
             //there should be an error when calling DoParentThing, since it doesn't exist on child or parent
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoParentThing')
+                ...diagnosticMessages.Call_to_unknown_function_1001('DoParentThing')
             });
 
             //add the script into the parent
@@ -724,7 +723,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
 
-            let shadowedDiagnositcs = diagnostics.filter((x) => x.code === diagnosticMessages.Shadows_ancestor_function_1010.code);
+            let shadowedDiagnositcs = diagnostics.filter((x) => x.code === diagnosticMessages.Shadows_ancestor_function_1010('', '', '', '').code);
 
             //the children should all have diagnostics about shadowing their parent lib.brs file.
             //If not, then the parent-child attachment was severed somehow
@@ -792,11 +791,11 @@ describe('Program', () => {
             expect(program.getDiagnostics()).to.be.lengthOf(2);
 
             program.options.ignoreErrorCodes = [
-                diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                diagnosticMessages.Expected_a_arguments_but_got_b_1002(0, 0).code
             ];
 
             expect(program.getDiagnostics()).to.be.lengthOf(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('').code);
         });
     });
 

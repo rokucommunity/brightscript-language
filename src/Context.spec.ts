@@ -8,7 +8,6 @@ import { Context as Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { Program } from './Program';
-import util from './util';
 let n = path.normalize;
 
 describe('Context', () => {
@@ -164,7 +163,7 @@ describe('Context', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Local_var_shadows_global_function_1011.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Local_var_shadows_global_function_1011('', '').code);
         });
 
         it('detects duplicate callables', async () => {
@@ -204,8 +203,7 @@ describe('Context', () => {
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoB'),
-                code: diagnosticMessages.Call_to_unknown_function_1001.code
+                ...diagnosticMessages.Call_to_unknown_function_1001('DoB')
             });
         });
 
@@ -226,8 +224,7 @@ describe('Context', () => {
             context.validate();
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoC'),
-                code: diagnosticMessages.Call_to_unknown_function_1001.code
+                ...diagnosticMessages.Call_to_unknown_function_1001('DoC')
             });
         });
 
@@ -262,8 +259,7 @@ describe('Context', () => {
             //should have an error
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 0, 1),
-                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                ...diagnosticMessages.Expected_a_arguments_but_got_b_1002(0, 1)
             });
         });
 
@@ -282,8 +278,7 @@ describe('Context', () => {
             //should have an error
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 0),
-                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                ...diagnosticMessages.Expected_a_arguments_but_got_b_1002(1, 0)
             });
         });
 
@@ -318,8 +313,7 @@ describe('Context', () => {
             //should have an error
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, '1-2', 0),
-                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                ...diagnosticMessages.Expected_a_arguments_but_got_b_1002('1-2', 0)
             });
         });
 
@@ -354,8 +348,7 @@ describe('Context', () => {
             //should have an error
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, 1, 2),
-                code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                ...diagnosticMessages.Expected_a_arguments_but_got_b_1002(1, 2),
             });
         });
     });
