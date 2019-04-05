@@ -203,7 +203,7 @@ describe('Context', () => {
             //we should have the "DoA declared more than once" error twice (one for each function named "DoA")
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                ...diagnosticMessages.Call_to_unknown_function_1001('DoB')
+                code: diagnosticMessages.Call_to_unknown_function_1001('DoB', '').code
             });
         });
 
@@ -224,7 +224,7 @@ describe('Context', () => {
             context.validate();
             expect(context.getDiagnostics().length).to.equal(1);
             expect(context.getDiagnostics()[0]).to.deep.include({
-                ...diagnosticMessages.Call_to_unknown_function_1001('DoC')
+                code: diagnosticMessages.Call_to_unknown_function_1001('DoC', '').code
             });
         });
 

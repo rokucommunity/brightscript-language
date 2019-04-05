@@ -377,7 +377,7 @@ describe('Program', () => {
 
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('').code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('', '').code);
         });
 
         it('detects methods from another file in a subdirectory', async () => {
@@ -673,7 +673,7 @@ describe('Program', () => {
             //there should be an error when calling DoParentThing, since it doesn't exist on child or parent
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                ...diagnosticMessages.Call_to_unknown_function_1001('DoParentThing')
+                code: diagnosticMessages.Call_to_unknown_function_1001('DoParentThing', '').code
             });
 
             //add the script into the parent
@@ -795,7 +795,7 @@ describe('Program', () => {
             ];
 
             expect(program.getDiagnostics()).to.be.lengthOf(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('').code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('', '').code);
         });
     });
 

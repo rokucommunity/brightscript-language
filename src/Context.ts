@@ -373,7 +373,7 @@ export class Context {
             //detect calls to unknown functions
             if (!knownCallable) {
                 this.diagnostics.push({
-                    ...diagnosticMessages.Call_to_unknown_function_1001(expCall.name),
+                    ...diagnosticMessages.Call_to_unknown_function_1001(expCall.name, this.name),
                     location: expCall.nameRange,
                     file: file,
                     severity: 'error'

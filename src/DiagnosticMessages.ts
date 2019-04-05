@@ -8,8 +8,8 @@ export let diagnosticMessages = {
         message: `There was an error parsing the file`,
         code: 1000,
     }),
-    Call_to_unknown_function_1001: (name: string) => ({
-        message: `Cannot find name '${name}'`,
+    Call_to_unknown_function_1001: (name: string, scopeName: string) => ({
+        message: `Cannot find function with name '${name}' when this file is included in scope "${scopeName}".`,
         code: 1001
     }),
     Expected_a_arguments_but_got_b_1002: (expectedCount: number | string, actualCount: number) => ({
@@ -17,7 +17,7 @@ export let diagnosticMessages = {
         code: 1002
     }),
     Duplicate_function_implementation_1003: (functionName: string, scopeName: string) => ({
-        message: `Duplicate function implementation for "${functionName}" when included in scope "${scopeName}".`,
+        message: `Duplicate function implementation for "${functionName}" when this file is included in scope "${scopeName}".`,
         code: 1003
     }),
     Referenced_file_does_not_exist_1004: () => ({
