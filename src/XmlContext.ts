@@ -1,4 +1,4 @@
-import { Range } from 'vscode-languageserver';
+import { Location, Position, Range } from 'vscode-languageserver';
 
 import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
@@ -68,9 +68,9 @@ export class XmlContext extends Context {
             //incoming file has a component name
             file.componentName &&
             //this xml file has a parent
-            this.xmlFile.parentComponentName &&
+            this.xmlFile.parentName &&
             //incoming file has same name as parent
-            file.componentName.toLowerCase() === this.xmlFile.parentComponentName.toLowerCase()
+            file.componentName.toLowerCase() === this.xmlFile.parentName.toLowerCase()
         ) {
             this.isValidated = false;
             this.xmlFile.detachParent();
@@ -92,11 +92,11 @@ export class XmlContext extends Context {
             //xml file has no parent
             !this.xmlFile.parent &&
             //xml file WANTS a parent
-            this.xmlFile.parentComponentName &&
+            this.xmlFile.parentName &&
             //incoming file is an xml file
             file instanceof XmlFile &&
             //xml file's name matches the desired parent name
-            file.componentName === this.xmlFile.parentComponentName
+            file.componentName === this.xmlFile.parentName
         ) {
             this.isValidated = false;
             this.xmlFile.attachParent(file);
@@ -139,13 +139,32 @@ export class XmlContext extends Context {
                         severity: 'warning',
                         file: this.xmlFile,
                         location: Range.create(scriptImport.lineIndex, scriptImport.columnIndexBegin, scriptImport.lineIndex, scriptImport.columnIndexEnd),
-                        code: diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code,
-                        message: util.stringFormat(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.message, ancestorComponentName)
+                        ...diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009(ancestorComponentName)
                     });
                 }
             }
 
         }
+    }
+
+    /**
+     * Get the definition (where was this thing first defined) of the symbol under the position
+     */
+    public getDefinition(file: BrsFile | XmlFile, position: Position): Location[] {
+        let results = [] as Location[];
+        //if the position is within the file's parent component name
+        if (
+            file instanceof XmlFile &&
+            file.parent &&
+            file.parentNameRange &&
+            util.rangeContains(file.parentNameRange, position)
+        ) {
+            results.push({
+                range: Range.create(0, 0, 0, 0),
+                uri: util.pathToUri(file.parent.pathAbsolute)
+            });
+        }
+        return results;
     }
 
     /**
@@ -157,9 +176,19 @@ export class XmlContext extends Context {
             let referencedFile = this.getFileByRelativePath(scriptImport.pkgPath);
             //if we can't find the file
             if (!referencedFile) {
+                let message: string;
+                let code: number;
+                if (scriptImport.text.trim().length === 0) {
+                    message = diagnosticMessages.Script_src_cannot_be_empty_1015().message;
+                    code = diagnosticMessages.Script_src_cannot_be_empty_1015().code;
+                } else {
+                    message = diagnosticMessages.Referenced_file_does_not_exist_1004().message;
+                    code = diagnosticMessages.Referenced_file_does_not_exist_1004().code;
+                }
+
                 this.diagnostics.push({
-                    message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
-                    code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                    message: message,
+                    code: code,
                     location: Range.create(
                         scriptImport.lineIndex,
                         scriptImport.columnIndexBegin,
@@ -170,14 +199,10 @@ export class XmlContext extends Context {
                     severity: 'error',
                 });
             } else {
-                //if the script import path is not identical in case to the actual path, add a warning
+                //if the character casing of the script import path does not match that of the actual path
                 if (scriptImport.pkgPath !== referencedFile.file.pkgPath) {
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Script_import_case_mismatch_1012.message,
-                            referencedFile.file.pkgPath
-                        ),
-                        code: diagnosticMessages.Script_import_case_mismatch_1012.code,
+                        ...diagnosticMessages.Script_import_case_mismatch_1012(referencedFile.file.pkgPath),
                         location: Range.create(
                             scriptImport.lineIndex,
                             scriptImport.columnIndexBegin,

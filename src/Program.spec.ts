@@ -1,8 +1,10 @@
 import { assert, expect } from 'chai';
+import * as pick from 'object.pick';
 import * as path from 'path';
 import * as sinonImport from 'sinon';
 import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
 
+import { Context } from './Context';
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
 import { XmlFile } from './files/XmlFile';
@@ -182,7 +184,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.File_not_referenced_by_any_file_1013().code);
         });
         it('does not throw errors on shadowed init functions in components', async () => {
             await program.addOrReplaceFile(`${rootDir}/lib.brs`, `
@@ -241,7 +243,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Unnecessary_script_import_in_child_from_parent_1009('').code);
             expect(diagnostics[0].severity).to.equal('warning');
         });
 
@@ -265,7 +267,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Shadows_ancestor_function_1010('', '', '', '').code);
         });
 
         it('does not add info diagnostic on shadowed "init" functions', async () => {
@@ -375,7 +377,7 @@ describe('Program', () => {
 
             await program.validate();
             expect(program.getDiagnostics().length).to.equal(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('', '').code);
         });
 
         it('detects methods from another file in a subdirectory', async () => {
@@ -487,8 +489,7 @@ describe('Program', () => {
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
                 file: program.files[xmlPath],
                 location: Range.create(3, 58, 3, 88),
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message,
-                code: diagnosticMessages.Referenced_file_does_not_exist_1004.code,
+                ...diagnosticMessages.Referenced_file_does_not_exist_1004(),
                 severity: 'error'
             });
         });
@@ -508,7 +509,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
             expect(diagnostics).to.be.lengthOf(1);
-            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_import_case_mismatch_1012.code);
+            expect(diagnostics[0].code).to.equal(diagnosticMessages.Script_import_case_mismatch_1012('').code);
         });
     });
 
@@ -524,7 +525,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004().message
             });
 
             //add the file, the error should go away
@@ -542,7 +543,7 @@ describe('Program', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Referenced_file_does_not_exist_1004.message
+                message: diagnosticMessages.Referenced_file_does_not_exist_1004().message
             });
         });
 
@@ -611,6 +612,8 @@ describe('Program', () => {
                 kind: CompletionItemKind.File,
                 label: 'pkg:/components/component1.brs'
             });
+            //it should NOT include the platform methods
+            expect(completions).to.be.lengthOf(2);
         });
     });
 
@@ -670,7 +673,7 @@ describe('Program', () => {
             //there should be an error when calling DoParentThing, since it doesn't exist on child or parent
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0]).to.deep.include(<Diagnostic>{
-                message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, 'DoParentThing')
+                code: diagnosticMessages.Call_to_unknown_function_1001('DoParentThing', '').code
             });
 
             //add the script into the parent
@@ -720,7 +723,7 @@ describe('Program', () => {
             await program.validate();
             let diagnostics = program.getDiagnostics();
 
-            let shadowedDiagnositcs = diagnostics.filter((x) => x.code === diagnosticMessages.Shadows_ancestor_function_1010.code);
+            let shadowedDiagnositcs = diagnostics.filter((x) => x.code === diagnosticMessages.Shadows_ancestor_function_1010('', '', '', '').code);
 
             //the children should all have diagnostics about shadowing their parent lib.brs file.
             //If not, then the parent-child attachment was severed somehow
@@ -788,11 +791,93 @@ describe('Program', () => {
             expect(program.getDiagnostics()).to.be.lengthOf(2);
 
             program.options.ignoreErrorCodes = [
-                diagnosticMessages.Expected_a_arguments_but_got_b_1002.code
+                diagnosticMessages.Expected_a_arguments_but_got_b_1002(0, 0).code
             ];
 
             expect(program.getDiagnostics()).to.be.lengthOf(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001.code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Call_to_unknown_function_1001('', '').code);
+        });
+    });
+
+    describe('getCompletions', () => {
+        beforeEach(() => {
+            //remove the platform stuff to simplify the tests
+            program.platformContext = new Context('platform', () => false);
+            program.contexts.global.attachParentContext(program.platformContext);
+        });
+
+        it('returns all functions in scope', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+
+                end sub
+
+                sub ActionA()
+                end sub
+            `);
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub ActionB()
+                end sub
+            `);
+
+            await program.validate();
+
+            let completions = program
+                //get completions
+                .getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10))
+                //only keep the label property for this test
+                .map(x => pick(x, 'label'));
+
+            expect(completions).to.deep.include({ label: 'Main' });
+            expect(completions).to.deep.include({ label: 'ActionA' });
+            expect(completions).to.deep.include({ label: 'ActionB' });
+        });
+
+        it('returns all variables in scope', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    name = "bob"
+                    age = 20
+                    shoeSize = 12.5
+                end sub
+                sub ActionA()
+                end sub
+            `);
+            await program.addOrReplaceFile(`${rootDir}/source/lib.brs`, `
+                sub ActionB()
+                end sub
+            `);
+
+            await program.validate();
+
+            let completions = program.getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10));
+            let labels = completions.map(x => pick(x, 'label'));
+
+            expect(labels).to.deep.include({ label: 'Main' });
+            expect(labels).to.deep.include({ label: 'ActionA' });
+            expect(labels).to.deep.include({ label: 'ActionB' });
+            expect(labels).to.deep.include({ label: 'name' });
+            expect(labels).to.deep.include({ label: 'age' });
+            expect(labels).to.deep.include({ label: 'shoeSize' });
+        });
+
+        it('returns empty set when out of range', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, '');
+            expect(program.getCompletions(`${rootDir}/source/main.brs`, Position.create(99, 99))).to.be.empty;
+        });
+
+        it('finds parameters', async () => {
+            await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main(count = 1)
+                    firstName = "bob"
+                    age = 21
+                    shoeSize = 10
+                end sub
+            `);
+            let completions = program.getCompletions(`${rootDir}/source/main.brs`, Position.create(2, 10));
+            let labels = completions.map(x => pick(x, 'label'));
+
+            expect(labels).to.deep.include({ label: 'count' });
         });
     });
 });

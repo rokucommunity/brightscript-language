@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { CompletionItem, CompletionItemKind, Range } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Location, Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from './DiagnosticMessages';
 import { BrsFile } from './files/BrsFile';
@@ -305,8 +305,7 @@ export class Context {
                 if (expCall.args.length > maxParams || expCall.args.length < minParams) {
                     let minMaxParamsText = minParams === maxParams ? maxParams : minParams + '-' + maxParams;
                     this.diagnostics.push({
-                        message: util.stringFormat(diagnosticMessages.Expected_a_arguments_but_got_b_1002.message, minMaxParamsText, expCallArgCount),
-                        code: diagnosticMessages.Expected_a_arguments_but_got_b_1002.code,
+                        ...diagnosticMessages.Expected_a_arguments_but_got_b_1002(minMaxParamsText, expCallArgCount),
                         location: expCall.nameRange,
                         //TODO detect end of expression call
                         file: file,
@@ -334,12 +333,10 @@ export class Context {
                     let globalCallable = globalCallableContainer[0];
 
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Local_var_shadows_global_function_1011.message,
+                        ...diagnosticMessages.Local_var_shadows_global_function_1011(
                             varDeclaration.name,
                             globalCallable.callable.file.pkgPath
                         ),
-                        code: diagnosticMessages.Local_var_shadows_global_function_1011.code,
                         location: varDeclaration.nameRange,
                         file: file,
                         severity: 'warning'
@@ -377,8 +374,7 @@ export class Context {
             //detect calls to unknown functions
             if (!knownCallable) {
                 this.diagnostics.push({
-                    message: util.stringFormat(diagnosticMessages.Call_to_unknown_function_1001.message, expCall.name),
-                    code: diagnosticMessages.Call_to_unknown_function_1001.code,
+                    ...diagnosticMessages.Call_to_unknown_function_1001(expCall.name, this.name),
                     location: expCall.nameRange,
                     file: file,
                     severity: 'error'
@@ -424,15 +420,13 @@ export class Context {
                     }
                     let shadowedCallable = ancestorNonPlatformCallables[ancestorNonPlatformCallables.length - 1];
                     this.diagnostics.push({
-                        message: util.stringFormat(
-                            diagnosticMessages.Shadows_ancestor_function_1010.message,
+                        ...diagnosticMessages.Shadows_ancestor_function_1010(
                             container.callable.name,
                             container.context.name,
                             shadowedCallable.callable.file.pkgPath,
                             //grab the last item in the list, which should be the closest ancestor's version
                             shadowedCallable.context.name,
                         ),
-                        code: diagnosticMessages.Shadows_ancestor_function_1010.code,
                         location: container.callable.nameRange,
                         file: container.callable.file,
                         severity: 'hint'
@@ -447,8 +441,7 @@ export class Context {
                     let callable = callableContainer.callable;
 
                     this.diagnostics.push({
-                        message: util.stringFormat(diagnosticMessages.Duplicate_function_implementation_1003.message, callable.name, callableContainer.context.name),
-                        code: diagnosticMessages.Duplicate_function_implementation_1003.code,
+                        ...diagnosticMessages.Duplicate_function_implementation_1003(callable.name, callableContainer.context.name),
                         location: Range.create(
                             callable.nameRange.start.line,
                             callable.nameRange.start.character,
@@ -479,8 +472,16 @@ export class Context {
      * Determine if the context already has this file in its files list
      * @param file
      */
-    public hasFile(file: BrsFile | XmlFile) {
-        if (this.files[file.pathAbsolute]) {
+    public hasFile(pathAbsolute: string);
+    public hasFile(file: BrsFile | XmlFile);
+    public hasFile(file: BrsFile | XmlFile | string) {
+        let pathAbsolute: string;
+        if (file instanceof BrsFile || file instanceof XmlFile) {
+            pathAbsolute = file.pathAbsolute;
+        } else {
+            pathAbsolute = file;
+        }
+        if (this.files[pathAbsolute]) {
             return true;
         } else {
             return false;
@@ -502,6 +503,14 @@ export class Context {
             });
         }
         return completions;
+    }
+
+    /**
+     * Get the definition (where was this thing first defined) of the symbol under the position
+     */
+    public getDefinition(file: BrsFile | XmlFile, position: Position): Location[] {
+        //TODO implement for brs files
+        return [];
     }
 }
 

@@ -1,8 +1,10 @@
 import { assert, expect } from 'chai';
 import * as path from 'path';
+import { Position } from 'vscode-languageserver';
 
 import { XmlFile } from './files/XmlFile';
 import { Program } from './Program';
+import util from './util';
 import { XmlContext } from './XmlContext';
 
 let n = path.normalize;
@@ -24,7 +26,7 @@ describe('XmlContext', () => {
     });
     describe('onProgramFileRemove', () => {
         it('handles file-removed event when file does not have component name', async () => {
-            xmlFile.parentComponentName = 'Scene';
+            xmlFile.parentName = 'Scene';
             xmlFile.componentName = 'ParentComponent';
             let namelessComponent = await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
                 <?xml version="1.0" encoding="utf-8" ?>
@@ -54,6 +56,25 @@ describe('XmlContext', () => {
 
             xmlFile.detachParent();
             expect(context.parentContext).to.equal(program.platformContext);
+        });
+    });
+
+    describe('getDefinition', () => {
+        it('finds parent file', async () => {
+            let parentXmlFile = await program.addOrReplaceFile(`${rootDir}/components/parent.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentComponent">
+                </component>
+            `);
+            let childXmlFile = await program.addOrReplaceFile(`${rootDir}/components/child.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildComponent" extends="ParentComponent">
+                </component>
+            `);
+            let childContext = program.getContextsForFile(childXmlFile);
+            let definition = childContext[0].getDefinition(childXmlFile, Position.create(2, 64));
+            expect(definition).to.be.lengthOf(1);
+            expect(definition[0].uri).to.equal(util.pathToUri(parentXmlFile.pathAbsolute));
         });
     });
 });

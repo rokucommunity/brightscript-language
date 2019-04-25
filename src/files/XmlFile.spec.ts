@@ -14,8 +14,10 @@ describe('XmlFile', () => {
     let rootDir = process.cwd();
     let program: Program;
     let sinon = sinonImport.createSandbox();
+    let file: XmlFile;
     beforeEach(() => {
         program = new Program({ rootDir: rootDir });
+        file = new XmlFile(`${rootDir}/components/MainComponent.xml`, 'components/MainComponent.xml', program);
     });
     afterEach(() => {
         sinon.restore();
@@ -73,7 +75,7 @@ describe('XmlFile', () => {
                 <script type="text/brightscript" uri="ChildScene.brs" />
                 </component>
             `);
-            expect(file.parentComponentName).to.equal('ParentScene');
+            expect(file.parentName).to.equal('ParentScene');
             expect(file.componentName).to.equal('ChildScene');
         });
 
@@ -81,7 +83,7 @@ describe('XmlFile', () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse(`<script type="text/brightscript" uri="ChildScene.brs" />`);
             expect(file.parseDiagnistics).to.be.lengthOf(1);
-            expect(file.parseDiagnistics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration_1005.message);
+            expect(file.parseDiagnistics[0].message).to.equal(diagnosticMessages.Xml_component_missing_component_declaration_1005().message);
         });
 
         it('adds error when component does not declare a name', async () => {
@@ -94,7 +96,7 @@ describe('XmlFile', () => {
             `);
             expect(file.parseDiagnistics).to.be.lengthOf(1);
             expect(file.parseDiagnistics[0]).to.deep.include(<Diagnostic>{
-                message: diagnosticMessages.Component_missing_name_attribute_1006.message,
+                message: diagnosticMessages.Component_missing_name_attribute_1006().message,
                 location: Range.create(2, 16, 2, 26)
             });
         });
@@ -108,7 +110,7 @@ describe('XmlFile', () => {
             `);
             expect(file.parseDiagnistics).to.be.lengthOf(1);
             expect(file.parseDiagnistics[0]).to.deep.include(<Diagnostic>{
-                code: diagnosticMessages.Xml_parse_error_1008.code,
+                code: diagnosticMessages.Xml_parse_error_1008().code,
                 location: Range.create(2, 27, 2, 27),
             });
         });
@@ -204,12 +206,12 @@ describe('XmlFile', () => {
                 sourceFile: xmlFile
             });
 
-            expect(xmlFile.getCompletions(Position.create(1, 1))[0]).to.include({
+            expect(xmlFile.getCompletions(Position.create(1, 1)).completions[0]).to.include({
                 label: 'components/component1/component1.brs',
                 kind: CompletionItemKind.File
             });
 
-            expect(xmlFile.getCompletions(Position.create(1, 1))[1]).to.include(<CompletionItem>{
+            expect(xmlFile.getCompletions(Position.create(1, 1)).completions[1]).to.include(<CompletionItem>{
                 label: 'pkg:/components/component1/component1.brs',
                 kind: CompletionItemKind.File
             });
@@ -218,7 +220,21 @@ describe('XmlFile', () => {
         it('returns empty set when out of range', async () => {
             let file = new XmlFile('abs', 'rel', null);
             await file.parse('');
-            expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
+            expect(file.getCompletions(Position.create(99, 99)).completions).to.be.empty;
+        });
+
+        //TODO - refine this test once cdata scripts are supported
+        it('prevents context completions entirely', async () => {
+            await program.addOrReplaceFile(`${rootDir}/components/Component1.brs`, ``);
+
+            let file = await program.addOrReplaceFile(`${rootDir}/components/Component1.xml`, `
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ParentScene" extends="GrandparentScene">
+                    <script type="text/brightscript" uri="./Component1.brs" />
+                </component>
+            `);
+
+            expect(program.getCompletions(file.pathAbsolute, Position.create(1, 1))).to.be.empty;
         });
     });
 
@@ -230,6 +246,32 @@ describe('XmlFile', () => {
             };
             file.ownScriptImports.push(<any>scriptImport);
             expect(file.getAllScriptImports()).to.be.lengthOf(1);
+        });
+    });
+
+    describe('findExtendsPosition', () => {
+        it('works for single-line', () => {
+            expect(file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene" extends="BaseScene">
+                </component>
+            `)).to.eql(Range.create(2, 54, 2, 63));
+        });
+
+        it('works for multi-line', () => {
+            expect(file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene"
+                    extends="BaseScene">
+                </component>
+            `)).to.eql(Range.create(3, 29, 3, 38));
+        });
+        it('does not throw when unable to find extends', () => {
+            file.findExtendsPosition(`
+                <?xml version="1.0" encoding="utf-8" ?>
+                <component name="ChildScene">
+                </component>
+            `);
         });
     });
 });

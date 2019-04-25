@@ -12,6 +12,7 @@
         "preserveConstEnums": true,
         "downlevelIteration": true,
         "noUnusedLocals": true,
+        "allowSyntheticDefaultImports": true,
         "lib": [
             "es2015"
         ]

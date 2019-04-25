@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
-import { Position, Range } from 'vscode-languageserver';
+import { CompletionItem, Location, Position, Range } from 'vscode-languageserver';
 
 import { BrsConfig } from './BrsConfig';
 import { Context } from './Context';
@@ -301,8 +301,7 @@ export class Program {
                 file: file,
                 location: Range.create(0, 0, 0, Number.MAX_VALUE),
                 severity: 'warning',
-                code: diagnosticMessages.File_not_referenced_by_any_file_1013.code,
-                message: diagnosticMessages.File_not_referenced_by_any_file_1013.message
+                ...diagnosticMessages.File_not_referenced_by_any_file_1013()
             });
         }
     }
@@ -339,6 +338,8 @@ export class Program {
      * @param columnIndex
      */
     public getCompletions(pathAbsolute: string, position: Position) {
+        let completions = [] as CompletionItem[];
+
         let file = this.getFile(pathAbsolute);
         if (!file) {
             return [];
@@ -351,9 +352,29 @@ export class Program {
         }
         let context = contexts[0];
 
-        let fileCompletions = file.getCompletions(position, context);
-        let contextCompletions = context.getCallablesAsCompletions();
-        return [...fileCompletions, ...contextCompletions];
+        let fileResult = file.getCompletions(position, context);
+        completions.push(...fileResult.completions);
+        if (fileResult.includeContextCallables) {
+            completions.push(...context.getCallablesAsCompletions());
+        }
+        return completions;
+    }
+
+    /**
+     * Given a position in a file, if the position is sitting on some type of identifier,
+     * go to the definition of that identifier (where this thing was first defined)
+     */
+    public getDefinition(pathAbsolute: string, position: Position): Location[] {
+        let file = this.getFile(pathAbsolute);
+        if (!file) {
+            return [];
+        }
+        let results = [] as Location[];
+        let contexts = this.getContextsForFile(file);
+        for (let context of contexts) {
+            results = results.concat(...context.getDefinition(file, position));
+        }
+        return results;
     }
 
     public getHover(pathAbsolute: string, position: Position) {

@@ -4,7 +4,7 @@ import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vsco
 
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Callable, Diagnostic, ExpressionCall, File, FileReference } from '../interfaces';
+import { Callable, Diagnostic, File, FileReference, FunctionCall } from '../interfaces';
 import { Program } from '../Program';
 import util from '../util';
 
@@ -22,6 +22,8 @@ export class XmlFile {
         //allow unlimited listeners
         this.emitter.setMaxListeners(0);
     }
+
+    public parentNameRange: Range;
 
     /**
      * The extension for this file
@@ -45,14 +47,14 @@ export class XmlFile {
     public callables = [] as Callable[];
 
     //TODO implement the xml CDATA parsing, which would populate this list
-    public functionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as FunctionCall[];
 
     public functionScopes = [] as FunctionScope[];
 
     /**
      * The name of the component that this component extends
      */
-    public parentComponentName: string;
+    public parentName: string;
 
     /**
      * The name of the component declared in this xml file
@@ -72,6 +74,8 @@ export class XmlFile {
         //split the text into lines
         let lines = util.getLines(fileContents);
 
+        this.parentNameRange = this.findExtendsPosition(fileContents);
+
         //create a range of the entire file
         this.fileRange = Range.create(0, 0, lines.length, lines[lines.length - 1].length - 1);
 
@@ -82,7 +86,7 @@ export class XmlFile {
             if (parsedXml && parsedXml.component) {
                 if (parsedXml.component.$) {
                     this.componentName = parsedXml.component.$.name;
-                    this.parentComponentName = parsedXml.component.$.extends;
+                    this.parentName = parsedXml.component.$.extends;
                 }
                 let componentRange: Range;
 
@@ -100,8 +104,7 @@ export class XmlFile {
                 //component name not defined
                 if (!this.componentName) {
                     this.parseDiagnistics.push({
-                        code: diagnosticMessages.Component_missing_name_attribute_1006.code,
-                        message: diagnosticMessages.Component_missing_name_attribute_1006.message,
+                        ...diagnosticMessages.Component_missing_name_attribute_1006(),
                         location: Range.create(
                             componentRange.start.line,
                             componentRange.start.character,
@@ -113,10 +116,9 @@ export class XmlFile {
                     });
                 }
                 //parent component name not defined
-                if (!this.parentComponentName) {
+                if (!this.parentName) {
                     this.parseDiagnistics.push({
-                        code: diagnosticMessages.Component_missing_extends_attribute_1007.code,
-                        message: diagnosticMessages.Component_missing_extends_attribute_1007.message,
+                        ...diagnosticMessages.Component_missing_extends_attribute_1007(),
                         location: Range.create(
                             componentRange.start.line,
                             componentRange.start.character,
@@ -130,8 +132,7 @@ export class XmlFile {
             } else {
                 //the component xml element was not found in the file
                 this.parseDiagnistics.push({
-                    code: diagnosticMessages.Xml_component_missing_component_declaration_1005.code,
-                    message: diagnosticMessages.Xml_component_missing_component_declaration_1005.message,
+                    ...diagnosticMessages.Xml_component_missing_component_declaration_1005(),
                     location: Range.create(
                         0,
                         0,
@@ -151,7 +152,7 @@ export class XmlFile {
                 //add basic xml parse diagnostic errors
                 this.parseDiagnistics.push({
                     message: match[1],
-                    code: diagnosticMessages.Xml_parse_error_1008.code,
+                    code: diagnosticMessages.Xml_parse_error_1008().code,
                     location: Range.create(
                         lineIndex,
                         columnIndex,
@@ -277,68 +278,105 @@ export class XmlFile {
      * @param lineIndex
      * @param columnIndex
      */
-    public getCompletions(position: Position): CompletionItem[] {
-        let result = [] as CompletionItem[];
+    public getCompletions(position: Position) {
+        let result = {
+            completions: [] as CompletionItem[],
+            includeContextCallables: false,
+        };
+        let scriptImport = this.getScriptImportAtPosition(position);
+        if (scriptImport) {
+            result.completions = [...this.getScriptImportCompletions(scriptImport)];
+        }
+        return result;
+    }
+
+    private getScriptImportAtPosition(position: Position) {
         let scriptImport = this.ownScriptImports.find((x) => {
             return x.lineIndex === position.line &&
                 //column between start and end
                 position.character >= x.columnIndexBegin &&
                 position.character <= x.columnIndexEnd;
         });
-        //the position is within a script import. Provide path completions
-        if (scriptImport) {
-            //get a list of all scripts currently being imported
-            let currentImports = this.ownScriptImports.map((x) => x.pkgPath);
+        return scriptImport;
+    }
 
-            //restrict to only .brs files
-            for (let key in this.program.files) {
-                let file = this.program.files[key];
-                if (
-                    //is a brightscript file
-                    (file.extension === '.bs' || file.extension === '.brs') &&
-                    //not already referenced in this file
-                    currentImports.indexOf(file.pkgPath) === -1
-                ) {
-                    //the text range to replace if the user selects this result
-                    let range = {
-                        start: {
-                            character: scriptImport.columnIndexBegin,
-                            line: scriptImport.lineIndex
-                        },
-                        end: {
-                            character: scriptImport.columnIndexEnd,
-                            line: scriptImport.lineIndex
-                        }
-                    } as Range;
+    private getScriptImportCompletions(scriptImport: FileReference) {
+        let result = [] as CompletionItem[];
+        //get a list of all scripts currently being imported
+        let currentImports = this.ownScriptImports.map((x) => x.pkgPath);
 
-                    //add the relative path
-                    let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
-                    let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
+        //restrict to only .brs files
+        for (let key in this.program.files) {
+            let file = this.program.files[key];
+            if (
+                //is a brightscript file
+                (file.extension === '.bs' || file.extension === '.brs') &&
+                //not already referenced in this file
+                currentImports.indexOf(file.pkgPath) === -1
+            ) {
+                //the text range to replace if the user selects this result
+                let range = {
+                    start: {
+                        character: scriptImport.columnIndexBegin,
+                        line: scriptImport.lineIndex
+                    },
+                    end: {
+                        character: scriptImport.columnIndexEnd,
+                        line: scriptImport.lineIndex
+                    }
+                } as Range;
 
-                    result.push({
-                        label: relativePath,
-                        detail: file.pathAbsolute,
-                        kind: CompletionItemKind.File,
-                        textEdit: {
-                            newText: relativePath,
-                            range: range
-                        }
-                    });
+                //add the relative path
+                let relativePath = util.getRelativePath(this.pkgPath, file.pkgPath).replace(/\\/g, '/');
+                let pkgPath = 'pkg:/' + file.pkgPath.replace(/\\/g, '/');
 
-                    //add the absolute path
-                    result.push({
-                        label: pkgPath,
-                        detail: file.pathAbsolute,
-                        kind: CompletionItemKind.File,
-                        textEdit: {
-                            newText: pkgPath,
-                            range: range
-                        }
-                    });
-                }
+                result.push({
+                    label: relativePath,
+                    detail: file.pathAbsolute,
+                    kind: CompletionItemKind.File,
+                    textEdit: {
+                        newText: relativePath,
+                        range: range
+                    }
+                });
+
+                //add the absolute path
+                result.push({
+                    label: pkgPath,
+                    detail: file.pathAbsolute,
+                    kind: CompletionItemKind.File,
+                    textEdit: {
+                        newText: pkgPath,
+                        range: range
+                    }
+                });
             }
         }
         return result;
+    }
+
+    /**
+     * Scan the xml and find the range of the parent component's name in the `extends="ParentComponentName"` attribute of the component
+     */
+    public findExtendsPosition(fullText: string) {
+        let regexp = /.*<component[^>]*((extends\s*=\s*")(\w*)")/gms;
+        let match = regexp.exec(fullText);
+        if (match) {
+            let extendsText = match[1]; // `extends="something"`
+            let extendsToFirstQuote = match[2]; // `extends="`
+            let componentName = match[3]; // `something`
+            let lines = util.getLines(match[0]);
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                let line = lines[lineIndex];
+                let extendsIdx = line.indexOf(extendsText);
+                //we found the line index
+                if (extendsIdx > -1) {
+                    let colStartIndex = extendsIdx + extendsToFirstQuote.length;
+                    let colEndIndex = colStartIndex + componentName.length;
+                    return Range.create(lineIndex, colStartIndex, lineIndex, colEndIndex);
+                }
+            }
+        }
     }
 
     public emitter = new EventEmitter();

@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
 import * as sinonImport from 'sinon';
-import { CompletionItemKind, Position, Range } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 
 import { diagnosticMessages } from '../DiagnosticMessages';
 import { Assignment, Callable, CallableArg, CommentFlag, Diagnostic } from '../interfaces';
@@ -141,6 +141,32 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not lose function scopes when mismatched end sub', async () => {
+            await file.parse(`
+                sub main()
+                    sayHi()
+                end function
+
+                sub sayHi()
+                    print "hello world"
+                end sub
+            `);
+            expect(file.functionScopes).to.be.lengthOf(2);
+        });
+
+        it('does not lose sub scope when mismatched end function', async () => {
+            await file.parse(`
+                function main()
+                    sayHi()
+                end sub
+
+                sub sayHi()
+                    print "hello world"
+                end sub
+            `);
+            expect(file.functionScopes).to.be.lengthOf(2);
+        });
+
         it('does not error with boolean in RHS of set statement', async () => {
             await file.parse(`
                 sub main()
@@ -162,6 +188,31 @@ describe('BrsFile', () => {
                     m.isTrue = true = true
                     m.isTrue = m.isTrue = true
                     m.isTrue = m.isTrue = m.isTrue
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports type designators', async () => {
+            await file.parse(`
+                sub main()
+                  name$ = "bob"
+                  age% = 1
+                  height! = 5.5
+                  salary# = 9.87654321
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports multiple spaces between two-word keywords', async () => {
+            await file.parse(`
+                sub main()
+                    if true then
+                        print "true"
+                    else    if true then
+                        print "also true"
+                    end if
                 end sub
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
@@ -270,7 +321,7 @@ describe('BrsFile', () => {
         });
 
         //skipped until `brs` supports this
-        it.skip('supports bitshift assignment operators', async () => {
+        it('supports bitshift assignment operators', async () => {
             await file.parse(`
                 function Main()
                     x = 1
@@ -283,14 +334,24 @@ describe('BrsFile', () => {
         });
 
         //skipped until `brs` supports this
-        it.skip('supports bitshift assignment operators on objects', async () => {
+        it('supports bitshift assignment operators on objects', async () => {
             await file.parse(`
                     function Main()
                         m.x = 1
                         m.x <<= 1
                         m.x >>= 1
-                        m['x'] << 1
-                        m['x'] >> 1
+                        print m.x
+                    end function
+                `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it.skip('supports bitshift assignment operators on object properties accessed by array syntax', async () => {
+            await file.parse(`
+                    function Main()
+                        m.x = 1
+                        'm['x'] << 1
+                        'm['x'] >> 1
                         print m.x
                     end function
                 `);
@@ -310,6 +371,15 @@ describe('BrsFile', () => {
         it.skip('supports library imports', async () => {
             await file.parse(`
                 Library "v30/bslCore.brs"
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports colons as separators in associative array properties', async () => {
+            await file.parse(`
+                sub Main()
+                    obj = {x:0 : y: 1}
+                end sub
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
@@ -387,17 +457,19 @@ describe('BrsFile', () => {
             let file = new BrsFile('absolute_path/file.brs', 'relative_path/file.brs', program);
             await file.parse(`
                 function DoA()
-                    DoB()
+                    DoB("a")
                 end function
-                function DoB()
-                     DoC()
+                function DoB(a as string)
+                    DoC()
                 end function
             `);
             expect(file.functionCalls.length).to.equal(2);
 
+            expect(file.functionCalls[0].range).to.eql(Range.create(2, 20, 2, 28));
             expect(file.functionCalls[0].nameRange).to.eql(Range.create(2, 20, 2, 23));
 
-            expect(file.functionCalls[1].nameRange).to.eql(Range.create(5, 21, 5, 24));
+            expect(file.functionCalls[1].range).to.eql(Range.create(5, 20, 5, 25));
+            expect(file.functionCalls[1].nameRange).to.eql(Range.create(5, 20, 5, 23));
         });
 
         it('sanitizes brs errors', async () => {
@@ -785,49 +857,6 @@ describe('BrsFile', () => {
         });
     });
 
-    describe('getCompletions', () => {
-        it('returns empty set when out of range', async () => {
-            await file.parse('');
-            expect(file.getCompletions(Position.create(99, 99))).to.be.empty;
-        });
-
-        it('finds only variables declared above', async () => {
-            await file.parse(`
-                sub Main()
-                    firstName = "bob"
-                    age = 21
-                    shoeSize = 10
-                end sub
-            `);
-            let completions = file.getCompletions(Position.create(3, 26));
-            expect(completions).to.be.lengthOf(1);
-            expect(completions[0]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'firstName'
-            });
-        });
-
-        it('finds parameters', async () => {
-            await file.parse(`
-                sub Main(count = 1)
-                    firstName = "bob"
-                    age = 21
-                    shoeSize = 10
-                end sub
-            `);
-            let completions = file.getCompletions(Position.create(3, 26));
-            expect(completions).to.be.lengthOf(2);
-            expect(completions[0]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'count'
-            });
-            expect(completions[1]).to.deep.include({
-                kind: CompletionItemKind.Variable,
-                label: 'firstName'
-            });
-        });
-    });
-
     describe('getHover', () => {
         it('works for param types', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
@@ -978,7 +1007,7 @@ describe('BrsFile', () => {
             `);
             await program.validate();
             expect(program.getDiagnostics()).to.be.lengthOf(1);
-            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Type_a_is_not_assignable_to_type_b_1015.code);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Type_a_is_not_assignable_to_type_b_1016('', '').code);
         });
     });
 

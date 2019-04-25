@@ -207,17 +207,6 @@ class Util {
         return rootDir;
     }
 
-    /**
-     * Format a string with placeholders replaced by argument indexes
-     * @param subject
-     * @param params
-     */
-    public stringFormat(subject: string, ...args) {
-        return subject.replace(/{(\d+)}/g, (match, num) => {
-            return typeof args[num] !== 'undefined' ? args[num] : match;
-        });
-    }
-
     public valueKindToBrsType(kind: ValueKind): BrsType {
         switch (kind) {
             case ValueKind.Boolean: return new BooleanType();
@@ -489,8 +478,19 @@ class Util {
         return subject;
     }
 
-    public getPathFromUri(uri: string) {
+    /**
+     * Given a URI, convert that to a regular fs path
+     * @param uri
+     */
+    public uriToPath(uri: string) {
         return path.normalize(Uri.parse(uri).fsPath);
+    }
+
+    /**
+     * Given a file path, convert it to a URI string
+     */
+    public pathToUri(pathAbsolute: string) {
+        return Uri.file(pathAbsolute).toString();
     }
 
     /**
@@ -568,7 +568,26 @@ class Util {
         }
         return tokens;
     }
+    /**
+     * The BRS library uses 1-based line indexes, and 0 based column indexes.
+     * However, vscode expects zero-based for everything.
+     * @param start - the location.start object from brs
+     * @param end - the location.end object from brs
+     */
+    public brsRangeFromPositions(start: BrsPosition, end: BrsPosition) {
+        return Range.create(
+            start.line - 1,
+            start.column,
+            end.line - 1,
+            end.column
+        );
+    }
 }
 
 export let util = new Util();
 export default util;
+
+interface BrsPosition {
+    line: number;
+    column: number;
+}

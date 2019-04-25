@@ -9,5 +9,6 @@
         "**/.nyc_output": true,
         "**/coverage": true,
         "**/dist": true
-    }
+    },
+    "tslint.autoFixOnSave": true
 }

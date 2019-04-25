@@ -6,7 +6,7 @@ import { CompletionItem, CompletionItemKind, Hover, Position, Range } from 'vsco
 import { Context } from '../Context';
 import { diagnosticCodes, diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
-import { Assignment, Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, ExpressionCall } from '../interfaces';
+import { Assignment, Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, FunctionCall } from '../interfaces';
 import { Program } from '../Program';
 import { ArrayType } from '../types/ArrayType';
 import { BooleanType } from '../types/BooleanType';
@@ -59,7 +59,7 @@ export class BrsFile {
 
     public callables = [] as Callable[];
 
-    public functionCalls = [] as ExpressionCall[];
+    public functionCalls = [] as FunctionCall[];
 
     public functionScopes = [] as FunctionScope[];
 
@@ -141,7 +141,7 @@ export class BrsFile {
      * @param lines - the lines of the program
      */
     public getIgnores(lines: string[]) {
-        let allCodesExcept1014 = diagnosticCodes.filter((x) => x !== diagnosticMessages.Unknown_diagnostic_code_1014.code);
+        let allCodesExcept1014 = diagnosticCodes.filter((x) => x !== diagnosticMessages.Unknown_diagnostic_code_1014(0).code);
         this.commentFlags = [];
         for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             let line = lines[lineIndex];
@@ -196,8 +196,7 @@ export class BrsFile {
                                 //add a warning for unknown codes
                                 if (diagnosticCodes.indexOf(codeInt) === -1) {
                                     this.diagnostics.push({
-                                        code: diagnosticMessages.Unknown_diagnostic_code_1014.code,
-                                        message: util.stringFormat(diagnosticMessages.Unknown_diagnostic_code_1014.message, codeToken.text),
+                                        ...diagnosticMessages.Unknown_diagnostic_code_1014(codeInt),
                                         file: this,
                                         location: Range.create(lineIndex, offset + codeToken.startIndex, lineIndex, offset + codeToken.startIndex + codeToken.text.length),
                                         severity: 'warning'
@@ -357,9 +356,7 @@ export class BrsFile {
             if (this.program.options.strictTypeChecking) {
                 if (assignment.incomingType.isAssignableTo(assignment.currentType) === false) {
                     this.diagnostics.push({
-                        code: diagnosticMessages.Type_a_is_not_assignable_to_type_b_1015.code,
-                        message: util.stringFormat(
-                            diagnosticMessages.Type_a_is_not_assignable_to_type_b_1015.message,
+                        ...diagnosticMessages.Type_a_is_not_assignable_to_type_b_1016(
                             assignment.incomingType.toString(),
                             assignment.currentType.toString()
                         ),
@@ -597,8 +594,8 @@ export class BrsFile {
                             });
                         }
                     }
-
-                    let expCall: ExpressionCall = {
+                    let functionCall: FunctionCall = {
+                        range: util.brsRangeFromPositions(expression.location.start, expression.closingParen.location.end),
                         functionScope: this.getFunctionScopeAtPosition(Position.create(calleeRange.start.line, calleeRange.start.character)),
                         file: this,
                         name: functionName,
@@ -606,7 +603,7 @@ export class BrsFile {
                         //TODO keep track of parameters
                         args: args
                     };
-                    this.functionCalls.push(expCall);
+                    this.functionCalls.push(functionCall);
                 }
             }
         }
@@ -636,22 +633,29 @@ export class BrsFile {
     }
 
     public getCompletions(position: Position, context?: Context) {
+        let result = {
+            completions: [] as CompletionItem[],
+            includeContextCallables: true,
+        };
+
         //determine if cursor is inside a function
         let functionScope = this.getFunctionScopeAtPosition(position);
         if (!functionScope) {
+            result.includeContextCallables = false;
             //we aren't in any function scope, so just return an empty list
-            return [];
+            return result;
         }
 
-        let results = [] as CompletionItem[];
-        let variables = functionScope.getVariablesAbove(position.line);
+        //TODO: if cursor is within a comment, disable completions
+
+        let variables = functionScope.assignments;
         for (let variable of variables) {
-            results.push({
+            result.completions.push({
                 label: variable.name,
                 kind: variable.incomingType instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
             });
         }
-        return results;
+        return result;
     }
 
     public getHover(position: Position): Hover {
