@@ -8,9 +8,17 @@ import { diagnosticCodes, diagnosticMessages } from '../DiagnosticMessages';
 import { FunctionScope } from '../FunctionScope';
 import { Assignment, Callable, CallableArg, CallableParam, CommentFlag, Diagnostic, ExpressionCall } from '../interfaces';
 import { Program } from '../Program';
+import { ArrayType } from '../types/ArrayType';
+import { BooleanType } from '../types/BooleanType';
 import { BrsType } from '../types/BrsType';
+import { DoubleType } from '../types/DoubleType';
 import { DynamicType } from '../types/DynamicType';
+import { FloatType } from '../types/FloatType';
 import { FunctionType } from '../types/FunctionType';
+import { IntegerType } from '../types/IntegerType';
+import { InvalidType } from '../types/InvalidType';
+import { LongIntegerType } from '../types/LongIntegerType';
+import { ObjectType } from '../types/ObjectType';
 import { StringType } from '../types/StringType';
 import { UninitializedType } from '../types/UninitializedType';
 import { VoidType } from '../types/VoidType';
@@ -342,7 +350,7 @@ export class BrsFile {
                 lineIndex: statement.name.location.start.line - 1,
                 name: statement.name.text,
                 currentType: incomingType,
-                incomingType: this.getBRSTypeFromAssignment(statement, scope)
+                incomingType: this.assignmentToBrsType(statement, scope)
             } as Assignment;
 
             //only do type checking in strict mode
@@ -387,7 +395,7 @@ export class BrsFile {
         return ancestors;
     }
 
-    private getBRSTypeFromAssignment(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BrsType {
+    private assignmentToBrsType(assignment: brs.parser.Stmt.Assignment, scope: FunctionScope): BrsType {
         try {
             //function
             if (assignment.value instanceof brs.parser.Expr.Function) {
@@ -409,6 +417,10 @@ export class BrsFile {
             } else if (assignment.value instanceof brs.parser.Expr.Literal) {
                 return util.valueKindToBrsType((assignment.value as any).value.kind);
 
+                //inline object literal
+            } else if (assignment.value instanceof brs.parser.Expr.AALiteral) {
+                return this.aaLiteralToBslType(assignment.value, scope);
+
                 //function call
             } else if (assignment.value instanceof brs.parser.Expr.Call) {
                 let calleeName = (assignment.value.callee as any).name.text;
@@ -428,6 +440,44 @@ export class BrsFile {
         }
         //fallback to dynamic
         return new DynamicType();
+    }
+
+    private expressionToBslType(expression: brs.parser.Expr.Expression, scope: FunctionScope): BrsType {
+        if (expression instanceof brs.parser.Expr.AALiteral) {
+            return this.aaLiteralToBslType(expression, scope);
+            //TODO figure out what types are contained in the array
+        } else if (expression instanceof brs.parser.Expr.ArrayLiteral) {
+            return new ArrayType([new DynamicType()]);
+        } else if (expression instanceof brs.parser.Expr.Literal) {
+            if (expression.value instanceof brs.types.BrsInvalid) {
+                return new InvalidType();
+            } else if (expression.value instanceof brs.types.BrsBoolean) {
+                return new BooleanType();
+            } else if (expression.value instanceof brs.types.BrsString) {
+                return new StringType();
+            } else if (expression.value instanceof brs.types.Int32) {
+                return new IntegerType();
+            } else if (expression.value instanceof brs.types.Int64) {
+                return new LongIntegerType();
+            } else if (expression.value instanceof brs.types.Float) {
+                return new FloatType();
+            } else if (expression.value instanceof brs.types.Double) {
+                return new DoubleType();
+            } else {
+                //what else could it be?
+            }
+        }
+        //return dynamic when we don't know what type it is
+        return new DynamicType();
+    }
+
+    private aaLiteralToBslType(value: brs.parser.Expr.AALiteral, scope: FunctionScope) {
+        let result = new ObjectType();
+        for (let prop of value.elements) {
+            let propType = this.expressionToBslType(prop.value, scope);
+            result.addProperty(prop.name.value, propType);
+        }
+        return result;
     }
 
     private getCallableByName(name: string) {

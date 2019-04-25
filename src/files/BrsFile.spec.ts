@@ -9,6 +9,7 @@ import { BooleanType } from '../types/BooleanType';
 import { DynamicType } from '../types/DynamicType';
 import { FunctionType } from '../types/FunctionType';
 import { IntegerType } from '../types/IntegerType';
+import { ObjectType } from '../types/ObjectType';
 import { StringType } from '../types/StringType';
 import { BrsFile } from './BrsFile';
 
@@ -978,6 +979,30 @@ describe('BrsFile', () => {
             await program.validate();
             expect(program.getDiagnostics()).to.be.lengthOf(1);
             expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Type_a_is_not_assignable_to_type_b_1015.code);
+        });
+    });
+
+    describe('object literals', () => {
+        it('type is determined', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                    person = {
+                        name: "bob",
+                        age: 12,
+                        isAlive: true
+                    }
+                end sub
+            `);
+            let scope = file.getFunctionScopeAtPosition(Position.create(2, 0));
+            let person = scope.assignments[0];
+            let foundType = person.incomingType as ObjectType;
+            expect(foundType).to.be.instanceof(ObjectType);
+            expect(foundType.getProperty('name')).to.exist;
+            expect(foundType.getProperty('name').type).to.be.instanceof(StringType);
+            expect(foundType.getProperty('age')).to.exist;
+            expect(foundType.getProperty('age').type).to.be.instanceof(IntegerType);
+            expect(foundType.getProperty('isAlive')).to.exist;
+            expect(foundType.getProperty('isAlive').type).to.be.instanceof(BooleanType);
         });
     });
 });
