@@ -62,7 +62,13 @@ export class ObjectType implements BrsType {
     }
 
     public toString() {
-        return 'object';
+        let typeString = '{';
+        let semicolon = '';
+        for (let prop of this.properties) {
+            typeString += `"${prop.name}": ${prop.type.toString()}${semicolon}`;
+            semicolon = '; ';
+        }
+        return typeString + '}';
     }
 
     public clone(): BrsType {
