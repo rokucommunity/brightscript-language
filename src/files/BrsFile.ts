@@ -67,6 +67,11 @@ export class BrsFile {
      * The AST for this file
      */
     private ast: brs.parser.Stmt.Statement[];
+    /**
+     * An array of the lines of the file.
+     * TODO - find a way to NOT need this because it uses extra ram
+     */
+    private lines: string[];
     private tokens = [] as brs.lexer.Token[];
 
     /**
@@ -90,9 +95,9 @@ export class BrsFile {
         }
 
         //split the text into lines
-        let lines = util.getLines(fileContents);
+        this.lines = util.getLines(fileContents);
 
-        this.getIgnores(lines);
+        this.getIgnores(this.lines);
 
         let lexResult = brs.lexer.Lexer.scan(fileContents);
 
@@ -104,18 +109,18 @@ export class BrsFile {
         let errors = [...lexResult.errors, ...<any>parseResult.errors];
 
         //convert the brs library's errors into our format
-        this.diagnostics.push(...this.standardizeLexParseErrors(errors, lines));
+        this.diagnostics.push(...this.standardizeLexParseErrors(errors, this.lines));
 
         this.ast = <any>parseResult.statements;
 
         //extract all callables from this file
-        this.findCallables(lines);
+        this.findCallables(this.lines);
 
         //traverse the ast and find all functions and create a scope object
-        this.createFunctionScopes(lines, this.ast);
+        this.createFunctionScopes(this.lines, this.ast);
 
         //find all places where a sub/function is being called
-        this.findFunctionCalls(lines);
+        this.findFunctionCalls(this.lines);
 
         this.wasProcessed = true;
     }
@@ -463,6 +468,9 @@ export class BrsFile {
             } else {
                 //what else could it be?
             }
+        } else if (expression instanceof brs.parser.Expr.Function) {
+            //TODO - determine the return type of the function itself
+            return new FunctionType(new DynamicType());
         }
         //return dynamic when we don't know what type it is
         return new DynamicType();
@@ -646,14 +654,55 @@ export class BrsFile {
             return result;
         }
 
-        //TODO: if cursor is within a comment, disable completions
+        //if cursor is directly to the right of a period (ignoring whitespace), we should show object property results
+        let line = this.lines[position.line];
+        if (util.isToRightOfPeriod(position.character, line)) {
+            //get the full variable name being referenced (like `person` or `person.name` or `person.child.name`)
+            let variableReferenceParts = util.getVariableReferenceParts(position.character, line);
 
-        let variables = functionScope.assignments;
-        for (let variable of variables) {
-            result.completions.push({
-                label: variable.name,
-                kind: variable.incomingType instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
-            });
+            //find the variable with the first part's name
+            let variable = functionScope.getVariableByName(variableReferenceParts[0]);
+
+            result.includeContextCallables = false;
+            //add all of the variable's properties
+            if (variable.incomingType instanceof ObjectType) {
+                let theType = variable.incomingType;
+                //if we have more reference parts, walk through the variable chain until we get to the desired prop type
+                for (let i = 1; i < variableReferenceParts.length; i++) {
+                    if (theType instanceof ObjectType) {
+                        let prop = theType.getProperty(variableReferenceParts[i]);
+                        if (prop.type instanceof ObjectType) {
+                            theType = prop.type;
+                        } else {
+                            //the object property is not an object itself...so we cannot continue
+                            return result;
+                        }
+                    } else {
+                        return result;
+                        // the object property is not an object itself...so we can't continue anymore
+                    }
+                }
+                for (let prop of theType.properties) {
+                    result.completions.push({
+                        label: prop.name,
+                        kind: prop.type instanceof FunctionType ? CompletionItemKind.Method : CompletionItemKind.Field
+                    });
+                }
+            }
+
+            //TODO handle complex scenarios (for now just handle objects with exact names (no array access or string keys)
+
+            //get all in-scope completions
+        } else {
+
+            //TODO: if cursor is within a comment, disable completions
+            let variables = functionScope.assignments;
+            for (let variable of variables) {
+                result.completions.push({
+                    label: variable.name,
+                    kind: variable.incomingType instanceof FunctionType ? CompletionItemKind.Function : CompletionItemKind.Variable
+                });
+            }
         }
         return result;
     }

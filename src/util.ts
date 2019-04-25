@@ -582,6 +582,77 @@ class Util {
             end.column
         );
     }
+
+    /**
+     * Determine if the current index is to the right of a period
+     */
+    public isToRightOfPeriod(charIndex: number, line: string) {
+        for (let i = charIndex; i > -1; i--) {
+            let char = line[i];
+            //skip whitespace and undefined (which means end of line)
+            if (char === ' ' || char === '\t' || char === undefined) {
+                continue;
+            }
+            //found a period...success
+            if (char === '.') {
+                return true;
+
+                //found some other char...failure
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Given a line of source code, walk left (ignoring whitespace and any first period)
+     * and collect all of the variable reference property names
+     */
+    public getVariableReferenceParts(charIndex: number, line: string) {
+        //eat any leading whitespace or periods
+        for (charIndex > -1; charIndex--;) {
+            let char = line[charIndex];
+            //skip whitespace and end of line position
+            if (char === ' ' || char === '\t' || char === undefined) {
+                continue;
+                //found a period...success
+            } else if (char === '.') {
+                break;
+            } else {
+                break;
+            }
+        }
+
+        let result = [] as string[];
+        let currentPart = '';
+        //basic identifier regex, but the parser will handle the edge cases before we get here, so this is ok.
+        let identifierRegex = /[a-z0-9_$%!#]/i;
+        for (charIndex = charIndex - 1; charIndex > -1; charIndex--) {
+            let char = line[charIndex];
+
+            //if we found an identifier char
+            if (char.match(identifierRegex)) {
+                currentPart = char + currentPart;
+
+                //a period indicates the end of a part
+            } else if (char === '.') {
+                //add to beginning of array
+                result.splice(0, 0, currentPart);
+                currentPart = '';
+            } else if (char === ' ' || char === '\t') {
+                //ignore whitespace
+            } else {
+                //found some unexpected character...quit collecting identifer parts
+                break;
+            }
+        }
+        //add the last part (if applicable)
+        if (currentPart.length > 0) {
+            //add to beginning of array
+            result.splice(0, 0, currentPart);
+        }
+        return result;
+    }
 }
 
 export let util = new Util();

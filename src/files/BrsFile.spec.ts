@@ -18,6 +18,7 @@ describe('BrsFile', () => {
     let rootDir = process.cwd();
     let program: Program;
     let file: BrsFile;
+    let mainPath = `${rootDir}/source/main.brs`;
     beforeEach(() => {
         program = new Program({ rootDir: rootDir });
         file = new BrsFile('abs', 'rel', program);
@@ -1032,6 +1033,28 @@ describe('BrsFile', () => {
             expect(foundType.getProperty('age').type).to.be.instanceof(IntegerType);
             expect(foundType.getProperty('isAlive')).to.exist;
             expect(foundType.getProperty('isAlive').type).to.be.instanceof(BooleanType);
+        });
+    });
+
+    describe('getCompletions', () => {
+        it.only('detects when completing next to a period', async () => {
+            let file = await program.addOrReplaceFile(mainPath, `
+                sub main()
+                    person = {
+                        name: "bob",
+                        age: 12,
+                        isAlive: true
+                    }
+                    person.
+                end sub
+            `);
+            //right after the period of person
+            let completionResult = file.getCompletions(Position.create(7, 27));
+            let completions = completionResult.completions;
+            expect(completions.length).to.equal(3);
+            expect(completions[0].label).to.equal('name');
+            expect(completions[1].label).to.equal('age');
+            expect(completions[2].label).to.equal('isAlive');
         });
     });
 });
