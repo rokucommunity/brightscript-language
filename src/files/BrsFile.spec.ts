@@ -998,6 +998,18 @@ describe('BrsFile', () => {
     });
 
     describe('strict mode', () => {
+        it('var being initialized as "invalid" is given type "dynamic"', async () => {
+            const file = await program.addOrReplaceFile(mainPath, `
+                sub Main()
+                    runtime = invalid
+                    runtime = "cat"
+                end sub
+            `);
+            await program.validate();
+            const scope = file.getFunctionScopeAtPosition(Position.create(2, 0));
+            expect(scope.assignments[0].incomingType).to.be.instanceof(DynamicType);
+        });
+
         it('catches basic local assignment type mismatches', async () => {
             program.options.strictTypeChecking = true;
             await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
@@ -1037,7 +1049,7 @@ describe('BrsFile', () => {
     });
 
     describe('getCompletions', () => {
-        it.only('detects when completing next to a period', async () => {
+        it('detects when completing next to a period', async () => {
             let file = await program.addOrReplaceFile(mainPath, `
                 sub main()
                     person = {

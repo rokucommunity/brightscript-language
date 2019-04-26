@@ -1,14 +1,9 @@
 import { BrsType } from './BrsType';
-import { DynamicType } from './DynamicType';
-import { UninitializedType } from './UninitializedType';
 
 export class InvalidType implements BrsType {
     public isAssignableTo(targetType: BrsType) {
-        return (
-            targetType instanceof InvalidType ||
-            targetType instanceof DynamicType ||
-            targetType instanceof UninitializedType
-        );
+        //everything can be set to invalid
+        return true;
     }
 
     public isConvertibleTo(targetType: BrsType) {

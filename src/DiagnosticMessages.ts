@@ -1,3 +1,5 @@
+import { BrsType } from './types/BrsType';
+
 // tslint:disable
 /**
  * An object that keeps track of all possible error messages.
@@ -72,6 +74,10 @@ export let diagnosticMessages = {
     Type_a_is_not_assignable_to_type_b_1016: (leftType: string, rightType: string) => ({
         message: `Type "${leftType}" is not assignable to type "${rightType}"`,
         code: 1016
+    }),
+    Property_does_not_exist_on_type_1017: (propertyName: string, theType: BrsType) => ({
+        message: `Property '${propertyName}' does not exist on type '${theType}'`,
+        code: 1017
     }),
 };
 

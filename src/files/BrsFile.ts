@@ -349,12 +349,16 @@ export class BrsFile {
             }
             //incoming type should be set to uninitialized when this is the first assignment
             let incomingType = previous ? previous.incomingType : new UninitializedType();
+            let incomingBslType = this.assignmentToBrsType(statement, scope);
+            //any variables initialized as "invalid" should be given type "dynamic"
+            incomingBslType = incomingBslType instanceof InvalidType ? new DynamicType() : incomingBslType;
+
             let assignment = {
                 nameRange: util.locationToRange(statement.name.location),
                 lineIndex: statement.name.location.start.line - 1,
                 name: statement.name.text,
                 currentType: incomingType,
-                incomingType: this.assignmentToBrsType(statement, scope)
+                incomingType: incomingBslType
             } as Assignment;
 
             //only do type checking in strict mode
