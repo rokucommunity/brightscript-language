@@ -998,6 +998,20 @@ describe('BrsFile', () => {
     });
 
     describe('strict mode', () => {
+        it('catches unknown property access', async () => {
+            await program.addOrReplaceFile(mainPath, `
+                sub Main()
+                    person = {
+                        name: "bob"
+                    }
+                    person.age = 12 'error because person does not have age property
+                end sub
+            `);
+            await program.validate();
+            expect(program.getDiagnostics()).to.be.lengthOf(1);
+            expect(program.getDiagnostics()[0].code).to.equal(diagnosticMessages.Property_does_not_exist_on_type_1017('', new DynamicType()).code);
+        });
+
         it('var being initialized as "invalid" is given type "dynamic"', async () => {
             const file = await program.addOrReplaceFile(mainPath, `
                 sub Main()
