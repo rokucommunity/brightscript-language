@@ -285,6 +285,34 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it('supports increment operator', async () => {
+            await file.parse(`
+                function Main()
+                    x = 3
+                    x++
+                end function
+            `);
+            let diagnostics = file.getDiagnostics();
+            if (diagnostics.length > 0) {
+                console.log(diagnostics);
+            }
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports decrement operator', async () => {
+            await file.parse(`
+                function Main()
+                    x = 3
+                    x--
+                end function
+            `);
+            let diagnostics = file.getDiagnostics();
+            if (diagnostics.length > 0) {
+                console.log(diagnostics);
+            }
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it.skip('supports writing numbers with decimal but no trailing digit', async () => {
             await file.parse(`
                 function Main()
