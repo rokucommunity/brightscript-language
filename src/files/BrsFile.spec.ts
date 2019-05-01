@@ -139,6 +139,15 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('does not error when encountering sub with return type', async () => {
+            await file.parse(`
+                sub main() as integer
+                    return 1
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('does not lose function scopes when mismatched end sub', async () => {
             await file.parse(`
                 sub main()
