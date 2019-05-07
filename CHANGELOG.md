@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.7] - 2019-05-07
+ - Upgraded to brs@0.13.0-nightly.20190507 which fixes
+   - many syntax errors related to using keywords as property names.
+   - support for hex literals
+
+
+
 ## [0.2.6] - 2019-5-01
 ### Changed 
  - upgraded to brs@0.13.0-nightly.20190501 which removes error for subs with return types ([brs#220](https://github.com/sjbarag/brs/issues/220))
@@ -149,6 +156,7 @@ initial project release.
 
 
 
+[0.2.7]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.6...v0.2.7
 [0.2.6]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.5...v0.2.6
 [0.2.5]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.4...v0.2.5
 [0.2.4]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.3...v0.2.4

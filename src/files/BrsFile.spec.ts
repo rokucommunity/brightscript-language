@@ -139,6 +139,81 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('supports many keywords as object property names', async () => {
+            await file.parse(`
+                sub Main()
+                    person = {}
+                    person.and = true
+                    person.box = true
+                    person.createobject = true
+                    person.dim = true
+                    person.double = true
+                    person.each = true
+                    person.else = true
+                    person.elseif = true
+                    person.end = true
+                    person.endfor = true
+                    person.endfunction = true
+                    person.endif = true
+                    person.endsub = true
+                    person.endwhile = true
+                    person.eval = true
+                    person.exit = true
+                    person.exitfor = true
+                    person.exitwhile = true
+                    person.false = true
+                    person.float = true
+                    person.for = true
+                    person.foreach = true
+                    person.function = true
+                    person.getglobalaa = true
+                    person.getlastruncompileerror = true
+                    person.getlastrunruntimeerror = true
+                    person.goto = true
+                    person.if = true
+                    person.integer = true
+                    person.invalid = true
+                    person.let = true
+                    person.line_num = true
+                    person.longinteger = true
+                    person.next = true
+                    person.not = true
+                    person.objfun = true
+                    person.or = true
+                    person.pos = true
+                    person.print = true
+                    person.rem = true
+                    person.return = true
+                    person.run = true
+                    person.step = true
+                    person.stop = true
+                    person.string = true
+                    person.sub = true
+                    person.tab = true
+                    person.then = true
+                    person.to = true
+                    person.true = true
+                    person.type = true
+                    person.while = true
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+        it('does not error on numeric literal type designators', async () => {
+            await file.parse(`
+                sub main()
+                    print &he2
+                    print 1.2E+2
+                    print 2!
+                    print 12D-12
+                    print 2.3#
+                    print &hFEDCBA9876543210&
+                    print 9876543210&
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('does not error when encountering sub with return type', async () => {
             await file.parse(`
                 sub main() as integer
