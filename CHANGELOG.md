@@ -6,7 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.8] - 2019-05-13
+## Changed
+ - Export `XmlContext` and `Util` in `index.js`
+
+### Fixed
+ - upgraded to brs@0.13.0-nightly.2019.05.14 which fixes broken syntax for library import statements
+ 
+
+
 ## [0.2.7] - 2019-05-07
+### Changed
  - Upgraded to brs@0.13.0-nightly.20190507 which fixes
    - many syntax errors related to using keywords as property names.
    - support for hex literals
@@ -156,6 +166,7 @@ initial project release.
 
 
 
+[0.2.8]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.7...v0.2.8
 [0.2.7]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.6...v0.2.7
 [0.2.6]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.5...v0.2.6
 [0.2.5]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.4...v0.2.5

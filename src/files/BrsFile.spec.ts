@@ -217,9 +217,10 @@ describe('BrsFile', () => {
         it('does not error when encountering sub with return type', async () => {
             await file.parse(`
                 sub main() as integer
-                    return 1
+                    return
                 end sub
             `);
+            console.log(file.getDiagnostics());
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
@@ -478,7 +479,7 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
-        it.skip('supports library imports', async () => {
+        it('supports library imports', async () => {
             await file.parse(`
                 Library "v30/bslCore.brs"
             `);

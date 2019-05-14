@@ -25,7 +25,7 @@ import { StringType } from './types/StringType';
 import { UninitializedType } from './types/UninitializedType';
 import { VoidType } from './types/VoidType';
 
-class Util {
+export class Util {
     public log(...args) {
         //print an empty line
         console.log('');
