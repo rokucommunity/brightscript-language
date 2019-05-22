@@ -6,12 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.9] - 2019-05-22
+## Fixed
+ - upgraded to brs@0.13.0-nightly.20190522 which brings the following changes
+   - syntax support for numbers with leading or trailing period
+   - added `&` as supported type designator for identifiers
+
+
+
 ## [0.2.8] - 2019-05-13
 ## Changed
  - Export `XmlContext` and `Util` in `index.js`
 
 ### Fixed
- - upgraded to brs@0.13.0-nightly.2019.05.14 which fixes broken syntax for library import statements
+ - upgraded to brs@0.13.0-nightly.20190514 which fixes broken syntax for library import statements
  
 
 
@@ -166,6 +174,7 @@ initial project release.
 
 
 
+[0.2.9]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.8...v0.2.9
 [0.2.8]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.7...v0.2.8
 [0.2.7]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.6...v0.2.7
 [0.2.6]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.5...v0.2.6

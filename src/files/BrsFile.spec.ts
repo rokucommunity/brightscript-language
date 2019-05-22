@@ -139,6 +139,7 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+
         it('supports many keywords as object property names', async () => {
             await file.parse(`
                 sub Main()
@@ -276,13 +277,14 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
-        it('supports type designators', async () => {
+        it('supports variable names ending with type designators', async () => {
             await file.parse(`
                 sub main()
                   name$ = "bob"
                   age% = 1
                   height! = 5.5
                   salary# = 9.87654321
+                  someHex& = 13
                 end sub
             `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
@@ -454,6 +456,18 @@ describe('BrsFile', () => {
                         print m.x
                     end function
                 `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports leading and trailing periods for numeric literals', async () => {
+            await file.parse(`
+                function Main()
+                    one = 1.
+                    print one
+                    pointOne = .1
+                    print pointOne
+                end function
+            `);
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
