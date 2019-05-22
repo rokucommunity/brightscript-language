@@ -30,6 +30,13 @@ describe('util', () => {
         process.chdir(cwd);
     });
 
+    describe('uriToPath', () => {
+        it('retains original drive casing for windows', () => {
+            expect(util.uriToPath(`file:///C:\\something`)).to.equal('C:\\something');
+            expect(util.uriToPath(`file:///C:\\something`)).to.equal('C:\\something');
+        });
+    });
+
     describe('loadConfigFile', () => {
         it('returns proper list of ancestor project paths', async () => {
             vfs[n(`${cwd}/child.json`)] = `{"extends": "parent.json"}`;

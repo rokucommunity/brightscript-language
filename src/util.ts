@@ -494,7 +494,16 @@ export class Util {
      * @param uri
      */
     public uriToPath(uri: string) {
-        return path.normalize(Uri.parse(uri).fsPath);
+        let parsedPath = Uri.parse(uri).fsPath;
+
+        //Uri annoyingly coverts all drive letters to lower case...so this will bring back whatever case it came in as
+        let match = /\/\/\/([a-z]:)/i.exec(uri);
+        if (match) {
+            let originalDriveCasing = match[1];
+            parsedPath = originalDriveCasing + parsedPath.substring(2);
+        }
+        const normalizedPath = path.normalize(parsedPath);
+        return normalizedPath;
     }
 
     /**
