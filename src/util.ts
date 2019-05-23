@@ -34,6 +34,7 @@ export class Util {
         //print an empty line
         console.log('');
     }
+
     public clearConsole() {
         process.stdout.write('\x1Bc');
     }
@@ -192,17 +193,11 @@ export class Util {
      * @param options
      */
     public getRootDir(options: BrsConfig) {
-        let originalProcessCwd = process.cwd();
-
         let cwd = options.cwd;
         cwd = cwd ? cwd : process.cwd();
         let rootDir = options.rootDir ? options.rootDir : cwd;
 
-        process.chdir(cwd);
-
-        rootDir = path.resolve(rootDir);
-
-        process.chdir(originalProcessCwd);
+        rootDir = path.resolve(cwd, rootDir);
 
         return rootDir;
     }
