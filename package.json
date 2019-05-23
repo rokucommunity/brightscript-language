@@ -80,7 +80,8 @@
     "tslint-eslint-rules": "^5.4.0",
     "tslint-no-unused-expression-chai": "^0.1.4",
     "tslint-origin-ordered-imports-rule": "^1.1.2",
-    "typescript": "^3.2.4"
+    "typescript": "^3.2.4",
+    "vscode-jsonrpc": "^4.0.0"
   },
   "dependencies": {
     "brs": "0.13.0-nightly.20190522",
@@ -94,8 +95,6 @@
     "fs-extra": "^7.0.1",
     "moment": "^2.23.0",
     "roku-deploy": "^2.0.0",
-    "vscode-jsonrpc": "^4.0.0",
-    "vscode-languageclient": "^5.2.1",
     "vscode-languageserver": "^5.2.1",
     "vscode-uri": "^1.0.6",
     "xml2js": "^0.4.19"

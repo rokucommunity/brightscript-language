@@ -26,7 +26,7 @@ export class LanguageServer {
     }
     private connection: Connection;
 
-    private workspaces = [] as Workspace[];
+    public workspaces = [] as Workspace[];
 
     private hasConfigurationCapability = false;
 
@@ -41,11 +41,15 @@ export class LanguageServer {
      */
     private documents = new TextDocuments();
 
+    private createConnection() {
+        return createConnection(ProposedFeatures.all);
+    }
+
     //run the server
     public run() {
         // Create a connection for the server. The connection uses Node's IPC as a transport.
         // Also include all preview / proposed LSP features.
-        this.connection = createConnection(ProposedFeatures.all);
+        this.connection = this.createConnection();
 
         this.connection.onInitialize(this.onInitialize.bind(this));
 
@@ -105,7 +109,7 @@ export class LanguageServer {
      * Called when the client starts initialization
      * @param params
      */
-    private async onInitialize(params: InitializeParams) {
+    public async onInitialize(params: InitializeParams) {
         let clientCapabilities = params.capabilities;
 
         // Does the client support the `workspace/configuration` request?
@@ -132,7 +136,6 @@ export class LanguageServer {
      * @param params
      */
     private async onInitialized() {
-
         if (this.hasConfigurationCapability) {
             // Register for all configuration changes.
             await this.connection.client.register(
@@ -146,9 +149,7 @@ export class LanguageServer {
         let workspacePaths = workspaceFolders.map((x) => {
             return util.uriToPath(x.uri);
         });
-
         await this.createWorkspaces(workspacePaths);
-
         if (this.clientHasWorkspaceFolderCapability) {
             this.connection.workspace.onDidChangeWorkspaceFolders(async (evt) => {
                 //remove programs for removed workspace folders
@@ -205,6 +206,18 @@ export class LanguageServer {
         );
     }
 
+    /**
+     * Event handler for when the program wants to load file contents.
+     * anytime the program wants to load a file, check with our in-memory document cache first
+     */
+    private documentFileResolver(pathAbsolute) {
+        let pathUri = Uri.file(pathAbsolute).toString();
+        let document = this.documents.get(pathUri);
+        if (document) {
+            return document.getText();
+        }
+    }
+
     private async createWorkspace(workspacePath: string) {
         let workspace = this.workspaces.find((x) => x.workspacePath === workspacePath);
         //skip this workspace if we already have it
@@ -213,13 +226,12 @@ export class LanguageServer {
         }
         let builder = new ProgramBuilder();
 
-        //anytime the program wants to load a file, check with our in-memory document cache first
+        //prevent clearing the console on run...this isn't the CLI so we want to keep a full log of everything
+        builder.allowConsoleClearing = false;
+
+        //look for files in our in-memory cache before going to the file system
         builder.addFileResolver((pathAbsolute) => {
-            let pathUri = Uri.file(pathAbsolute).toString();
-            let document = this.documents.get(pathUri);
-            if (document) {
-                return document.getText();
-            }
+            return this.documentFileResolver(pathAbsolute);
         });
 
         //load config from client for this workspace
@@ -247,6 +259,7 @@ export class LanguageServer {
         }).catch((err) => {
             console.error(err);
         });
+
         let newWorkspace = {
             builder: builder,
             firstRunPromise: firstRunPromise,
@@ -255,7 +268,9 @@ export class LanguageServer {
             isFirstRunSuccessful: false,
             configFilePath: configFilePath
         } as Workspace;
+
         this.workspaces.push(newWorkspace);
+
         firstRunPromise.then(() => {
             newWorkspace.isFirstRunComplete = true;
             newWorkspace.isFirstRunSuccessful = true;

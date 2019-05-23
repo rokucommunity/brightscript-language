@@ -19,6 +19,11 @@ export class ProgramBuilder {
     ) {
     }
 
+    /**
+     * Determines whether the console should be cleared after a run (true for cli, false for languageserver)
+     */
+    public allowConsoleClearing = true;
+
     private options: BrsConfig;
     private isRunning = false;
     private watcher: Watcher;
@@ -61,13 +66,19 @@ export class ProgramBuilder {
         }
     }
 
+    private clearConsole() {
+        if (this.allowConsoleClearing) {
+            util.clearConsole();
+        }
+    }
+
     public async enableWatchMode() {
         this.watcher = new Watcher(this.options);
         //keep the process alive indefinitely by setting an interval that runs once every 12 days
         setInterval(() => { }, 1073741824);
 
         //clear the console
-        util.clearConsole();
+        this.clearConsole();
 
         let fileObjects = rokuDeploy.normalizeFilesOption(this.options.files ? this.options.files : []);
 
@@ -108,7 +119,7 @@ export class ProgramBuilder {
      */
     private runOnce() {
         //clear the console
-        util.clearConsole();
+        this.clearConsole();
         let cancellationToken = { isCanceled: false };
         //wait for the previous run to complete
         let runPromise = this.cancelLastRun().then(() => {
