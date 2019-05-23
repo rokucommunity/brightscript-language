@@ -140,6 +140,20 @@ describe('BrsFile', () => {
 
     describe('parse', () => {
 
+        it('supports single-line if statements', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                    if 1 < 2: return true: end if
+                    if 1 < 2: return true
+                    end if
+                    if false : print "true" : end if
+                    if true: print "8 worked": else if true: print "not run": else: print "not run": end if
+                    if true then : test = sub() : print "yes" : end sub : end if
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('supports many keywords as object property names', async () => {
             await file.parse(`
                 sub Main()
@@ -400,7 +414,7 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
-        it.skip('supports writing numbers with decimal but no trailing digit', async () => {
+        it('supports writing numbers with decimal but no trailing digit', async () => {
             await file.parse(`
                 function Main()
                     x = 3.
