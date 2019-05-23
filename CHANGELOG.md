@@ -6,8 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.10] - 2019-05-22
+### Fixed
+ - upgraded to brs@0.13.0-nightly.2019.05.23 which brings the following changes:
+   - syntax support for trailing colons in if statements
+
+
+
 ## [0.2.9] - 2019-05-22
-## Fixed
+### Fixed
  - upgraded to brs@0.13.0-nightly.20190522 which brings the following changes
    - syntax support for numbers with leading or trailing period
    - added `&` as supported type designator for identifiers
@@ -15,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [0.2.8] - 2019-05-13
-## Changed
+### Changed
  - Export `XmlContext` and `Util` in `index.js`
 
 ### Fixed
@@ -174,6 +181,7 @@ initial project release.
 
 
 
+[0.2.10]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.9...v0.2.10
 [0.2.9]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.8...v0.2.9
 [0.2.8]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.7...v0.2.8
 [0.2.7]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.6...v0.2.7
