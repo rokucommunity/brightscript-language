@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.11] - 2019-05-28
+### Fixed
+ - upgraded to brs@0.13.0 which brings the following changes: 
+   - syntax support for `LINE_NUM` variable
+
+
+
 ## [0.2.10] - 2019-05-22
 ### Fixed
  - upgraded to brs@0.13.0-nightly.2019.05.23 which brings the following changes:
@@ -181,6 +188,7 @@ initial project release.
 
 
 
+[0.2.11]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.10...v0.2.11
 [0.2.10]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.9...v0.2.10
 [0.2.9]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.8...v0.2.9
 [0.2.8]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.7...v0.2.8

@@ -154,6 +154,15 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it('supports line_num as global variable', async () => {
+            await file.parse(`
+                sub Main()
+                    print LINE_NUM
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('supports many keywords as object property names', async () => {
             await file.parse(`
                 sub Main()
