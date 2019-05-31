@@ -6,10 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.12] - 2019-05-30
+### Fixed
+ - prevent compile errors for conditional compile statements
+ - upgraded to brs@0.13.0-nightly.20190530 which brings the following changes:
+   - syntax support for single-word `#elseif` and `#endif` [brs#249](https://github.com/sjbarag/brs/pull/249)
+   - syntax support for `stop` statements [brs#247](https://github.com/sjbarag/brs/pull/247)
+   - syntax support for empty `print` statements [brs#264](https://github.com/sjbarag/brs/pull/246)
+
+
+
 ## [0.2.11] - 2019-05-28
 ### Fixed
  - upgraded to brs@0.13.0 which brings the following changes: 
-   - syntax support for `LINE_NUM` variable
+   - syntax support for `LINE_NUM` variable [brs#242](https://github.com/sjbarag/brs/pull/242)
 
 
 
