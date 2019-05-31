@@ -149,6 +149,47 @@ describe('BrsFile', () => {
             expect(file.getDiagnostics()).to.be.lengthOf(0);
         });
 
+        it('supports single-word #elseif and #endif', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                    #const someFlag = true
+                    #if someFlag
+                        'code to execute when someFlag is true
+                    #elseif someFlag
+                        'code to execute when anotherFlag is true
+                    #endif
+                end sub
+            `);
+            console.log(file.getDiagnostics());
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('supports multi-word #else if and #end if', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                    #const someFlag = true
+                    #if someFlag
+                        'code to execute when someFlag is true
+                    #else if someFlag
+                        'code to execute when anotherFlag is true
+                    #end if
+                end sub
+            `);
+            console.log(file.getDiagnostics());
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+        it('does not choke on invalid code inside a false conditional compile', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                    #if false
+                        non-commented code here should not cause parse errors
+                    #end if
+                end sub
+            `);
+            console.log(file.getDiagnostics());
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
 
         it('supports stop statement', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `

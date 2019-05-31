@@ -88,12 +88,42 @@ export class BrsFile {
 
         let lexResult = brs.lexer.Lexer.scan(fileContents);
 
-        this.tokens = lexResult.tokens;
+        let tokens = lexResult.tokens;
+
+        //remove all code inside false-resolved conditional compilation statements
+        let manifest = await brs.preprocessor.getManifest(this.program.rootDir);
+        let preprocessor = new brs.preprocessor.Preprocessor();
+        let preprocessorResults = {
+            errors: [],
+            processedTokens: []
+        };
+        let preprocessorWasSuccessful: boolean;
+        let handle;
+        //currently the preprocessor throws exceptions on syntax errors...so we need to catch it
+        try {
+            handle = preprocessor.onError((err) => {
+                preprocessorResults.errors.push(err);
+            });
+            preprocessorResults = <any>preprocessor.preprocess(tokens, manifest);
+            preprocessorWasSuccessful = true;
+        } catch (e) {
+            preprocessorWasSuccessful = false;
+            //if the thrown error is DIFFERENT than any errors from the preprocessor, add that error to the list as well
+            if (preprocessorResults.errors.find((ex) => ex === e) === undefined) {
+                preprocessorResults.errors.push(e as any);
+            }
+        }
+        //dispose of the onError event listener
+        if (handle) {
+            handle.dispose();
+        }
+        //TODO have brs change the type of `processedTokens` to not be readonly array
+        this.tokens = preprocessorWasSuccessful ? (preprocessorResults.processedTokens as any) : lexResult.tokens;
 
         let parser = new brs.parser.Parser();
-        let parseResult = parser.parse(lexResult.tokens);
+        let parseResult = parser.parse(this.tokens);
 
-        let errors = [...lexResult.errors, ...<any>parseResult.errors];
+        let errors = [...lexResult.errors, ...<any>parseResult.errors, ...<any>preprocessorResults.errors];
 
         //convert the brs library's errors into our format
         this.diagnostics.push(...this.standardizeLexParseErrors(errors, lines));

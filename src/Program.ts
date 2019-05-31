@@ -84,7 +84,10 @@ export class Program {
      */
     public platformContext: Context;
 
-    private rootDir: string;
+    /**
+     * The full path to the root of the brightscript project (where the manifest file lives)
+     */
+    public rootDir: string;
 
     /**
      * A set of diagnostics. This does not include any of the context diagnostics.
