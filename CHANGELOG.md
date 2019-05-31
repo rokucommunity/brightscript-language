@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [0.2.12] - 2019-05-30
+## [0.2.12] - 2019-05-31
 ### Fixed
  - prevent compile errors for conditional compile statements
  - upgraded to brs@0.13.0-nightly.20190530 which brings the following changes:
@@ -198,6 +198,7 @@ initial project release.
 
 
 
+[0.2.12]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.11...v0.2.12
 [0.2.11]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.10...v0.2.11
 [0.2.10]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.9...v0.2.10
 [0.2.9]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.8...v0.2.9
