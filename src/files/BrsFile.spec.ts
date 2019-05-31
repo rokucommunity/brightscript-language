@@ -140,6 +140,25 @@ describe('BrsFile', () => {
 
     describe('parse', () => {
 
+        it('supports empty print statements', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                   print
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
+
+        it('supports stop statement', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub main()
+                   stop
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
+
         it('supports single-line if statements', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
                 sub main()
