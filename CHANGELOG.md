@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.13] - 2019-06-13
+### Fixed
+ - upgraded to brs@0.14.0-nightly.20190613 which brings the following changes: 
+   - syntax support for `GOTO` and labels [brs#248](https://github.com/sjbarag/brs/pull/248)
+
+
+
 ## [0.2.12] - 2019-05-31
 ### Fixed
  - prevent compile errors for conditional compile statements
@@ -198,6 +205,7 @@ initial project release.
 
 
 
+[0.2.13]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.12...v0.2.13
 [0.2.12]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.11...v0.2.12
 [0.2.11]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.10...v0.2.11
 [0.2.10]:  https://github.com/TwitchBronBron/brightscript-language/compare/v0.2.9...v0.2.10
