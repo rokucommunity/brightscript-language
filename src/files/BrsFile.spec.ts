@@ -139,6 +139,16 @@ describe('BrsFile', () => {
     });
 
     describe('parse', () => {
+        it('supports labels and goto statements', async () => {
+            let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `
+                sub Main()
+                    'multiple goto statements on one line
+                    goto myLabel : goto myLabel
+                    myLabel:
+                end sub
+            `);
+            expect(file.getDiagnostics()).to.be.lengthOf(0);
+        });
 
         it('supports empty print statements', async () => {
             let file = await program.addOrReplaceFile(`${rootDir}/source/main.brs`, `

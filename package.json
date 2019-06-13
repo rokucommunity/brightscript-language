@@ -84,7 +84,7 @@
     "vscode-jsonrpc": "^4.0.0"
   },
   "dependencies": {
-    "brs": "0.13.0-nightly.20190530",
+    "brs": "0.14.0-nightly.20190613",
     "chalk": "^2.4.2",
     "chokidar": "^2.0.4",
     "clear": "^0.1.0",
