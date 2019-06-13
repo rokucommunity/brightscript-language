@@ -1,6 +1,6 @@
 {
   "name": "brightscript-language",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "Suite of language tools for Roku's BrightScript language.",
   "scripts": {
     "preversion": "npm run build && npm run tslint",
