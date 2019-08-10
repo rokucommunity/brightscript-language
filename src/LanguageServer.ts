@@ -425,7 +425,10 @@ export class LanguageServer {
         //TODO improve this to support more than just .brs files
         if (hover && hover.contents) {
             //create fenced code block to get colorization
-            hover.contents = '```brightscript\n' + hover.contents + '```';
+            hover.contents = {
+                language: 'brightscript',
+                value: hover.contents as string
+            };
         }
         return hover;
     }
