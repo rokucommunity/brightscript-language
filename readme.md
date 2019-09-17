@@ -1,3 +1,6 @@
+# ⚠️ Warning 
+This project is no longer maintained. Its successor is [BrighterScript](https://github.com/RokuCommunity/brighterscript).
+
 # BrightScript-Language
 
 A compiler and language server for Roku's BrightScript language. 
